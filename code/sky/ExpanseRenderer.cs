@@ -12,7 +12,6 @@ class ExpanseSkyRenderer : SkyRenderer
 /**************************** SHADER PROPERTY ID'S ****************************/
 /******************************************************************************/
 
-public static readonly int _SkyParam = Shader.PropertyToID("_SkyParam");
 public static readonly int _PixelCoordToViewDirWS = Shader.PropertyToID("_PixelCoordToViewDirWS");
 
 /******************************************************************************/
@@ -272,12 +271,12 @@ MaterialPropertyBlock m_PropertyBlock = new MaterialPropertyBlock();
 /* Hash values for determining update behavior. */
 int m_LastSkyHash;
 int m_LastCloudHash;
-private static int m_RenderCubemapSkyID = 0;       // FragBakeSky
-private static int m_RenderFullscreenSkyID = 1;    // FragRenderSky
-private static int m_RenderCubemapCloudsID = 2;    // FragBakeClouds
-private static int m_RenderFullscreenCloudsID = 3; // FragRenderClouds
-private static int m_CompositeCubemapSkyAndCloudsID = 4;    // FragBakeComposite // TODO: wrong temporarily
-private static int m_CompositeFullscreenSkyAndCloudsID = 5; // FragRenderComposite
+private static int m_RenderCubemapSkyID = 0;
+private static int m_RenderFullscreenSkyID = 1;
+private static int m_RenderCubemapCloudsID = 2;
+private static int m_RenderFullscreenCloudsID = 3;
+private static int m_CompositeCubemapSkyAndCloudsID = 4;
+private static int m_CompositeFullscreenSkyAndCloudsID = 5;
 
 /******************************************************************************/
 /**************************** END MEMBER VARIABLES ****************************/
@@ -316,6 +315,11 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
 {
   var sky = builtinParams.skySettings as ExpanseSky;
 
+  /* Set everything in the material property block. */
+  /* TODO: may be able to put this in update, so it doesn't happen
+   * so frequently and slow things down .*/
+  setMaterialPropertyBlock(builtinParams);
+
   /* Allocate the tables and update info about atmosphere layers that are
    * active. This will not reallocate if the table sizes have remained the
    * same and no atmosphere layers have been added or removed. */
@@ -342,6 +346,10 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
 
   return false;
 }
+
+/******************************************************************************/
+/****************************** RENDER FUNCTIONS ******************************/
+/******************************************************************************/
 
 private void RenderSkyPass(BuiltinSkyParameters builtinParams, bool renderForCubemap) {
   int skyPassID = renderForCubemap ? m_RenderCubemapSkyID : m_RenderFullscreenSkyID;
@@ -430,22 +438,15 @@ private void checkAndResizeFramebuffers(BuiltinSkyParameters builtinParams, bool
   }
 }
 
+
 public override void RenderSky(BuiltinSkyParameters builtinParams, bool renderForCubemap, bool renderSunDisk)
 {
   using (new ProfilingSample(builtinParams.commandBuffer, "Draw sky"))
   {
-    /* Get sky object. */
-    var sky = builtinParams.skySettings as ExpanseSky;
 
     /* Check whether or not we have to resize the framebuffers, and do it
      * if we have to. */
     checkAndResizeFramebuffers(builtinParams, renderForCubemap);
-
-    /* Set material properties for sky and clouds. */
-    float intensity = GetSkyIntensity(sky, builtinParams.debugSettings);
-    float phi = -Mathf.Deg2Rad * sky.rotation.value; // -rotation to match Legacy
-    m_PropertyBlock.SetVector(_SkyParam, new Vector4(intensity, 0.0f, Mathf.Cos(phi), Mathf.Sin(phi)));
-    m_PropertyBlock.SetMatrix(_PixelCoordToViewDirWS, builtinParams.pixelCoordToViewDirMatrix);
 
     /* Set the depth buffer to use when computing transmittance. */
     if (!renderForCubemap) {
@@ -462,5 +463,182 @@ public override void RenderSky(BuiltinSkyParameters builtinParams, bool renderFo
     RenderCompositePass(builtinParams, renderForCubemap);
   }
 }
+
+/******************************************************************************/
+/**************************** END RENDER FUNCTIONS ****************************/
+/******************************************************************************/
+
+
+
+/******************************************************************************/
+/************************* PHYSICAL PROPERTY FUNCTIONS ************************/
+/******************************************************************************/
+
+private Vector4 blackbodyTempToColor(float t) {
+  t = t / 100;
+  float r = 0;
+  float g = 0;
+  float b = 0;
+
+  /* Red. */
+  if (t <= 66) {
+    r = 255;
+  } else {
+    r = t - 60;
+    r = 329.698727446f * (Mathf.Pow(r, -0.1332047592f));
+  }
+
+  /* Green. */
+  if (t <= 66) {
+    g = t;
+    g = 99.4708025861f * Mathf.Log(t) - 161.1195681661f;
+  } else {
+    g = 288.1221695283f * (Mathf.Pow((t-60), -0.0755148492f));
+  }
+
+  /* Blue. */
+  if (t >= 66) {
+    b = 255;
+  } else {
+    if (t <= 19) {
+      b = 0;
+    } else {
+      b = 138.5177312231f * Mathf.Log(t-b) - 305.0447927307f;
+    }
+  }
+
+  r = Mathf.Clamp(r, 0, 255) / 255;
+  g = Mathf.Clamp(g, 0, 255) / 255;
+  b = Mathf.Clamp(b, 0, 255) / 255;
+  return new Vector4(r, g, b, 0);
+}
+
+/******************************************************************************/
+/*********************** END PHYSICAL PROPERTY FUNCTIONS **********************/
+/******************************************************************************/
+
+/******************************************************************************/
+/************************** MATERIAL PROPERTY SETTERS *************************/
+/******************************************************************************/
+
+
+private void setMaterialPropertyBlock(BuiltinSkyParameters builtinParams) {
+  /* Get sky object. */
+  var sky = builtinParams.skySettings as ExpanseSky;
+
+  /* Set material properties for sky and clouds. */
+
+
+  /* Celestial bodies. */
+  setMaterialPropertyBlockCelestialBodies(sky);
+
+  m_PropertyBlock.SetMatrix(_PixelCoordToViewDirWS, builtinParams.pixelCoordToViewDirMatrix);
+}
+
+private void setMaterialPropertyBlockCelestialBodies(ExpanseSky sky) {
+
+  int n = (int) ExpanseCommon.kMaxCelestialBodies;
+
+  /* Set up arrays to pass to shader. */
+  float[] bodyEnabled = new float[n];
+  Vector4[] bodyDirection = new Vector4[n];
+
+  float[] bodyAngularRadius = new float[n];
+  float[] bodyDistance = new float[n];
+  float[] bodyReceivesLight = new float[n];
+  Matrix4x4[] bodyAlbedoTextureRotation = new Matrix4x4[n];
+  Vector4[] bodyAlbedoTint = new Vector4[n];
+  float[] bodyEmissive = new float[n];
+  Vector4[] bodyLightColor = new Vector4[n];
+  float[] bodyLimbDarkening = new float[n];
+  Matrix4x4[] bodyEmissionTextureRotation = new Matrix4x4[n];
+  Vector4[] bodyEmissionTint = new Vector4[n];
+
+  int numActiveBodies = 0;
+  for (int i = 0; i < ExpanseCommon.kMaxCelestialBodies; i++) {
+    bool enabled = (((BoolParameter) sky.GetType().GetField("bodyEnabled" + i).GetValue(sky)).value);
+    if (enabled) {
+      /* Only set up remaining properties if this body is enabled. */
+      bodyEnabled[i] = (((BoolParameter) sky.GetType().GetField("bodyEnabled" + i).GetValue(sky)).value) ? 1 : 0;
+
+      Vector3 direction = ExpanseCommon.anglesToDirectionVector(ExpanseCommon.degreesToRadians(((Vector2Parameter) sky.GetType().GetField("bodyDirection" + i).GetValue(sky)).value));
+      bodyDirection[i] = new Vector4(direction.x, direction.y, direction.z, 0);
+
+      bodyAngularRadius[i] = ((ClampedFloatParameter) sky.GetType().GetField("bodyAngularRadius" + i).GetValue(sky)).value;
+      bodyDistance[i] = ((MinFloatParameter) sky.GetType().GetField("bodyDistance" + i).GetValue(sky)).value;
+      bodyReceivesLight[i] = (((BoolParameter) sky.GetType().GetField("bodyReceivesLight" + i).GetValue(sky)).value) ? 1 : 0;
+
+      Vector3 albedoTexRotationV3 = ((Vector3Parameter) sky.GetType().GetField("bodyAlbedoTextureRotation" + i).GetValue(sky)).value;
+      Quaternion albedoTexRotation = Quaternion.Euler(albedoTexRotationV3.x,
+                                                    albedoTexRotationV3.y,
+                                                    albedoTexRotationV3.z);
+      bodyAlbedoTextureRotation[i] = Matrix4x4.Rotate(albedoTexRotation);
+
+      bodyAlbedoTint[i] = ((ColorParameter) sky.GetType().GetField("bodyAlbedoTint" + i).GetValue(sky)).value;
+      bodyEmissive[i] = (((BoolParameter) sky.GetType().GetField("bodyEmissive" + i).GetValue(sky)).value) ? 1 : 0;
+
+      bool useTemperature = ((BoolParameter) sky.GetType().GetField("bodyUseTemperature" + i).GetValue(sky)).value;
+      float lightIntensity = ((MinFloatParameter) sky.GetType().GetField("bodyLightIntensity" + i).GetValue(sky)).value;
+      Vector4 lightColor = ((ColorParameter) sky.GetType().GetField("bodyLightColor" + i).GetValue(sky)).value;
+      if (useTemperature) {
+        float temperature = ((ClampedFloatParameter) sky.GetType().GetField("bodyLightTemperature" + i).GetValue(sky)).value;
+        Vector4 temperatureColor = blackbodyTempToColor(temperature);
+        bodyLightColor[i] = lightIntensity * (new Vector4(temperatureColor.x * lightColor.x,
+          temperatureColor.y * lightColor.y,
+          temperatureColor.z * lightColor.z,
+          temperatureColor.w * lightColor.w));
+      } else {
+        bodyLightColor[i] = lightColor * lightIntensity;
+      }
+
+      bodyLimbDarkening[i] = ((MinFloatParameter) sky.GetType().GetField("bodyLimbDarkening" + i).GetValue(sky)).value;
+
+
+      Vector3 emissionTexRotationV3 = ((Vector3Parameter) sky.GetType().GetField("bodyEmissionTextureRotation" + i).GetValue(sky)).value;
+      Quaternion emissionTexRotation = Quaternion.Euler(emissionTexRotationV3.x,
+                                                    emissionTexRotationV3.y,
+                                                    emissionTexRotationV3.z);
+      bodyEmissionTextureRotation[i] = Matrix4x4.Rotate(emissionTexRotation);
+
+      float emissionMultiplier = ((MinFloatParameter) sky.GetType().GetField("bodyEmissionMultiplier" + i).GetValue(sky)).value;
+      bodyEmissionTint[i] = emissionMultiplier * ((ColorParameter) sky.GetType().GetField("bodyEmissionTint" + i).GetValue(sky)).value;
+
+      numActiveBodies++;
+    }
+  }
+
+  /* Actually set everything in the property block. */
+
+  m_PropertyBlock.SetInt("_numActiveBodies", numActiveBodies);
+  m_PropertyBlock.SetFloatArray("_bodyEnabled", bodyEnabled);
+  m_PropertyBlock.SetVectorArray("_bodyDirection", bodyDirection);
+  m_PropertyBlock.SetFloatArray("_bodyAngularRadius", bodyAngularRadius);
+  m_PropertyBlock.SetFloatArray("_bodyDistance", bodyDistance);
+  m_PropertyBlock.SetFloatArray("_bodyReceivesLight", bodyReceivesLight);
+  m_PropertyBlock.SetMatrixArray("_bodyAlbedoTextureRotation", bodyAlbedoTextureRotation);
+  m_PropertyBlock.SetVectorArray("_bodyAlbedoTint", bodyAlbedoTint);
+  m_PropertyBlock.SetFloatArray("_bodyEmissive", bodyEmissive);
+  m_PropertyBlock.SetVectorArray("_bodyLightColor", bodyLightColor);
+  m_PropertyBlock.SetFloatArray("_bodyLimbDarkening", bodyLimbDarkening);
+  m_PropertyBlock.SetMatrixArray("_bodyEmissionTextureRotation", bodyEmissionTextureRotation);
+  m_PropertyBlock.SetVectorArray("_bodyEmissionTint", bodyEmissionTint);
+
+  //
+  // /* TODO: texcube array...? commenting out for now*/
+  // // _bodyAlbedoTexture0, bodyAlbedoTexture1, bodyAlbedoTexture2,
+  // //   bodyAlbedoTexture3, bodyAlbedoTexture4, bodyAlbedoTexture5, bodyAlbedoTexture6, bodyAlbedoTexture7;
+
+  //
+  // /* TODO: texcube array...? commenting out for now. */
+  // // _bodyEmissionTexture0, bodyEmissionTexture1, bodyEmissionTexture2,
+  // //   bodyEmissionTexture3, bodyEmissionTexture4, bodyEmissionTexture5, bodyEmissionTexture6, bodyEmissionTexture7;
+  // /* Displayed on null check of body albedo texture. */
+  //
+  //
+}
+
+/******************************************************************************/
+/************************ END MATERIAL PROPERTY SETTERS ***********************/
+/******************************************************************************/
 
 }

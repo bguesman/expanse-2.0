@@ -138,6 +138,15 @@ namespace Expanse {
       }
     }
 
+    public static Vector2 degreesToRadians(Vector2 angles) {
+      return (angles / 180.0f) * Mathf.PI;
+    }
+
+    public static Vector3 anglesToDirectionVector(Vector2 angles) {
+      return new Vector3(Mathf.Sin(angles.x) * Mathf.Cos(angles.y),
+        Mathf.Sin(angles.x) * Mathf.Sin(angles.y), Mathf.Cos(angles.x));
+    }
+
   }
 
 } /* namespace Expanse */

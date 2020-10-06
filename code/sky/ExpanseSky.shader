@@ -29,12 +29,91 @@ HLSLINCLUDE
 /****************************** INPUT VARIABLES *******************************/
 /******************************************************************************/
 
-float4 _SkyParam; // x exposure, y multiplier, zw rotation (cosPhi and sinPhi)
+/* Planet parameters. */
 
-#define _Intensity          _SkyParam.x
-#define _CosPhi             _SkyParam.z
-#define _SinPhi             _SkyParam.w
-#define _CosSinPhi          _SkyParam.zw
+// float _atmosphereThickness;
+// float _planetRadius;
+// TEXTURECUBE(_groundAlbedoTexture);
+// float4 _groundTint;
+// TEXTURECUBE(_groundEmissionTexture);
+// float _groundEmissionMultiplier;
+// float4x4 _planetRotation;
+
+/* Atmosphere layers. */
+
+// bool _layerEnabled;
+// bool _layerCoefficients;
+// int _layerDensityDistribution;
+// float _layerHeight;
+// float _layerThickness;
+// float _layerPhaseFunction;
+// float _layerAnisotropy;
+// float _layerDensity;
+// bool _layerUseDensityAttenuation;
+// float _layerAttenuationDistance;
+// float _layerAttenuationBias;
+// float4 _layerTint;
+// float _layerMultipleScatteringMultiplier;
+
+/* Celestial Bodies. TODO */
+
+#define MAX_BODIES 8
+
+// need a num active bodies parameter
+int _numActiveBodies;
+bool _bodyEnabled[MAX_BODIES];
+float3 _bodyDirection[MAX_BODIES];
+float _bodyAngularRadius[MAX_BODIES];
+float _bodyDistance[MAX_BODIES];
+bool _bodyReceivesLight[MAX_BODIES];
+
+/* TODO: texcube array...? commenting out for now*/
+// _bodyAlbedoTexture0, bodyAlbedoTexture1, bodyAlbedoTexture2,
+//   bodyAlbedoTexture3, bodyAlbedoTexture4, bodyAlbedoTexture5, bodyAlbedoTexture6, bodyAlbedoTexture7;
+/* Displayed on null check of body albedo texture. */
+
+float4x4 _bodyAlbedoTextureRotation[MAX_BODIES];
+float4 _bodyAlbedoTint[MAX_BODIES];
+bool _bodyEmissive[MAX_BODIES];
+
+/* TODO: condense to precalculated color. */
+float4 _bodyLightColor[MAX_BODIES];
+float _bodyLimbDarkening[MAX_BODIES];
+
+/* TODO: texcube array...? commenting out for now. */
+// _bodyEmissionTexture0, bodyEmissionTexture1, bodyEmissionTexture2,
+//   bodyEmissionTexture3, bodyEmissionTexture4, bodyEmissionTexture5, bodyEmissionTexture6, bodyEmissionTexture7;
+/* Displayed on null check of body albedo texture. */
+
+float4x4 _bodyEmissionTextureRotation[MAX_BODIES];
+
+/* TODO: could condense to one float4 multiplied together. */
+float4 _bodyEmissionTint[MAX_BODIES];
+
+/* Night Sky. TODO */
+
+/* Quality. */
+
+// needed for resolution offsets
+// _skyTextureQuality;
+
+// _numberOfTransmittanceSamples;
+
+// _numberOfLightPollutionSamples;
+
+// _numberOfSingleScatteringSamples;
+
+// _numberOfGroundIrradianceSamples;
+
+// _numberOfMultipleScatteringSamples;
+
+// _numberOfMultipleScatteringAccumulationSamples;
+
+// _useImportanceSampling;
+
+bool _useAntiAliasing;
+
+float _ditherAmount;
 
 /* Render textures. */
 TEXTURE2D(_fullscreenSkyColorRT);
@@ -174,11 +253,14 @@ SkyResult CloudsFullscreen(Varyings input) : SV_Target {
 
 float4 Composite(Varyings input, bool cubemap, float exposure) {
   float4 skyColor = float4(0.5, 0.0, 0.0, 1.0);
-  float2 textureCoordinate = float2(0.21,0.21);
-  skyColor += SAMPLE_TEXTURE2D_LOD(_fullscreenSkyColorRT,
-    s_linear_clamp_sampler, textureCoordinate, 0);
-  skyColor += SAMPLE_TEXTURE2D_LOD(_currFullscreenCloudColorRT,
-    s_linear_clamp_sampler, textureCoordinate, 0);
+  if (_bodyEnabled[0]) {
+    skyColor = _bodyLightColor[0];
+  }
+  // float2 textureCoordinate = float2(0.21,0.21);
+  // skyColor += SAMPLE_TEXTURE2D_LOD(_fullscreenSkyColorRT,
+  //   s_linear_clamp_sampler, textureCoordinate, 0);
+  // skyColor += SAMPLE_TEXTURE2D_LOD(_currFullscreenCloudColorRT,
+  //   s_linear_clamp_sampler, textureCoordinate, 0);
   return skyColor;
 }
 
