@@ -19,6 +19,8 @@ HLSLINCLUDE
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Sky/SkyUtils.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/CookieSampling.hlsl"
 
+#include "ExpanseSkyCommon.hlsl"
+
 /******************************************************************************/
 /******************************** END INCLUDES ********************************/
 /******************************************************************************/
@@ -29,90 +31,47 @@ HLSLINCLUDE
 /****************************** INPUT VARIABLES *******************************/
 /******************************************************************************/
 
-/* Planet parameters. */
-
-// float _atmosphereThickness;
-// float _planetRadius;
-// TEXTURECUBE(_groundAlbedoTexture);
-// float4 _groundTint;
-// TEXTURECUBE(_groundEmissionTexture);
-// float _groundEmissionMultiplier;
-// float4x4 _planetRotation;
-
-/* Atmosphere layers. */
-
-// bool _layerEnabled;
-// bool _layerCoefficients;
-// int _layerDensityDistribution;
-// float _layerHeight;
-// float _layerThickness;
-// float _layerPhaseFunction;
-// float _layerAnisotropy;
-// float _layerDensity;
-// bool _layerUseDensityAttenuation;
-// float _layerAttenuationDistance;
-// float _layerAttenuationBias;
-// float4 _layerTint;
-// float _layerMultipleScatteringMultiplier;
-
-/* Celestial Bodies. TODO */
+/* Celestial Bodies. */
 
 #define MAX_BODIES 8
 
 // need a num active bodies parameter
 int _numActiveBodies;
-bool _bodyEnabled[MAX_BODIES];
 float3 _bodyDirection[MAX_BODIES];
 float _bodyAngularRadius[MAX_BODIES];
 float _bodyDistance[MAX_BODIES];
 bool _bodyReceivesLight[MAX_BODIES];
-
-/* TODO: texcube array...? commenting out for now*/
-// _bodyAlbedoTexture0, bodyAlbedoTexture1, bodyAlbedoTexture2,
-//   bodyAlbedoTexture3, bodyAlbedoTexture4, bodyAlbedoTexture5, bodyAlbedoTexture6, bodyAlbedoTexture7;
-/* Displayed on null check of body albedo texture. */
-
 float4x4 _bodyAlbedoTextureRotation[MAX_BODIES];
 float4 _bodyAlbedoTint[MAX_BODIES];
 bool _bodyEmissive[MAX_BODIES];
-
-/* TODO: condense to precalculated color. */
 float4 _bodyLightColor[MAX_BODIES];
 float _bodyLimbDarkening[MAX_BODIES];
-
-/* TODO: texcube array...? commenting out for now. */
-// _bodyEmissionTexture0, bodyEmissionTexture1, bodyEmissionTexture2,
-//   bodyEmissionTexture3, bodyEmissionTexture4, bodyEmissionTexture5, bodyEmissionTexture6, bodyEmissionTexture7;
-/* Displayed on null check of body albedo texture. */
-
 float4x4 _bodyEmissionTextureRotation[MAX_BODIES];
-
-/* TODO: could condense to one float4 multiplied together. */
 float4 _bodyEmissionTint[MAX_BODIES];
+// Textures can't be array, so declare them individually.
+bool _bodyAlbedoTextureEnabled[MAX_BODIES];
+TEXTURECUBE(_bodyAlbedoTexture0);
+TEXTURECUBE(_bodyAlbedoTexture1);
+TEXTURECUBE(_bodyAlbedoTexture2);
+TEXTURECUBE(_bodyAlbedoTexture3);
+TEXTURECUBE(_bodyAlbedoTexture4);
+TEXTURECUBE(_bodyAlbedoTexture5);
+TEXTURECUBE(_bodyAlbedoTexture6);
+TEXTURECUBE(_bodyAlbedoTexture7);
+bool _bodyEmissionTextureEnabled[MAX_BODIES];
+TEXTURECUBE(_bodyEmissionTexture0);
+TEXTURECUBE(_bodyEmissionTexture1);
+TEXTURECUBE(_bodyEmissionTexture2);
+TEXTURECUBE(_bodyEmissionTexture3);
+TEXTURECUBE(_bodyEmissionTexture4);
+TEXTURECUBE(_bodyEmissionTexture5);
+TEXTURECUBE(_bodyEmissionTexture6);
+TEXTURECUBE(_bodyEmissionTexture7);
 
 /* Night Sky. TODO */
 
 /* Quality. */
-
-// needed for resolution offsets
-// _skyTextureQuality;
-
-// _numberOfTransmittanceSamples;
-
-// _numberOfLightPollutionSamples;
-
-// _numberOfSingleScatteringSamples;
-
-// _numberOfGroundIrradianceSamples;
-
-// _numberOfMultipleScatteringSamples;
-
-// _numberOfMultipleScatteringAccumulationSamples;
-
-// _useImportanceSampling;
-
 bool _useAntiAliasing;
-
 float _ditherAmount;
 
 /* Render textures. */
@@ -129,12 +88,6 @@ TEXTURE2D(_currFullscreenCloudTransmittanceRT);
 TEXTURE2D(_currCubemapCloudColorRT);
 TEXTURE2D(_currCubemapCloudTransmittanceRT);
 TEXTURE2D(_depthBuffer);
-
-/* Sampler for tables. */
-#ifndef UNITY_SHADER_VARIABLES_INCLUDED
-    SAMPLER(s_linear_clamp_sampler);
-    SAMPLER(s_trilinear_clamp_sampler);
-#endif
 
 /******************************************************************************/
 /**************************** END INPUT VARIABLES *****************************/
@@ -253,7 +206,7 @@ SkyResult CloudsFullscreen(Varyings input) : SV_Target {
 
 float4 Composite(Varyings input, bool cubemap, float exposure) {
   float4 skyColor = float4(0.5, 0.0, 0.0, 1.0);
-  if (_bodyEnabled[0]) {
+  if (_numActiveBodies > 0) {
     skyColor = _bodyLightColor[0];
   }
   // float2 textureCoordinate = float2(0.21,0.21);

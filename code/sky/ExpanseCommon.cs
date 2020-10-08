@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 
 /* Class for common global variables shared between classes. */
 namespace Expanse {
@@ -19,6 +20,7 @@ namespace Expanse {
     public const uint kMaxAtmosphereLayers = 8;
 
     /* Enum for phase function types. */
+    [GenerateHLSL]
     public enum PhaseFunction {
       Isotropic = 0,
       Rayleigh,
@@ -27,6 +29,7 @@ namespace Expanse {
     public const uint kMaxPhaseFunctions = 3;
 
     /* Enum for atmosphere layer density distribution types. */
+    [GenerateHLSL]
     public enum DensityDistribution {
       Exponential = 0,
       Tent
@@ -60,12 +63,13 @@ namespace Expanse {
 
     /* Struct specifying texture resolutions for sky tables. */
     public struct SkyTextureResolution {
+      public SkyTextureQuality quality;
       public Vector2 T;
       public Vector4 SS;
       public Vector2 MS;
       public Vector4 MSAccumulation;
       public Vector2 LP;
-      public uint GI;
+      public int GI;
     }
 
     /* Given a sky texture quality, returns the corresonding resolution. */
@@ -73,6 +77,7 @@ namespace Expanse {
       switch (quality) {
         case SkyTextureQuality.Potato:
           return new SkyTextureResolution() {
+            quality = quality,
             T = new Vector2(16, 16),
             SS = new Vector4(16, 16, 16, 16),
             MS = new Vector2(16, 16),
@@ -82,6 +87,7 @@ namespace Expanse {
           };
         case SkyTextureQuality.Low:
           return new SkyTextureResolution() {
+            quality = quality,
             T = new Vector2(16, 16),
             SS = new Vector4(16, 16, 16, 16),
             MS = new Vector2(16, 16),
@@ -91,6 +97,7 @@ namespace Expanse {
           };
         case SkyTextureQuality.Medium:
           return new SkyTextureResolution() {
+            quality = quality,
             T = new Vector2(16, 16),
             SS = new Vector4(16, 16, 16, 16),
             MS = new Vector2(16, 16),
@@ -100,6 +107,7 @@ namespace Expanse {
           };
         case SkyTextureQuality.High:
           return new SkyTextureResolution() {
+            quality = quality,
             T = new Vector2(32, 128),
             SS = new Vector4(32, 128, 32, 32),
             MS = new Vector2(32, 32),
@@ -109,6 +117,7 @@ namespace Expanse {
           };
         case SkyTextureQuality.Ultra:
           return new SkyTextureResolution() {
+            quality = quality,
             T = new Vector2(32, 128),
             SS = new Vector4(32, 128, 32, 32),
             MS = new Vector2(32, 32),
@@ -118,6 +127,7 @@ namespace Expanse {
           };
         case SkyTextureQuality.RippingThroughTheMetaverse:
           return new SkyTextureResolution() {
+            quality = quality,
             T = new Vector2(32, 128),
             SS = new Vector4(32, 128, 32, 32),
             MS = new Vector2(32, 32),
@@ -128,6 +138,7 @@ namespace Expanse {
         default:
           /* To be safe, default case. Returns potato quality. */
           return new SkyTextureResolution() {
+            quality = quality,
             T = new Vector2(16, 16),
             SS = new Vector4(16, 16, 16, 16),
             MS = new Vector2(16, 16),

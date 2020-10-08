@@ -31,7 +31,7 @@ private RTHandle[] m_MSAccumulationTables;        /* Multiple Scattering. */
 private RTHandle[] m_LPTables;                    /* Light Pollution. */
 private RTHandle[] m_GITables;                    /* Ground Irradiance. */
 /* For checking if table reallocation is required. */
-private Expanse.ExpanseCommon.SkyTextureQuality m_skyTextureQuality;
+private Expanse.ExpanseCommon.SkyTextureResolution m_skyTextureResolution;
 private int m_numAtmosphereLayersEnabled = 0;
 /* Allocates all sky precomputation tables for all atmosphere layers at a
  * specified quality level. */
@@ -51,7 +51,7 @@ void allocateSkyPrecomputationTables(ExpanseSky sky) {
 
   /* Reallocate tables if either of these things have changed. */
   if (numEnabled != m_numAtmosphereLayersEnabled
-    || quality != m_skyTextureQuality) {
+    || quality != m_skyTextureResolution.quality) {
 
     /* Release existing tables. */
     for (int i = 0; i < m_numAtmosphereLayersEnabled; i++) {
@@ -78,10 +78,10 @@ void allocateSkyPrecomputationTables(ExpanseSky sky) {
     }
 
     m_numAtmosphereLayersEnabled = numEnabled;
-    m_skyTextureQuality = quality;
+    m_skyTextureResolution = res;
 
 
-    Debug.Log("Reallocated " + m_numAtmosphereLayersEnabled + " tables at " + m_skyTextureQuality + " quality.");
+    Debug.Log("Reallocated " + m_numAtmosphereLayersEnabled + " tables at " + m_skyTextureResolution.quality + " quality.");
   }
 }
 
@@ -113,7 +113,7 @@ void releaseTablesAtIndex(int i) {
 }
 
 /* Allocates 1D sky precomputation table. */
-RTHandle allocateSky1DTable(uint resolution, int index, string name) {
+RTHandle allocateSky1DTable(int resolution, int index, string name) {
   var table = RTHandles.Alloc((int) resolution,
                               1,
                               dimension: TextureDimension.Tex2D,
@@ -268,6 +268,8 @@ private void cleanupCubemapRenderTextures() {
 
 Material m_skyMaterial;
 MaterialPropertyBlock m_PropertyBlock = new MaterialPropertyBlock();
+ComputeShader m_skyCS;
+
 /* Hash values for determining update behavior. */
 int m_LastSkyHash;
 int m_LastCloudHash;
@@ -287,6 +289,12 @@ public override void Build() {
   /* Create material for sky shader. */
   m_skyMaterial = CoreUtils.CreateEngineMaterial(GetSkyShader());
 
+  /* Get handles to compute shaders. */
+  m_skyCS = GetExpanseSkyPrecomputeShader();
+
+  /* Set up default texture quality. */
+  m_skyTextureResolution = ExpanseCommon.skyQualityToSkyTextureResolution(ExpanseCommon.SkyTextureQuality.Medium);
+
   /* Create the framebuffers we'll use for our multi-pass strategy.
    * This width and height is a best guess. It will be reset in the render
    * function if it's wrong. */
@@ -297,6 +305,11 @@ public override void Build() {
 /* Returns reference to Expanse sky shader. */
 Shader GetSkyShader() {
   return Shader.Find("Hidden/HDRP/Sky/ExpanseSky");
+}
+
+/* Returns reference to expanse sky precompute shader. */
+ComputeShader GetExpanseSkyPrecomputeShader() {
+    return Resources.Load<ComputeShader>("ExpanseSkyPrecompute");
 }
 
 public override void Cleanup()
@@ -316,9 +329,10 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
   var sky = builtinParams.skySettings as ExpanseSky;
 
   /* Set everything in the material property block. */
-  /* TODO: may be able to put this in update, so it doesn't happen
-   * so frequently and slow things down .*/
   setMaterialPropertyBlock(builtinParams);
+
+  /* Set everything in the global constant buffer. */
+  setGlobalCBuffer(builtinParams);
 
   /* Allocate the tables and update info about atmosphere layers that are
    * active. This will not reallocate if the table sizes have remained the
@@ -331,9 +345,14 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
   int currentSkyHash = sky.GetSkyHashCode();
   if (currentSkyHash != m_LastSkyHash) {
     /* Update the sky precomputation tables. */
-    m_LastSkyHash = currentSkyHash;
-    /* TODO */
+    setSkyRWTextures();
+
+    /* Run the compute shader kernels. */
+    DispatchSkyCompute(builtinParams.commandBuffer);
+
     Debug.Log("Recomputed sky tables.");
+
+    m_LastSkyHash = currentSkyHash;
   }
 
   int currentCloudHash = sky.GetCloudHashCode();
@@ -439,8 +458,7 @@ private void checkAndResizeFramebuffers(BuiltinSkyParameters builtinParams, bool
 }
 
 
-public override void RenderSky(BuiltinSkyParameters builtinParams, bool renderForCubemap, bool renderSunDisk)
-{
+public override void RenderSky(BuiltinSkyParameters builtinParams, bool renderForCubemap, bool renderSunDisk) {
   using (new ProfilingSample(builtinParams.commandBuffer, "Draw sky"))
   {
 
@@ -466,6 +484,58 @@ public override void RenderSky(BuiltinSkyParameters builtinParams, bool renderFo
 
 /******************************************************************************/
 /**************************** END RENDER FUNCTIONS ****************************/
+/******************************************************************************/
+
+private void DispatchSkyCompute(CommandBuffer cmd) {
+  using (new ProfilingSample(cmd, "Precompute Expanse Sky Tables"))
+  {
+    int handle_T = m_skyCS.FindKernel("T");
+    int handle_LP = m_skyCS.FindKernel("LP");
+    int handle_GI = m_skyCS.FindKernel("GI");
+    int handle_SS = m_skyCS.FindKernel("SS");
+    int handle_MS = m_skyCS.FindKernel("MS");
+    int handle_MSAcc = m_skyCS.FindKernel("MSAcc");
+
+    cmd.DispatchCompute(m_skyCS, handle_T,
+      (int) m_skyTextureResolution.T.x / 4,
+      (int) m_skyTextureResolution.T.y / 4, 1);
+
+
+    cmd.DispatchCompute(m_skyCS, handle_LP,
+      (int) m_skyTextureResolution.LP.x / 4,
+      (int) m_skyTextureResolution.LP.y / 4, 1);
+
+
+    cmd.DispatchCompute(m_skyCS, handle_SS,
+      (int) m_skyTextureResolution.SS.x / 4,
+      (int) m_skyTextureResolution.SS.y / 4,
+      (int) (m_skyTextureResolution.SS.z * m_skyTextureResolution.SS.w) / 4);
+
+
+    cmd.DispatchCompute(m_skyCS, handle_MS,
+      (int) m_skyTextureResolution.MS.x / 4,
+      (int) m_skyTextureResolution.MS.y / 4, 1);
+
+
+    cmd.DispatchCompute(m_skyCS, handle_MSAcc,
+      (int) m_skyTextureResolution.MSAccumulation.x / 4,
+      (int) m_skyTextureResolution.MSAccumulation.y / 4,
+      (int) (m_skyTextureResolution.MSAccumulation.z * m_skyTextureResolution.MSAccumulation.z) / 4);
+
+
+    cmd.DispatchCompute(m_skyCS, handle_GI,
+      (int) m_skyTextureResolution.GI / 4, 1, 1);
+  }
+}
+
+/******************************************************************************/
+/************************** COMPUTE SHADER FUNCTIONS **************************/
+/******************************************************************************/
+
+
+
+/******************************************************************************/
+/************************ END COMPUTE SHADER FUNCTIONS ************************/
 /******************************************************************************/
 
 
@@ -517,20 +587,186 @@ private Vector4 blackbodyTempToColor(float t) {
 /*********************** END PHYSICAL PROPERTY FUNCTIONS **********************/
 /******************************************************************************/
 
+
+
+/******************************************************************************/
+/****************************** RW TEXTURE SETTERS ****************************/
+/******************************************************************************/
+
+private void setSkyRWTextures() {
+  int handle_T = m_skyCS.FindKernel("T");
+  int handle_LP = m_skyCS.FindKernel("LP");
+  int handle_GI = m_skyCS.FindKernel("GI");
+  int handle_SS = m_skyCS.FindKernel("SS");
+  int handle_MS = m_skyCS.FindKernel("MS");
+  int handle_MSAcc = m_skyCS.FindKernel("MSAcc");
+
+  /* TODO: we have only one multiple scattering and one transmittance
+   * table. */
+  m_skyCS.SetTexture(handle_T, "_T", m_TTables[0]);
+  m_skyCS.SetTexture(handle_MS, "_MS", m_MSTables[0]);
+
+  for (int i = 0; i < m_numAtmosphereLayersEnabled; i++) {
+    /* Only set up properties if this layer is enabled. */
+    m_skyCS.SetTexture(handle_LP, "_LP" + i, m_LPTables[i]);
+    m_skyCS.SetTexture(handle_SS, "_SS" + i, m_SSTables[i]);
+    m_skyCS.SetTexture(handle_MSAcc, "_MSAcc" + i, m_MSAccumulationTables[i]);
+    m_skyCS.SetTexture(handle_GI, "_GI" + i, m_GITables[i]);
+  }
+}
+
+/******************************************************************************/
+/**************************** END RW TEXTURE SETTERS **************************/
+/******************************************************************************/
+
+
+
+/******************************************************************************/
+/*************************** GLOBAL C BUFFER SETTERS **************************/
+/******************************************************************************/
+
+private void setGlobalCBuffer(BuiltinSkyParameters builtinParams) {
+  /* Get sky object. */
+  var sky = builtinParams.skySettings as ExpanseSky;
+
+  /* Planet. */
+  setGlobalCBufferPlanet(builtinParams.commandBuffer, sky);
+
+  /* Quality. */
+  setGlobalCBufferQuality(builtinParams.commandBuffer, sky);
+}
+
+private void setGlobalCBufferPlanet(CommandBuffer cmd, ExpanseSky sky) {
+  cmd.SetGlobalFloat("_atmosphereThickness", sky.atmosphereThickness.value);
+  cmd.SetGlobalFloat("_planetRadius", sky.planetRadius.value);
+  cmd.SetGlobalVector("_groundTint", sky.groundTint.value);
+  cmd.SetGlobalFloat("_groundEmissionMultiplier", sky.groundEmissionMultiplier.value);
+
+  Vector3 planetRotation = sky.planetRotation.value;
+  Quaternion planetRotationMatrix = Quaternion.Euler(planetRotation.x,
+                                                planetRotation.y,
+                                                planetRotation.z);
+  cmd.SetGlobalMatrix("_planetRotation", Matrix4x4.Rotate(planetRotationMatrix));
+
+  Texture albedoTexture = sky.groundAlbedoTexture.value;
+  cmd.SetGlobalFloat("_groundAlbedoTextureEnabled", (albedoTexture == null) ? 0 : 1);
+  if (albedoTexture != null) {
+    cmd.SetGlobalTexture("_groundAlbedoTexture", albedoTexture);
+  }
+
+  Texture emissionTexture = sky.groundEmissionTexture.value;
+  cmd.SetGlobalFloat("_groundEmissionTextureEnabled", (emissionTexture == null) ? 0 : 1);
+  if (emissionTexture != null) {
+    cmd.SetGlobalTexture("_groundEmissionTexture", emissionTexture);
+  }
+}
+
+private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, ExpanseSky sky) {
+
+  int n = (int) ExpanseCommon.kMaxAtmosphereLayers;
+
+  Vector4[] layerCoefficients = new Vector4[n];
+  float[] layerDensityDistribution = new float[n]; /* Should be int, but unity can only set float arrays. */
+  float[] layerHeight = new float[n];
+  float[] layerThickness = new float[n];
+  float[] layerPhaseFunction = new float[n]; /* Should be int, but unity can only set float arrays. */
+  float[] layerAnisotropy = new float[n];
+  float[] layerDensity = new float[n];
+  float[] layerUseDensityAttenuation = new float[n];
+  float[] layerAttenuationDistance = new float[n];
+  float[] layerAttenuationBias = new float[n];
+  Vector4[] layerTint = new Vector4[n];
+  float[] layerMultipleScatteringMultiplier = new float[n];
+
+  int numActiveLayers = 0;
+  for (int i = 0; i < n; i++) {
+    bool enabled = (((BoolParameter) sky.GetType().GetField("layerEnabled" + i).GetValue(sky)).value);
+    if (enabled) {
+      /* Only set up properties if this layer is enabled. */
+      Vector3 coefficients = ((Vector3Parameter) sky.GetType().GetField("layerCoefficients" + i).GetValue(sky)).value;
+      layerCoefficients[numActiveLayers] = new Vector4(coefficients.x, coefficients.y, coefficients.z, 1);
+
+      layerDensityDistribution[numActiveLayers] = (float) ((EnumParameter<ExpanseCommon.DensityDistribution>) sky.GetType().GetField("layerDensityDistribution" + i).GetValue(sky)).value;
+      layerHeight[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerHeight" + i).GetValue(sky)).value;
+      layerThickness[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerThickness" + i).GetValue(sky)).value;
+      layerPhaseFunction[numActiveLayers] = (float) ((EnumParameter<ExpanseCommon.PhaseFunction>) sky.GetType().GetField("layerPhaseFunction" + i).GetValue(sky)).value;
+      layerAnisotropy[numActiveLayers] = ((ClampedFloatParameter) sky.GetType().GetField("layerAnisotropy" + i).GetValue(sky)).value;
+      layerDensity[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerDensity" + i).GetValue(sky)).value;
+      layerUseDensityAttenuation[numActiveLayers] = ((BoolParameter) sky.GetType().GetField("layerUseDensityAttenuation" + i).GetValue(sky)).value ? 1 : 0;
+      layerAttenuationDistance[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationDistance" + i).GetValue(sky)).value;
+      layerAttenuationBias[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationBias" + i).GetValue(sky)).value;
+      layerTint[numActiveLayers] = ((ColorParameter) sky.GetType().GetField("layerTint" + i).GetValue(sky)).value;
+      layerMultipleScatteringMultiplier[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerMultipleScatteringMultiplier" + i).GetValue(sky)).value;
+
+      numActiveLayers++;
+    }
+  }
+
+  cmd.SetGlobalInt("_numActiveLayers", numActiveLayers);
+  cmd.SetGlobalVectorArray("_layerCoefficients", layerCoefficients);
+  cmd.SetGlobalFloatArray("_layerDensityDistribution", layerDensityDistribution);
+  cmd.SetGlobalFloatArray("_layerHeight", layerHeight);
+  cmd.SetGlobalFloatArray("_layerThickness", layerThickness);
+  cmd.SetGlobalFloatArray("_layerPhaseFunction", layerPhaseFunction);
+  cmd.SetGlobalFloatArray("_layerAnisotropy", layerAnisotropy);
+  cmd.SetGlobalFloatArray("_layerDensity", layerDensity);
+  cmd.SetGlobalFloatArray("_layerUseDensityAttenuation", layerUseDensityAttenuation);
+  cmd.SetGlobalFloatArray("_layerAttenuationDistance", layerAttenuationDistance);
+  cmd.SetGlobalFloatArray("_layerAttenuationBias", layerAttenuationBias);
+  cmd.SetGlobalVectorArray("_layerTint", layerTint);
+  cmd.SetGlobalFloatArray("_layerMultipleScatteringMultiplier", layerMultipleScatteringMultiplier);
+}
+
+private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, ExpanseSky sky) {
+  for (int i = 0; i < m_numAtmosphereLayersEnabled; i++) {
+    /* Only set up properties if this layer is enabled. */
+    cmd.SetGlobalTexture("_LP" + i, m_LPTables[i]);
+    cmd.SetGlobalVector("_resLP", m_skyTextureResolution.LP);
+    cmd.SetGlobalTexture("_SS" + i, m_SSTables[i]);
+    cmd.SetGlobalVector("_resSS", m_skyTextureResolution.SS);
+    cmd.SetGlobalTexture("_MSAcc" + i, m_MSAccumulationTables[i]);
+    cmd.SetGlobalVector("_resMSAcc", m_skyTextureResolution.MSAccumulation);
+    cmd.SetGlobalTexture("_GI" + i, m_GITables[i]);
+    cmd.SetGlobalInt("_resGI", m_skyTextureResolution.GI);
+  }
+
+  /* TODO: we have only one multiple scattering and one transmittance
+   * table. */
+  cmd.SetGlobalTexture("_T", m_TTables[0]);
+  cmd.SetGlobalVector("_resT", m_skyTextureResolution.T);
+  cmd.SetGlobalTexture("_MS", m_MSTables[0]);
+  cmd.SetGlobalVector("_resMS", m_skyTextureResolution.MS);
+}
+
+private void setGlobalCBufferQuality(CommandBuffer cmd, ExpanseSky sky) {
+  cmd.SetGlobalInt("_numTSamples", sky.numberOfTransmittanceSamples.value);
+  cmd.SetGlobalInt("_numLPSamples", sky.numberOfLightPollutionSamples.value);
+  cmd.SetGlobalInt("_numSSSamples", sky.numberOfSingleScatteringSamples.value);
+  cmd.SetGlobalInt("_numGISamples", sky.numberOfGroundIrradianceSamples.value);
+  cmd.SetGlobalInt("_numMSSamples", sky.numberOfMultipleScatteringSamples.value);
+  cmd.SetGlobalInt("_numMSAccumulationSamples", sky.numberOfMultipleScatteringAccumulationSamples.value);
+  cmd.SetGlobalFloat("_useImportanceSampling", sky.useImportanceSampling.value ? 0 : 1);
+}
+
+/******************************************************************************/
+/************************* END GLOBAL C BUFFER SETTERS ************************/
+/******************************************************************************/
+
+
+
 /******************************************************************************/
 /************************** MATERIAL PROPERTY SETTERS *************************/
 /******************************************************************************/
-
 
 private void setMaterialPropertyBlock(BuiltinSkyParameters builtinParams) {
   /* Get sky object. */
   var sky = builtinParams.skySettings as ExpanseSky;
 
-  /* Set material properties for sky and clouds. */
-
-
   /* Celestial bodies. */
   setMaterialPropertyBlockCelestialBodies(sky);
+
+  /* Quality. */
+  setMaterialPropertyBlockQuality(sky);
 
   m_PropertyBlock.SetMatrix(_PixelCoordToViewDirWS, builtinParams.pixelCoordToViewDirMatrix);
 }
@@ -540,9 +776,7 @@ private void setMaterialPropertyBlockCelestialBodies(ExpanseSky sky) {
   int n = (int) ExpanseCommon.kMaxCelestialBodies;
 
   /* Set up arrays to pass to shader. */
-  float[] bodyEnabled = new float[n];
   Vector4[] bodyDirection = new Vector4[n];
-
   float[] bodyAngularRadius = new float[n];
   float[] bodyDistance = new float[n];
   float[] bodyReceivesLight = new float[n];
@@ -554,28 +788,29 @@ private void setMaterialPropertyBlockCelestialBodies(ExpanseSky sky) {
   Matrix4x4[] bodyEmissionTextureRotation = new Matrix4x4[n];
   Vector4[] bodyEmissionTint = new Vector4[n];
 
+  float[] bodyAlbedoTextureEnabled = new float[n];
+  float[] bodyEmissionTextureEnabled = new float[n];
+
   int numActiveBodies = 0;
   for (int i = 0; i < ExpanseCommon.kMaxCelestialBodies; i++) {
     bool enabled = (((BoolParameter) sky.GetType().GetField("bodyEnabled" + i).GetValue(sky)).value);
     if (enabled) {
       /* Only set up remaining properties if this body is enabled. */
-      bodyEnabled[i] = (((BoolParameter) sky.GetType().GetField("bodyEnabled" + i).GetValue(sky)).value) ? 1 : 0;
-
       Vector3 direction = ExpanseCommon.anglesToDirectionVector(ExpanseCommon.degreesToRadians(((Vector2Parameter) sky.GetType().GetField("bodyDirection" + i).GetValue(sky)).value));
-      bodyDirection[i] = new Vector4(direction.x, direction.y, direction.z, 0);
+      bodyDirection[numActiveBodies] = new Vector4(direction.x, direction.y, direction.z, 0);
 
-      bodyAngularRadius[i] = ((ClampedFloatParameter) sky.GetType().GetField("bodyAngularRadius" + i).GetValue(sky)).value;
-      bodyDistance[i] = ((MinFloatParameter) sky.GetType().GetField("bodyDistance" + i).GetValue(sky)).value;
-      bodyReceivesLight[i] = (((BoolParameter) sky.GetType().GetField("bodyReceivesLight" + i).GetValue(sky)).value) ? 1 : 0;
+      bodyAngularRadius[numActiveBodies] = ((ClampedFloatParameter) sky.GetType().GetField("bodyAngularRadius" + i).GetValue(sky)).value;
+      bodyDistance[numActiveBodies] = ((MinFloatParameter) sky.GetType().GetField("bodyDistance" + i).GetValue(sky)).value;
+      bodyReceivesLight[numActiveBodies] = (((BoolParameter) sky.GetType().GetField("bodyReceivesLight" + i).GetValue(sky)).value) ? 1 : 0;
 
       Vector3 albedoTexRotationV3 = ((Vector3Parameter) sky.GetType().GetField("bodyAlbedoTextureRotation" + i).GetValue(sky)).value;
       Quaternion albedoTexRotation = Quaternion.Euler(albedoTexRotationV3.x,
                                                     albedoTexRotationV3.y,
                                                     albedoTexRotationV3.z);
-      bodyAlbedoTextureRotation[i] = Matrix4x4.Rotate(albedoTexRotation);
+      bodyAlbedoTextureRotation[numActiveBodies] = Matrix4x4.Rotate(albedoTexRotation);
 
-      bodyAlbedoTint[i] = ((ColorParameter) sky.GetType().GetField("bodyAlbedoTint" + i).GetValue(sky)).value;
-      bodyEmissive[i] = (((BoolParameter) sky.GetType().GetField("bodyEmissive" + i).GetValue(sky)).value) ? 1 : 0;
+      bodyAlbedoTint[numActiveBodies] = ((ColorParameter) sky.GetType().GetField("bodyAlbedoTint" + i).GetValue(sky)).value;
+      bodyEmissive[numActiveBodies] = (((BoolParameter) sky.GetType().GetField("bodyEmissive" + i).GetValue(sky)).value) ? 1 : 0;
 
       bool useTemperature = ((BoolParameter) sky.GetType().GetField("bodyUseTemperature" + i).GetValue(sky)).value;
       float lightIntensity = ((MinFloatParameter) sky.GetType().GetField("bodyLightIntensity" + i).GetValue(sky)).value;
@@ -583,25 +818,38 @@ private void setMaterialPropertyBlockCelestialBodies(ExpanseSky sky) {
       if (useTemperature) {
         float temperature = ((ClampedFloatParameter) sky.GetType().GetField("bodyLightTemperature" + i).GetValue(sky)).value;
         Vector4 temperatureColor = blackbodyTempToColor(temperature);
-        bodyLightColor[i] = lightIntensity * (new Vector4(temperatureColor.x * lightColor.x,
+        bodyLightColor[numActiveBodies] = lightIntensity * (new Vector4(temperatureColor.x * lightColor.x,
           temperatureColor.y * lightColor.y,
           temperatureColor.z * lightColor.z,
           temperatureColor.w * lightColor.w));
       } else {
-        bodyLightColor[i] = lightColor * lightIntensity;
+        bodyLightColor[numActiveBodies] = lightColor * lightIntensity;
       }
 
-      bodyLimbDarkening[i] = ((MinFloatParameter) sky.GetType().GetField("bodyLimbDarkening" + i).GetValue(sky)).value;
+      bodyLimbDarkening[numActiveBodies] = ((MinFloatParameter) sky.GetType().GetField("bodyLimbDarkening" + i).GetValue(sky)).value;
 
 
       Vector3 emissionTexRotationV3 = ((Vector3Parameter) sky.GetType().GetField("bodyEmissionTextureRotation" + i).GetValue(sky)).value;
       Quaternion emissionTexRotation = Quaternion.Euler(emissionTexRotationV3.x,
                                                     emissionTexRotationV3.y,
                                                     emissionTexRotationV3.z);
-      bodyEmissionTextureRotation[i] = Matrix4x4.Rotate(emissionTexRotation);
+      bodyEmissionTextureRotation[numActiveBodies] = Matrix4x4.Rotate(emissionTexRotation);
 
       float emissionMultiplier = ((MinFloatParameter) sky.GetType().GetField("bodyEmissionMultiplier" + i).GetValue(sky)).value;
-      bodyEmissionTint[i] = emissionMultiplier * ((ColorParameter) sky.GetType().GetField("bodyEmissionTint" + i).GetValue(sky)).value;
+      bodyEmissionTint[numActiveBodies] = emissionMultiplier * ((ColorParameter) sky.GetType().GetField("bodyEmissionTint" + i).GetValue(sky)).value;
+
+      /* Textures, which can't be set as arrays. */
+      Texture albedoTexture = ((CubemapParameter) sky.GetType().GetField("bodyAlbedoTexture" + i).GetValue(sky)).value;
+      bodyAlbedoTextureEnabled[numActiveBodies] = (albedoTexture == null) ? 0 : 1;
+      if (albedoTexture != null) {
+        m_PropertyBlock.SetTexture("_bodyAlbedoTexture" + i, albedoTexture);
+      }
+
+      Texture emissionTexture = ((CubemapParameter) sky.GetType().GetField("bodyEmissionTexture" + i).GetValue(sky)).value;
+      bodyEmissionTextureEnabled[numActiveBodies] = (emissionTexture == null) ? 0 : 1;
+      if (emissionTexture != null) {
+        m_PropertyBlock.SetTexture("_bodyEmissionTexture" + i, emissionTexture);
+      }
 
       numActiveBodies++;
     }
@@ -610,7 +858,6 @@ private void setMaterialPropertyBlockCelestialBodies(ExpanseSky sky) {
   /* Actually set everything in the property block. */
 
   m_PropertyBlock.SetInt("_numActiveBodies", numActiveBodies);
-  m_PropertyBlock.SetFloatArray("_bodyEnabled", bodyEnabled);
   m_PropertyBlock.SetVectorArray("_bodyDirection", bodyDirection);
   m_PropertyBlock.SetFloatArray("_bodyAngularRadius", bodyAngularRadius);
   m_PropertyBlock.SetFloatArray("_bodyDistance", bodyDistance);
@@ -623,18 +870,13 @@ private void setMaterialPropertyBlockCelestialBodies(ExpanseSky sky) {
   m_PropertyBlock.SetMatrixArray("_bodyEmissionTextureRotation", bodyEmissionTextureRotation);
   m_PropertyBlock.SetVectorArray("_bodyEmissionTint", bodyEmissionTint);
 
-  //
-  // /* TODO: texcube array...? commenting out for now*/
-  // // _bodyAlbedoTexture0, bodyAlbedoTexture1, bodyAlbedoTexture2,
-  // //   bodyAlbedoTexture3, bodyAlbedoTexture4, bodyAlbedoTexture5, bodyAlbedoTexture6, bodyAlbedoTexture7;
+  m_PropertyBlock.SetFloatArray("_bodyAlbedoTextureEnabled", bodyAlbedoTextureEnabled);
+  m_PropertyBlock.SetFloatArray("_bodyEmissionTextureEnabled", bodyEmissionTextureEnabled);
+}
 
-  //
-  // /* TODO: texcube array...? commenting out for now. */
-  // // _bodyEmissionTexture0, bodyEmissionTexture1, bodyEmissionTexture2,
-  // //   bodyEmissionTexture3, bodyEmissionTexture4, bodyEmissionTexture5, bodyEmissionTexture6, bodyEmissionTexture7;
-  // /* Displayed on null check of body albedo texture. */
-  //
-  //
+private void setMaterialPropertyBlockQuality(ExpanseSky sky) {
+  m_PropertyBlock.SetFloat("_useAntiAliasing", sky.useAntiAliasing.value ? 1 : 0);
+  m_PropertyBlock.SetFloat("_ditherAmount", sky.ditherAmount.value);
 }
 
 /******************************************************************************/

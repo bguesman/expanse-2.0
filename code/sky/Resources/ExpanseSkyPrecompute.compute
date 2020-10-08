@@ -1,0 +1,95 @@
+#pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
+
+// Each #kernel tells which function to compile; you can have many kernels
+/* For now, we'll start with one kernel to compute the transmittance
+ * tables. */
+#pragma kernel T main=T
+#pragma kernel LP main=LP
+#pragma kernel SS main=SS
+#pragma kernel GI main=GI
+#pragma kernel MS main=MS
+#pragma kernel MSAcc main=MSAcc
+
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonLighting.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Sampling/Sampling.hlsl"
+#include "../ExpanseSkyCommon.hlsl"
+
+/* RW Textures. */
+/* Transmittance. */
+RW_TEXTURE2D(float3, _T_RW);
+
+/* Light Pollution. */
+RW_TEXTURE2D(float3, _LP0_RW);
+RW_TEXTURE2D(float3, _LP1_RW);
+RW_TEXTURE2D(float3, _LP2_RW);
+RW_TEXTURE2D(float3, _LP3_RW);
+RW_TEXTURE2D(float3, _LP4_RW);
+RW_TEXTURE2D(float3, _LP5_RW);
+RW_TEXTURE2D(float3, _LP6_RW);
+RW_TEXTURE2D(float3, _LP7_RW);
+
+/* Single scattering, with and without shadows. */
+RW_TEXTURE3D(float3, _SS0_RW);
+RW_TEXTURE3D(float3, _SS1_RW);
+RW_TEXTURE3D(float3, _SS2_RW);
+RW_TEXTURE3D(float3, _SS3_RW);
+RW_TEXTURE3D(float3, _SS4_RW);
+RW_TEXTURE3D(float3, _SS5_RW);
+RW_TEXTURE3D(float3, _SS6_RW);
+RW_TEXTURE3D(float3, _SS7_RW);
+RW_TEXTURE3D(float3, _SSNoShadow0_RW);
+RW_TEXTURE3D(float3, _SSNoShadow1_RW);
+RW_TEXTURE3D(float3, _SSNoShadow2_RW);
+RW_TEXTURE3D(float3, _SSNoShadow3_RW);
+RW_TEXTURE3D(float3, _SSNoShadow4_RW);
+RW_TEXTURE3D(float3, _SSNoShadow5_RW);
+RW_TEXTURE3D(float3, _SSNoShadow6_RW);
+RW_TEXTURE3D(float3, _SSNoShadow7_RW);
+
+/* Multiple scattering. */
+RW_TEXTURE2D(float3, _MS_RW);
+
+/* Multiple scattering accumulation. */
+RW_TEXTURE3D(float3, _MSAcc0_RW);
+RW_TEXTURE3D(float3, _MSAcc1_RW);
+RW_TEXTURE3D(float3, _MSAcc2_RW);
+RW_TEXTURE3D(float3, _MSAcc3_RW);
+RW_TEXTURE3D(float3, _MSAcc4_RW);
+RW_TEXTURE3D(float3, _MSAcc5_RW);
+RW_TEXTURE3D(float3, _MSAcc6_RW);
+RW_TEXTURE3D(float3, _MSAcc7_RW);
+
+/* Ground Irradiance. */
+RW_TEXTURE2D(float3, _GI0_RW);
+RW_TEXTURE2D(float3, _GI1_RW);
+RW_TEXTURE2D(float3, _GI2_RW);
+RW_TEXTURE2D(float3, _GI3_RW);
+RW_TEXTURE2D(float3, _GI4_RW);
+RW_TEXTURE2D(float3, _GI5_RW);
+RW_TEXTURE2D(float3, _GI6_RW);
+RW_TEXTURE2D(float3, _GI7_RW);
+
+[numthreads(4,4,1)]
+void T(uint3 id : SV_DispatchThreadID) {
+}
+
+[numthreads(4,4,1)]
+void LP(uint3 id : SV_DispatchThreadID) {
+}
+
+[numthreads(4,4,4)]
+void SS(uint3 id : SV_DispatchThreadID) {
+}
+
+[numthreads(4,1,1)]
+void GI(uint3 id : SV_DispatchThreadID) {
+}
+
+[numthreads(4,1,1)]
+void MS(uint3 id : SV_DispatchThreadID) {
+}
+
+[numthreads(4,4,4)]
+void MSAcc(uint3 id : SV_DispatchThreadID) {
+}
