@@ -12,6 +12,8 @@ class ExpanseSkyRenderer : SkyRenderer
 /**************************** SHADER PROPERTY ID'S ****************************/
 /******************************************************************************/
 
+public static readonly int _WorldSpaceCameraPos1ID = Shader.PropertyToID("_WorldSpaceCameraPos1");
+public static readonly int _ViewMatrix1ID = Shader.PropertyToID("_ViewMatrix1");
 public static readonly int _PixelCoordToViewDirWS = Shader.PropertyToID("_PixelCoordToViewDirWS");
 
 /******************************************************************************/
@@ -54,24 +56,25 @@ void allocateSkyPrecomputationTables(ExpanseSky sky) {
     || quality != m_skyTextureResolution.quality) {
 
     /* Release existing tables. */
-    for (int i = 0; i < m_numAtmosphereLayersEnabled; i++) {
-      releaseTablesAtIndex(i);
-    }
+    cleanupSkyTables();
 
     /* Re-allocate space for RTHandle arrays. */
-    m_TTables = new RTHandle[numEnabled];
+    m_TTables = new RTHandle[1];
     m_SSTables = new RTHandle[numEnabled];
-    m_MSTables = new RTHandle[numEnabled];
+    m_MSTables = new RTHandle[1];
     m_MSAccumulationTables = new RTHandle[numEnabled];
     m_LPTables = new RTHandle[numEnabled];
     m_GITables = new RTHandle[numEnabled];
 
+
     ExpanseCommon.SkyTextureResolution res =
       ExpanseCommon.skyQualityToSkyTextureResolution(quality);
+
+    m_TTables[0] = allocateSky2DTable(res.T, 0, "SkyT");
+    m_MSTables[0] = allocateSky2DTable(res.MS, 0, "SkyMS");
+
     for (int i = 0; i < numEnabled; i++) {
-      m_TTables[i] = allocateSky2DTable(res.T, i, "SkyT");
       m_SSTables[i] = allocateSky4DTable(res.SS, i, "SkySS");
-      m_MSTables[i] = allocateSky2DTable(res.MS, i, "SkyMS");
       m_MSAccumulationTables[i] = allocateSky4DTable(res.MSAccumulation, i, "SkyMSAccumulation");
       m_LPTables[i] = allocateSky2DTable(res.LP, i, "SkyLP");
       m_GITables[i] = allocateSky1DTable(res.GI, i, "SkyGT");
@@ -86,17 +89,10 @@ void allocateSkyPrecomputationTables(ExpanseSky sky) {
 }
 
 void releaseTablesAtIndex(int i) {
-  if (m_TTables != null && m_TTables[i] != null) {
-    RTHandles.Release(m_TTables[i]);
-    m_TTables[i] = null;
-  }
+
   if (m_SSTables != null && m_SSTables[i] != null) {
     RTHandles.Release(m_SSTables[i]);
     m_SSTables[i] = null;
-  }
-  if (m_MSTables != null && m_MSTables[i] != null) {
-    RTHandles.Release(m_MSTables[i]);
-    m_MSTables[i] = null;
   }
   if (m_MSAccumulationTables != null && m_MSAccumulationTables[i] != null) {
     RTHandles.Release(m_MSAccumulationTables[i]);
@@ -109,6 +105,20 @@ void releaseTablesAtIndex(int i) {
   if (m_GITables != null && m_GITables[i] != null) {
     RTHandles.Release(m_GITables[i]);
     m_GITables[i] = null;
+  }
+}
+
+void cleanupSkyTables() {
+  if (m_TTables != null && m_TTables[0] != null) {
+    RTHandles.Release(m_TTables[0]);
+    m_TTables[0] = null;
+  }
+  if (m_MSTables != null && m_MSTables[0] != null) {
+    RTHandles.Release(m_MSTables[0]);
+    m_MSTables[0] = null;
+  }
+  for (int i = 0; i < m_numAtmosphereLayersEnabled; i++) {
+    releaseTablesAtIndex(i);
   }
 }
 
@@ -316,10 +326,7 @@ public override void Cleanup()
 {
   CoreUtils.Destroy(m_skyMaterial);
 
-  for (int i = 0; i < m_numAtmosphereLayersEnabled; i++) {
-    releaseTablesAtIndex(i);
-  }
-
+  cleanupSkyTables();
   cleanupFullscreenRenderTextures();
   cleanupCubemapRenderTextures();
 }
@@ -328,16 +335,16 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
 {
   var sky = builtinParams.skySettings as ExpanseSky;
 
+  /* Allocate the tables and update info about atmosphere layers that are
+   * active. This will not reallocate if the table sizes have remained the
+   * same and no atmosphere layers have been added or removed. */
+  allocateSkyPrecomputationTables(sky);
+
   /* Set everything in the material property block. */
   setMaterialPropertyBlock(builtinParams);
 
   /* Set everything in the global constant buffer. */
   setGlobalCBuffer(builtinParams);
-
-  /* Allocate the tables and update info about atmosphere layers that are
-   * active. This will not reallocate if the table sizes have remained the
-   * same and no atmosphere layers have been added or removed. */
-  allocateSkyPrecomputationTables(sky);
 
   /* TODO: reallocate cloud noises. */
 
@@ -391,6 +398,9 @@ private void RenderCloudsPass(BuiltinSkyParameters builtinParams, bool renderFor
   int currentRTID = renderForCubemap ? m_currentCubemapCloudsRT : m_currentFullscreenCloudsRT;
   int prevRTID = (currentRTID + 1) % 2;
 
+  /* TODO: might wanna set cloud cube map tex for GI. Cool we can do that!
+   * multi-pass, f-yeah! */
+
   /* Pass in the previous cloud render texture to use for reprojection.
    * TODO: probably also pass in camera velocity here. */
   CloudRenderTexture prevTex = (renderForCubemap ? m_cubemapCloudRT : m_fullscreenCloudRT)[prevRTID];
@@ -413,32 +423,36 @@ private void RenderCloudsPass(BuiltinSkyParameters builtinParams, bool renderFor
   if (renderForCubemap) {
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
       outputs, m_PropertyBlock, skyPassID);
-    m_currentCubemapCloudsRT = prevRTID;
   } else {
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
       outputs, builtinParams.depthBuffer, m_PropertyBlock, skyPassID);
-    m_currentFullscreenCloudsRT = prevRTID;
   }
 }
 
 private void RenderCompositePass(BuiltinSkyParameters builtinParams, bool renderForCubemap) {
   /* Set all the textures we just rendered to to be available in the
    * shader. */
-  m_PropertyBlock.SetTexture("_fullscreenSkyColorRT", m_fullscreenSkyRT.colorBuffer);
-  m_PropertyBlock.SetTexture("_fullscreenSkyTransmittanceRT", m_fullscreenSkyRT.transmittanceBuffer);
-  m_PropertyBlock.SetTexture("_fullscreenSkyColorRT", m_fullscreenSkyRT.colorBuffer);
-  m_PropertyBlock.SetTexture("_fullscreenSkyTransmittanceRT", m_fullscreenSkyRT.transmittanceBuffer);
 
   /* Composite. */
   int compositePassID = renderForCubemap ?
     m_CompositeCubemapSkyAndCloudsID : m_CompositeFullscreenSkyAndCloudsID;
 
   if (renderForCubemap) {
+    m_PropertyBlock.SetTexture("_cubemapSkyColorRT", m_cubemapSkyRT.colorBuffer);
+    m_PropertyBlock.SetTexture("_cubemapSkyTransmittanceRT", m_cubemapSkyRT.transmittanceBuffer);
+    m_PropertyBlock.SetTexture("_currCubemapCloudColorRT", m_cubemapCloudRT[m_currentCubemapCloudsRT].colorBuffer);
+    m_PropertyBlock.SetTexture("_currCubemapCloudTransmittanceRT", m_cubemapCloudRT[m_currentCubemapCloudsRT].transmittanceBuffer);
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
       builtinParams.colorBuffer, m_PropertyBlock, compositePassID);
+    m_currentCubemapCloudsRT = (m_currentCubemapCloudsRT + 1) % 2;
   } else {
+    m_PropertyBlock.SetTexture("_fullscreenSkyColorRT", m_fullscreenSkyRT.colorBuffer);
+    m_PropertyBlock.SetTexture("_fullscreenSkyTransmittanceRT", m_fullscreenSkyRT.transmittanceBuffer);
+    m_PropertyBlock.SetTexture("_currFullscreenCloudColorRT", m_fullscreenCloudRT[m_currentFullscreenCloudsRT].colorBuffer);
+    m_PropertyBlock.SetTexture("_currFullscreenCloudTransmittanceRT", m_fullscreenCloudRT[m_currentFullscreenCloudsRT].transmittanceBuffer);
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
       builtinParams.colorBuffer, builtinParams.depthBuffer, m_PropertyBlock, compositePassID);
+    m_currentFullscreenCloudsRT = (m_currentFullscreenCloudsRT + 1) % 2;
   }
 }
 
@@ -603,15 +617,15 @@ private void setSkyRWTextures() {
 
   /* TODO: we have only one multiple scattering and one transmittance
    * table. */
-  m_skyCS.SetTexture(handle_T, "_T", m_TTables[0]);
-  m_skyCS.SetTexture(handle_MS, "_MS", m_MSTables[0]);
+  m_skyCS.SetTexture(handle_T, "_T_RW", m_TTables[0]);
+  m_skyCS.SetTexture(handle_MS, "_MS_RW", m_MSTables[0]);
 
   for (int i = 0; i < m_numAtmosphereLayersEnabled; i++) {
     /* Only set up properties if this layer is enabled. */
-    m_skyCS.SetTexture(handle_LP, "_LP" + i, m_LPTables[i]);
-    m_skyCS.SetTexture(handle_SS, "_SS" + i, m_SSTables[i]);
-    m_skyCS.SetTexture(handle_MSAcc, "_MSAcc" + i, m_MSAccumulationTables[i]);
-    m_skyCS.SetTexture(handle_GI, "_GI" + i, m_GITables[i]);
+    m_skyCS.SetTexture(handle_LP, "_LP" + i + "_RW", m_LPTables[i]);
+    m_skyCS.SetTexture(handle_SS, "_SS" + i + "_RW", m_SSTables[i]);
+    m_skyCS.SetTexture(handle_MSAcc, "_MSAcc" + i + "_RW", m_MSAccumulationTables[i]);
+    m_skyCS.SetTexture(handle_GI, "_GI" + i + "_RW", m_GITables[i]);
   }
 }
 
@@ -629,15 +643,21 @@ private void setGlobalCBuffer(BuiltinSkyParameters builtinParams) {
   /* Get sky object. */
   var sky = builtinParams.skySettings as ExpanseSky;
 
+  /* Precomputed Tables. */
+  setGlobalCBufferAtmosphereTables(builtinParams.commandBuffer, sky);
+
   /* Planet. */
   setGlobalCBufferPlanet(builtinParams.commandBuffer, sky);
+
+  /* Atmosphere. */
+  setGlobalCBufferAtmosphereLayers(builtinParams.commandBuffer, sky);
 
   /* Quality. */
   setGlobalCBufferQuality(builtinParams.commandBuffer, sky);
 }
 
 private void setGlobalCBufferPlanet(CommandBuffer cmd, ExpanseSky sky) {
-  cmd.SetGlobalFloat("_atmosphereThickness", sky.atmosphereThickness.value);
+  cmd.SetGlobalFloat("_atmosphereRadius", sky.planetRadius.value + sky.atmosphereThickness.value);
   cmd.SetGlobalFloat("_planetRadius", sky.planetRadius.value);
   cmd.SetGlobalVector("_groundTint", sky.groundTint.value);
   cmd.SetGlobalFloat("_groundEmissionMultiplier", sky.groundEmissionMultiplier.value);
@@ -665,7 +685,8 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, ExpanseSky sky)
 
   int n = (int) ExpanseCommon.kMaxAtmosphereLayers;
 
-  Vector4[] layerCoefficients = new Vector4[n];
+  Vector4[] layerCoefficientsA = new Vector4[n];
+  Vector4[] layerCoefficientsS = new Vector4[n];
   float[] layerDensityDistribution = new float[n]; /* Should be int, but unity can only set float arrays. */
   float[] layerHeight = new float[n];
   float[] layerThickness = new float[n];
@@ -683,8 +704,12 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, ExpanseSky sky)
     bool enabled = (((BoolParameter) sky.GetType().GetField("layerEnabled" + i).GetValue(sky)).value);
     if (enabled) {
       /* Only set up properties if this layer is enabled. */
-      Vector3 coefficients = ((Vector3Parameter) sky.GetType().GetField("layerCoefficients" + i).GetValue(sky)).value;
-      layerCoefficients[numActiveLayers] = new Vector4(coefficients.x, coefficients.y, coefficients.z, 1);
+      Vector3 coefficientsA = ((Vector3Parameter) sky.GetType().GetField("layerCoefficientsA" + i).GetValue(sky)).value;
+      layerCoefficientsA[numActiveLayers] = new Vector4(coefficientsA.x, coefficientsA.y, coefficientsA.z, 1);
+
+
+      Vector3 coefficientsS = ((Vector3Parameter) sky.GetType().GetField("layerCoefficientsS" + i).GetValue(sky)).value;
+      layerCoefficientsS[numActiveLayers] = new Vector4(coefficientsS.x, coefficientsS.y, coefficientsS.z, 1);
 
       layerDensityDistribution[numActiveLayers] = (float) ((EnumParameter<ExpanseCommon.DensityDistribution>) sky.GetType().GetField("layerDensityDistribution" + i).GetValue(sky)).value;
       layerHeight[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerHeight" + i).GetValue(sky)).value;
@@ -703,7 +728,8 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, ExpanseSky sky)
   }
 
   cmd.SetGlobalInt("_numActiveLayers", numActiveLayers);
-  cmd.SetGlobalVectorArray("_layerCoefficients", layerCoefficients);
+  cmd.SetGlobalVectorArray("_layerCoefficientsA", layerCoefficientsA);
+  cmd.SetGlobalVectorArray("_layerCoefficientsS", layerCoefficientsS);
   cmd.SetGlobalFloatArray("_layerDensityDistribution", layerDensityDistribution);
   cmd.SetGlobalFloatArray("_layerHeight", layerHeight);
   cmd.SetGlobalFloatArray("_layerThickness", layerThickness);
@@ -768,6 +794,7 @@ private void setMaterialPropertyBlock(BuiltinSkyParameters builtinParams) {
   /* Quality. */
   setMaterialPropertyBlockQuality(sky);
 
+  m_PropertyBlock.SetVector(_WorldSpaceCameraPos1ID, builtinParams.worldSpaceCameraPos);
   m_PropertyBlock.SetMatrix(_PixelCoordToViewDirWS, builtinParams.pixelCoordToViewDirMatrix);
 }
 
@@ -796,10 +823,16 @@ private void setMaterialPropertyBlockCelestialBodies(ExpanseSky sky) {
     bool enabled = (((BoolParameter) sky.GetType().GetField("bodyEnabled" + i).GetValue(sky)).value);
     if (enabled) {
       /* Only set up remaining properties if this body is enabled. */
-      Vector3 direction = ExpanseCommon.anglesToDirectionVector(ExpanseCommon.degreesToRadians(((Vector2Parameter) sky.GetType().GetField("bodyDirection" + i).GetValue(sky)).value));
+
+      /* TODO: this mapping could use work. */
+      Vector2 angles = ((Vector2Parameter) sky.GetType().GetField("bodyDirection" + i).GetValue(sky)).value;
+      angles.x += 90;
+      angles.y += 90;
+
+      Vector3 direction = ExpanseCommon.anglesToDirectionVector(ExpanseCommon.degreesToRadians(angles));
       bodyDirection[numActiveBodies] = new Vector4(direction.x, direction.y, direction.z, 0);
 
-      bodyAngularRadius[numActiveBodies] = ((ClampedFloatParameter) sky.GetType().GetField("bodyAngularRadius" + i).GetValue(sky)).value;
+      bodyAngularRadius[numActiveBodies] = Mathf.PI * (((ClampedFloatParameter) sky.GetType().GetField("bodyAngularRadius" + i).GetValue(sky)).value / 180);
       bodyDistance[numActiveBodies] = ((MinFloatParameter) sky.GetType().GetField("bodyDistance" + i).GetValue(sky)).value;
       bodyReceivesLight[numActiveBodies] = (((BoolParameter) sky.GetType().GetField("bodyReceivesLight" + i).GetValue(sky)).value) ? 1 : 0;
 

@@ -39,9 +39,12 @@ public Vector3Parameter planetRotation = new Vector3Parameter(new Vector3(0.0f, 
 [Tooltip("Whether or not this atmosphere layer is enabled.")]
 public BoolParameter layerEnabled0, layerEnabled1, layerEnabled2,
   layerEnabled3, layerEnabled4, layerEnabled5, layerEnabled6, layerEnabled7;
+[Tooltip("Absorption coefficients for this atmosphere layer. For wavelength-independent absorption, set all coefficients to the same value.")]
+public Vector3Parameter layerCoefficientsA0, layerCoefficientsA1, layerCoefficientsA2,
+  layerCoefficientsA3, layerCoefficientsA4, layerCoefficientsA5, layerCoefficientsA6, layerCoefficientsA7;
 [Tooltip("Scattering coefficients for this atmosphere layer. For wavelength-independent scattering, set all coefficients to the same value.")]
-public Vector3Parameter layerCoefficients0, layerCoefficients1, layerCoefficients2,
-  layerCoefficients3, layerCoefficients4, layerCoefficients5, layerCoefficients6, layerCoefficients7;
+public Vector3Parameter layerCoefficientsS0, layerCoefficientsS1, layerCoefficientsS2,
+  layerCoefficientsS3, layerCoefficientsS4, layerCoefficientsS5, layerCoefficientsS6, layerCoefficientsS7;
 [Tooltip("Density distribution type for this atmosphere layer.")]
 public EnumParameter<ExpanseCommon.DensityDistribution> layerDensityDistribution0, layerDensityDistribution1, layerDensityDistribution2,
   layerDensityDistribution3, layerDensityDistribution4, layerDensityDistribution5, layerDensityDistribution6, layerDensityDistribution7;
@@ -186,7 +189,8 @@ public ExpanseSky() {
   for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
     /* Enable only the first layer by default. */
     this.GetType().GetField("layerEnabled" + i).SetValue(this, new BoolParameter(i==0));
-    this.GetType().GetField("layerCoefficients" + i).SetValue(this, new Vector3Parameter(new Vector3(0.0000058f, 0.0000135f, 0.0000331f)));
+    this.GetType().GetField("layerCoefficientsA" + i).SetValue(this, new Vector3Parameter(new Vector3(0.0000058f, 0.0000135f, 0.0000331f)));
+    this.GetType().GetField("layerCoefficientsS" + i).SetValue(this, new Vector3Parameter(new Vector3(0.0000058f, 0.0000135f, 0.0000331f)));
     this.GetType().GetField("layerDensityDistribution" + i).SetValue(this, new EnumParameter<ExpanseCommon.DensityDistribution>(ExpanseCommon.DensityDistribution.Exponential));
     this.GetType().GetField("layerHeight" + i).SetValue(this, new MinFloatParameter(8000, 1));
     this.GetType().GetField("layerThickness" + i).SetValue(this, new MinFloatParameter(30000, 1));
@@ -247,7 +251,8 @@ public override int GetHashCode() {
     /* Atmosphere layers. */
     for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerEnabled" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficients" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsA" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsS" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.DensityDistribution>) this.GetType().GetField("layerDensityDistribution" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerHeight" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerThickness" + i).GetValue(this)).value.GetHashCode();
@@ -322,7 +327,8 @@ public int GetSkyHashCode() {
     /* Atmosphere layers. */
     for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerEnabled" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficients" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsA" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsS" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.DensityDistribution>) this.GetType().GetField("layerDensityDistribution" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerHeight" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerThickness" + i).GetValue(this)).value.GetHashCode();

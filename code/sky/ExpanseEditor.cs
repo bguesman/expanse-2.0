@@ -64,8 +64,10 @@ SerializedDataParameter groundEmissionMultiplier;
  * in common, then have a UI element that allows for selection somehow. */
 SerializedDataParameter[] layerEnabled
  = new SerializedDataParameter[ExpanseCommon.kMaxAtmosphereLayers];
-SerializedDataParameter[] layerCoefficients
+SerializedDataParameter[] layerCoefficientsA
   = new SerializedDataParameter[ExpanseCommon.kMaxAtmosphereLayers];
+SerializedDataParameter[] layerCoefficientsS
+ = new SerializedDataParameter[ExpanseCommon.kMaxAtmosphereLayers];
 SerializedDataParameter[] layerDensityDistribution
   = new SerializedDataParameter[ExpanseCommon.kMaxAtmosphereLayers];
 SerializedDataParameter[] layerHeight
@@ -322,16 +324,17 @@ private void atmosphereLayer(UnityEngine.GUIStyle titleStyle,
   {
 
     PropertyField(layerEnabled[atmosphereSelectIndex], new UnityEngine.GUIContent("Enabled"));
-    PropertyField(layerCoefficients[atmosphereSelectIndex], new UnityEngine.GUIContent("Coefficients"));
+    PropertyField(layerCoefficientsA[atmosphereSelectIndex], new UnityEngine.GUIContent("Absorption Coefficients"));
+    PropertyField(layerCoefficientsS[atmosphereSelectIndex], new UnityEngine.GUIContent("Scattering Coefficients"));
     PropertyField(layerDensity[atmosphereSelectIndex], new UnityEngine.GUIContent("Density"));
 
     /* Density distribution selection dropdown. */
     PropertyField(layerDensityDistribution[atmosphereSelectIndex], new UnityEngine.GUIContent("Layer Density Distribution"));
-    PropertyField(layerThickness[atmosphereSelectIndex], new UnityEngine.GUIContent("Thickness"));
     if ((ExpanseCommon.DensityDistribution) layerDensityDistribution[atmosphereSelectIndex].value.enumValueIndex == ExpanseCommon.DensityDistribution.Tent) {
       /* Only display height control if tent distribution is enabled. */
       PropertyField(layerHeight[atmosphereSelectIndex], new UnityEngine.GUIContent("Height"));
     }
+    PropertyField(layerThickness[atmosphereSelectIndex], new UnityEngine.GUIContent("Thickness"));
 
     /* Phase function selection dropdown. */
     PropertyField(layerPhaseFunction[atmosphereSelectIndex], new UnityEngine.GUIContent("Layer Phase Function"));
@@ -467,7 +470,8 @@ private void unpackSerializedProperties(PropertyFetcher<ExpanseSky> o) {
   /* Atmosphere layers. */
   for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
     layerEnabled[i] = Unpack(o.Find("layerEnabled" + i));
-    layerCoefficients[i] = Unpack(o.Find("layerCoefficients" + i));
+    layerCoefficientsA[i] = Unpack(o.Find("layerCoefficientsA" + i));
+    layerCoefficientsS[i] = Unpack(o.Find("layerCoefficientsS" + i));
     layerDensityDistribution[i] = Unpack(o.Find("layerDensityDistribution" + i));
     layerHeight[i] = Unpack(o.Find("layerHeight" + i));
     layerThickness[i] = Unpack(o.Find("layerThickness" + i));

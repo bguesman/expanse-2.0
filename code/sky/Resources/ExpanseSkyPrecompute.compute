@@ -14,6 +14,7 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonLighting.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Sampling/Sampling.hlsl"
 #include "../ExpanseSkyCommon.hlsl"
+#include "../ExpanseSkyMapping.hlsl"
 
 /* RW Textures. */
 /* Transmittance. */
@@ -70,8 +71,107 @@ RW_TEXTURE2D(float3, _GI5_RW);
 RW_TEXTURE2D(float3, _GI6_RW);
 RW_TEXTURE2D(float3, _GI7_RW);
 
+/******************************************************************************/
+/****************************** TEXTURE WRITERS *******************************/
+/******************************************************************************/
+
+void writeSS(uint3 id, float3 val, int i) {
+  switch(i) {
+    case 0:
+      _SS0_RW[id] = val;
+      break;
+    case 1:
+      _SS1_RW[id] = val;
+      break;
+    case 2:
+      _SS2_RW[id] = val;
+      break;
+    case 3:
+      _SS3_RW[id] = val;
+      break;
+    case 4:
+      _SS4_RW[id] = val;
+      break;
+    case 5:
+      _SS5_RW[id] = val;
+      break;
+    case 6:
+      _SS6_RW[id] = val;
+      break;
+    case 7:
+      _SS7_RW[id] = val;
+      break;
+  }
+}
+
+void writeSSNoShadow(uint3 id, float3 val, int i) {
+  switch(i) {
+    case 0:
+      _SSNoShadow0_RW[id] = val;
+      break;
+    case 1:
+      _SSNoShadow1_RW[id] = val;
+      break;
+    case 2:
+      _SSNoShadow2_RW[id] = val;
+      break;
+    case 3:
+      _SSNoShadow3_RW[id] = val;
+      break;
+    case 4:
+      _SSNoShadow4_RW[id] = val;
+      break;
+    case 5:
+      _SSNoShadow5_RW[id] = val;
+      break;
+    case 6:
+      _SSNoShadow6_RW[id] = val;
+      break;
+    case 7:
+      _SSNoShadow7_RW[id] = val;
+      break;
+  }
+}
+
+/******************************************************************************/
+/**************************** END TEXTURE WRITERS *****************************/
+/******************************************************************************/
+
 [numthreads(4,4,1)]
 void T(uint3 id : SV_DispatchThreadID) {
+  /* Get the uv for this id and unwrap it to a viewing angle and a
+   * height. */
+  float u_r = (id.x + 0.5f) / float(_resT.x);
+  float u_mu = (id.y + 0.5f) / float(_resT.y);
+
+  float2 r_mu = unmapSky2DCoord(u_r, u_mu, _atmosphereRadius, _planetRadius);
+
+  float r = r_mu.x;
+  float mu = r_mu.y;
+
+  float3 O = float3(0, r, 0);
+  float3 d = float3(safeSqrt(1 - mu * mu), mu, 0);
+
+  /* Trace a ray to see what we hit. */
+  SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
+    _atmosphereRadius);
+  float3 endPoint = O + d * intersection.endT;
+
+  /* Compute optical depth for all enabled atmosphere layers. */
+  float3 power = float3(0, 0, 0);
+  for (int i = 0; i < _numActiveLayers; i++) {
+    float opticalDepth = computeOpticalDepth(_layerDensityDistribution[i],
+      O, endPoint, _layerHeight[i], _layerThickness[i], _layerDensity[i],
+      _layerAttenuationBias[i], _layerAttenuationDistance[i],
+      _layerUseDensityAttenuation[i], _numTSamples);
+    /* Absorption is about 1.1x scattering for aerosols. */
+    power += multiplier * opticalDepth * _layerCoefficientsA[i].xyz;
+  }
+
+  /* Compute transmittance from optical depth. */
+  float3 T = saturate(exp(-power));
+
+  _T_RW[id.xy] = T;
 }
 
 [numthreads(4,4,1)]
@@ -80,6 +180,137 @@ void LP(uint3 id : SV_DispatchThreadID) {
 
 [numthreads(4,4,4)]
 void SS(uint3 id : SV_DispatchThreadID) {
+  /* Get the uv for this id and unwrap it to a viewing angle, a
+   * height, and the sun zenith and azimuth angles. */
+  /* Height. */
+  float u_r = (id.x + 0.5f) / float(_resSS.x);
+  /* Viewing angle. */
+  float u_mu = (id.y + 0.5f) / float(_resSS.y);
+
+  float2 u_mu_l_u_nu = deepTexIndexToUV(id.z, _resSS.z, _resSS.w);
+  /* Sun zenith angle. */
+  float u_mu_l = u_mu_l_u_nu.x;
+  /* Sun azimuth angle. */
+  float u_nu = u_mu_l_u_nu.y;
+
+  float4 ssCoord = unmapSky4DCoord(u_r, u_mu, u_mu_l, u_nu, _atmosphereRadius,
+    _planetRadius);
+
+  float r = ssCoord.x;
+  float mu = ssCoord.y;
+  float mu_l = ssCoord.z;
+  float nu = ssCoord.w;
+
+  float3 O = float3(0, r, 0);
+  float3 d = float3(safeSqrt(1 - mu * mu), mu, 0);
+  float3 L = float3(nu*safeSqrt(1 - mu_l*mu_l), mu_l,
+    safeSqrt(1 - nu * nu)*safeSqrt(1 - mu_l*mu_l));
+
+  /* Trace a ray to see what we hit. */
+  SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
+    _atmosphereRadius);
+
+  float3 endPoint = O + d * intersection.endT;
+  float t_hit = intersection.endT;
+
+  float3 inScattering[MAX_LAYERS];
+  float3 inScatteringNoShadows[MAX_LAYERS];
+  float scaledDensity[MAX_LAYERS];
+  for (int j = 0; j < _numActiveLayers; j++) {
+    inScattering[j] = float3(0, 0, 0);
+    inScatteringNoShadows[j] = float3(0, 0, 0);
+    scaledDensity[j] = 0;
+  }
+
+  for (int i = 0; i < _numSSSamples; i++) {
+    float sampleT = 0.0;
+    float ds = 0.0;
+    if (_useImportanceSampling) {
+      float2 t_ds = t_hit * generateCubicSampleFromIndex(i, _numSSSamples);
+      sampleT = t_ds.x;
+      ds = t_ds.y;
+    } else {
+      /* Distribute linearly. */
+      float2 t_ds = t_hit * generateLinearSampleFromIndex(i, _numSSSamples);
+      sampleT = t_ds.x;
+      ds = t_ds.y;
+    }
+
+    float3 samplePoint = O + d * sampleT;
+    float3 normalizedSamplePoint = normalize(samplePoint);
+
+    /* Compute the scaled density of the layer at the sample point. */
+    for (int j = 0; j < _numActiveLayers; j++) {
+      scaledDensity[j] = ds * computeDensity(_layerDensityDistribution[j],
+        samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
+        _layerUseDensityAttenuation[j], sampleT, _layerAttenuationBias[j],
+        _layerAttenuationDistance[j]);
+    }
+
+    /* Compute transmittance from O to sample point, and then from sample
+     * point through to the light hit. */
+    float2 oToSample = mapSky2DCoord(length(O),
+      mu, _atmosphereRadius, _planetRadius, t_hit, intersection.groundHit);
+
+    float3 T_oToSample = SAMPLE_TEXTURE2D_LOD(_T,
+      s_linear_clamp_sampler, oToSample, 0).rgb;
+
+    /* Our transmittance value for O to the sample point is too large---we
+     * need to divide out the transmittance from the sample point to the
+     * atmosphere, or ground, depending on what we hit. */
+    float2 sampleOut = mapSky2DCoord(length(samplePoint),
+      clampCosine(dot(normalizedSamplePoint, d)), _atmosphereRadius,
+      _planetRadius, t_hit - sampleT, intersection.groundHit);
+    float3 T_sampleOut = SAMPLE_TEXTURE2D_LOD(_T,
+      s_linear_clamp_sampler, sampleOut, 0).rgb;
+    /* Clamp sample out for division. */
+    T_sampleOut = max(T_sampleOut, FLT_EPSILON);
+    T_oToSample /= T_sampleOut;
+
+    for (int j = 0; j < _numActiveLayers; j++) {
+      inScatteringNoShadows[j] += scaledDensity[j] * T_oToSample;
+    }
+
+    /* Trace a ray from the sample point to the light to check visibility.
+     * Displace just a little bit just in case we hit the ground. */
+    SkyIntersectionData lightIntersection = traceSkyVolume(samplePoint * 1.001,
+      L, _planetRadius, _atmosphereRadius);
+
+    float3 lightEndPoint = samplePoint + L * lightIntersection.endT;
+    float t_light_hit = lightIntersection.endT;
+
+    /* Compute the light transmittance to the sample point. */
+    float2 sampleToL = mapSky2DCoord(length(samplePoint),
+      clampCosine(dot(normalizedSamplePoint, L)), _atmosphereRadius,
+      _planetRadius, t_light_hit, lightIntersection.groundHit);
+    /* Compute transmittance through sample to light hit point. */
+    float3 T_sampleToL = SAMPLE_TEXTURE2D_LOD(_T,
+      s_linear_clamp_sampler, sampleToL, 0).rgb;
+
+    float3 T = T_oToSample * T_sampleToL;
+
+    if (lightIntersection.groundHit) {
+      if (!intersection.groundHit) {
+        /* We'll add the light scattered off the ground surface. */
+        float dot_L_sample = saturate(dot(normalize(L), normalize(lightEndPoint)));
+        float3 groundAlbedo = _groundTint.xyz / PI;
+        for (int j = 0; j < _numActiveLayers; j++) {
+          inScattering[j] += scaledDensity[j] * T * (dot_L_sample * groundAlbedo);
+        }
+      }
+    } else {
+      for (int j = 0; j < _numActiveLayers; j++) {
+        inScattering[j] += scaledDensity[j] * T;
+      }
+    }
+
+  }
+
+  for (int k = 0; k < 3; k++) { // TODO: hack TODO: absorption and scatter coeffs separate
+    writeSS(id, inScattering[k], k);
+    // writeSSNoShadow(id, inScatteringNoShadows[j], j); //
+  }
+
 }
 
 [numthreads(4,1,1)]

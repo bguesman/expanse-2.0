@@ -34,7 +34,7 @@ namespace Expanse {
       Exponential = 0,
       Tent
     };
-    public const uint kMaxDensityDistributions = 3;
+    public const uint kMaxDensityDistributions = 2;
 
     /* Enum for celestial bodies. Currently we support up to 8 different
      * celestial bodies. */
@@ -78,7 +78,7 @@ namespace Expanse {
         case SkyTextureQuality.Potato:
           return new SkyTextureResolution() {
             quality = quality,
-            T = new Vector2(16, 16),
+            T = new Vector2(4, 4),
             SS = new Vector4(16, 16, 16, 16),
             MS = new Vector2(16, 16),
             MSAccumulation = new Vector4(16, 16, 16, 16),
@@ -88,7 +88,7 @@ namespace Expanse {
         case SkyTextureQuality.Low:
           return new SkyTextureResolution() {
             quality = quality,
-            T = new Vector2(16, 16),
+            T = new Vector2(8, 8),
             SS = new Vector4(16, 16, 16, 16),
             MS = new Vector2(16, 16),
             MSAccumulation = new Vector4(16, 16, 16, 16),
@@ -109,7 +109,7 @@ namespace Expanse {
           return new SkyTextureResolution() {
             quality = quality,
             T = new Vector2(32, 128),
-            SS = new Vector4(32, 128, 32, 32),
+            SS = new Vector4(32, 64, 16, 16),
             MS = new Vector2(32, 32),
             MSAccumulation = new Vector4(32, 128, 32, 32),
             LP = new Vector2(32, 128),
@@ -118,7 +118,7 @@ namespace Expanse {
         case SkyTextureQuality.Ultra:
           return new SkyTextureResolution() {
             quality = quality,
-            T = new Vector2(32, 128),
+            T = new Vector2(64, 128),
             SS = new Vector4(32, 128, 32, 32),
             MS = new Vector2(32, 32),
             MSAccumulation = new Vector4(32, 128, 32, 32),
@@ -128,8 +128,8 @@ namespace Expanse {
         case SkyTextureQuality.RippingThroughTheMetaverse:
           return new SkyTextureResolution() {
             quality = quality,
-            T = new Vector2(32, 128),
-            SS = new Vector4(32, 128, 32, 32),
+            T = new Vector2(128, 256),
+            SS = new Vector4(32, 256, 64, 32),
             MS = new Vector2(32, 32),
             MSAccumulation = new Vector4(32, 128, 32, 32),
             LP = new Vector2(32, 128),
@@ -154,8 +154,8 @@ namespace Expanse {
     }
 
     public static Vector3 anglesToDirectionVector(Vector2 angles) {
-      return new Vector3(Mathf.Sin(angles.x) * Mathf.Cos(angles.y),
-        Mathf.Sin(angles.x) * Mathf.Sin(angles.y), Mathf.Cos(angles.x));
+      return new Vector3(Mathf.Sin(angles.y) * Mathf.Cos(angles.x),
+        Mathf.Sin(angles.y) * Mathf.Sin(angles.x), Mathf.Cos(angles.y));
     }
 
   }
