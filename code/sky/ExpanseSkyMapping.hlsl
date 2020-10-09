@@ -252,6 +252,20 @@ float2 mapSky1DCoord(float mu_l) {
 }
 
 /* Returns r, mu_l. R is always just above the ground. */
-float2 mapSky1DCoord(float u_mu_l, float _planetRadius) {
+float2 unmapSky1DCoord(float u_mu_l, float _planetRadius) {
   return float2(_planetRadius + 0.01, unmap_mu_l(u_mu_l));
+}
+
+/* This parameterization was taken from Hillaire's 2020 model. */
+/* Returns u_r, u_mu_l. */
+float2 mapMSCoordinate(float r, float mu_l,
+  float atmosphereRadius, float planetRadius) {
+  return float2(map_r(r, atmosphereRadius, planetRadius), map_mu_l(mu_l));
+}
+
+/* Returns r, mu_l. */
+float2 unmapMSCoordinate(float u_r, float u_mu_l, float atmosphereRadius,
+  float planetRadius) {
+  return float2(unmap_r(u_r, atmosphereRadius, planetRadius),
+    unmap_mu_l(u_mu_l));
 }

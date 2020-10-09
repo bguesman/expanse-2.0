@@ -218,6 +218,76 @@ float3 sampleBodyAlbedoTexture(float3 uv, int i) {
 /**************************** SKY FRAGMENT SHADER *****************************/
 /******************************************************************************/
 
+/* Given uv coodinate representing direction, computes sky transmittance. */
+float3 computeSkyTransmittance(float2 uv) {
+  /* There's only one transmittance table to sample. */
+  return SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler, uv, 0).xyz;
+}
+
+float3 shadeGround(float3 endPoint) {
+  float3 color = float3(0, 0, 0);
+  float3 endPointNormalized = normalize(endPoint);
+
+  /* Compute albedo, emission. */
+  float3 albedo = (_groundTint * 2.0) / PI;
+  float3 uv = mul(endPointNormalized, (float3x3) _planetRotation);
+  if (_groundAlbedoTextureEnabled) {
+    albedo = (_groundTint * 2.0) *
+      SAMPLE_TEXTURECUBE_LOD(_groundAlbedoTexture, s_linear_clamp_sampler, uv, 0).xyz;
+  }
+
+  float3 emission = float3(0, 0, 0);
+  if (_groundEmissionTextureEnabled) {
+    emission = _groundEmissionMultiplier *
+      SAMPLE_TEXTURECUBE_LOD(_groundEmissionTexture, s_linear_clamp_sampler, uv, 0).xyz;
+  }
+
+  /* Loop over all the celestial bodies. */
+  for (int i = 0; i < _numActiveBodies; i++) {
+    float3 L = _bodyDirection[i];
+    float3 lightColor = _bodyLightColor[i];
+    float3 cosTheta = dot(endPointNormalized, L);
+
+    /* Loop over all the layers to accumulate ground irradiance. */
+    float mu_L = dot(L, endPointNormalized);
+    float2 uvGI = mapSky1DCoord(mu_L);
+    float3 giAcc = float3(0, 0, 0);
+    for (int j = 0; j < _numActiveLayers; j++) {
+      float3 gi = sampleGITexture(uvGI, j);
+      giAcc += _layerCoefficientsS[j] * 2.0 * _layerTint[j].xyz * gi;
+    }
+
+    color += albedo * (giAcc * lightColor + cosTheta * lightColor) + emission;
+  }
+  return color;
+}
+
+/* Compute the luminance of a Celestial given the illuminance and the cosine
+ * of half the angular extent. */
+float3 computeCelestialBodyLuminanceMultiplier(float cosTheta) {
+  /* Compute solid angle. */
+  float solidAngle = 2.0 * PI * (1.0 - cosTheta);
+  return 1.0 / solidAngle;
+}
+
+
+float3 limbDarkening(float dot_L_d, float cosTheta, float amount) {
+  /* amount = max(FLT_EPS, amount); */
+  float centerToEdge = 1.0 - abs((dot_L_d - cosTheta) / (1.0 - cosTheta));
+  float mu = safeSqrt(1.0 - centerToEdge * centerToEdge);
+  float mu2 = mu * mu;
+  float mu3 = mu2 * mu;
+  float mu4 = mu2 * mu2;
+  float mu5 = mu3 * mu2;
+  float3 a0 = float3 (0.34685, 0.26073, 0.15248);
+  float3 a1 = float3 (1.37539, 1.27428, 1.38517);
+  float3 a2 = float3 (-2.04425, -1.30352, -1.49615);
+  float3 a3 = float3 (2.70493, 1.47085, 1.99886);
+  float3 a4 = float3 (-1.94290, -0.96618, -1.48155);
+  float3 a5 = float3 (0.55999, 0.26384, 0.44119);
+  return max(0.0, pow(a0 + a1 * mu + a2 * mu2 + a3 * mu3 + a4 * mu4 + a5 * mu5, amount));
+}
+
 /* Given direction to sample in, shades closest celestial body.
  * TODO: luminance, not illuminance.
  * TODO: limb darkening. */
@@ -280,9 +350,10 @@ float3 shadeClosestCelestialBody(float3 d) {
   }
 
   if (_bodyEmissive[minIdx]) {
+    /* We have to do some work to compute the intersection. */
+    float3 L = _bodyDirection[minIdx];
+    float3 emission = float3(0, 0, 0);
     if (_bodyEmissionTextureEnabled[minIdx]) {
-      /* We have to do some work to compute the intersection. */
-      float3 L = _bodyDirection[minIdx];
       float dist = _bodyDistance[minIdx];
       float sinInner = sin(_bodyAngularRadius[minIdx]);
       float bodyRadius = sinInner * dist;
@@ -294,19 +365,19 @@ float3 shadeClosestCelestialBody(float3 d) {
       float3 surfaceNormal = normalize(bodyIntersectionPoint);
       float3 emissionTex = sampleBodyEmissionTexture(
         mul(surfaceNormal, (float3x3) _bodyEmissionTextureRotation[minIdx]), minIdx);
-      directLighting += emissionTex * _bodyEmissionTint[minIdx].xyz;
+      emission += emissionTex * _bodyEmissionTint[minIdx].xyz;
     } else {
-      directLighting += _bodyLightColor[minIdx].xyz * _bodyEmissionTint[minIdx].xyz;
+      emission += _bodyLightColor[minIdx].xyz * _bodyEmissionTint[minIdx].xyz;
     }
+    float cosInner = cos(_bodyAngularRadius[minIdx]);
+    emission *= limbDarkening(dot(L, d), cosInner,
+      _bodyLimbDarkening[minIdx]);
+    emission *= computeCelestialBodyLuminanceMultiplier(cosInner);
+    directLighting += emission;
   }
 
-  return directLighting;
-}
 
-/* Given uv coodinate representing direction, computes sky transmittance. */
-float3 computeSkyTransmittance(float2 uv) {
-  /* There's only one transmittance table to sample. */
-  return SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler, uv, 0).xyz;
+  return directLighting;
 }
 
 float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d, float t_hit, bool groundHit) {
@@ -338,7 +409,7 @@ float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d, float 
     float3 ss = sampleSSTexture(uvSS, j);
 
     /* Multiple scattering. */
-    float3 ms = float3(0,0,0);//sampleMSAccTexture(uvSS, j); TODO
+    float3 ms = sampleMSAccTexture(uvMSAcc, j);
 
     /* Final color. */
     color += lightColor * _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
@@ -350,7 +421,7 @@ float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d, float 
 
 /* Given uv coordinate representing direction, computes sky transmittance. */
 float3 computeSkyColor(float2 r_mu_uv, float3 start, float3 d, float t_hit, bool groundHit) {
-  /* Loop through all the celetial bodies. */
+  /* Loop through all the celestial bodies. */
   float3 color = float3(0, 0, 0);
   for (int i = 0; i < _numActiveBodies; i++) {
     color += computeSkyColorBody(r_mu_uv, i, start, d, t_hit, groundHit);
@@ -394,12 +465,12 @@ SkyResult RenderSky(Varyings input, bool cubemap) {
   /* Compute direct illumination. */
   float3 directLight = float3(0, 0, 0);
   if (intersection.groundHit) {
-    directLight = float3(1, 0.1, 1);
+    directLight = shadeGround(endPoint);
   } else {
     /* Shade the closest celestial body and the stars.
      * TODO: should make this return a "closeness to edge" parameter
      * that allows us to determine if we want to use MSAA to
-     * anti-alias the edges. */
+     * anti-alias the edges. Or put this value as 4th in SS table. */
     directLight = shadeClosestCelestialBody(d);
   }
 

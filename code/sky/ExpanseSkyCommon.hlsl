@@ -464,6 +464,55 @@ float3 sampleSSTexture(TexCoord4D uv, int i) {
   }
 }
 
+float3 sampleSSNoShadowTexture(TexCoord4D uv, int i) {
+  float3 uvw0 = float3(uv.x, uv.y, uv.z);
+  float3 uvw1 = float3(uv.x, uv.y, uv.w);
+  switch(i) {
+    case 0: {
+      float3 contrib0 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow0, s_linear_clamp_sampler, uvw0, 0).rgb;
+      float3 contrib1 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow0, s_linear_clamp_sampler, uvw1, 0).rgb;
+      return lerp(contrib0, contrib1, uv.a);
+    }
+    case 1: {
+      float3 contrib0 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow1, s_linear_clamp_sampler, uvw0, 0).rgb;
+      float3 contrib1 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow1, s_linear_clamp_sampler, uvw1, 0).rgb;
+      return lerp(contrib0, contrib1, uv.a);
+    }
+    case 2: {
+      float3 contrib0 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow2, s_linear_clamp_sampler, uvw0, 0).rgb;
+      float3 contrib1 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow2, s_linear_clamp_sampler, uvw1, 0).rgb;
+      return lerp(contrib0, contrib1, uv.a);
+    }
+    case 3: {
+      float3 contrib0 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow3, s_linear_clamp_sampler, uvw0, 0).rgb;
+      float3 contrib1 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow3, s_linear_clamp_sampler, uvw1, 0).rgb;
+      return lerp(contrib0, contrib1, uv.a);
+    }
+    case 4: {
+      float3 contrib0 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow4, s_linear_clamp_sampler, uvw0, 0).rgb;
+      float3 contrib1 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow4, s_linear_clamp_sampler, uvw1, 0).rgb;
+      return lerp(contrib0, contrib1, uv.a);
+    }
+    case 5: {
+      float3 contrib0 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow5, s_linear_clamp_sampler, uvw0, 0).rgb;
+      float3 contrib1 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow5, s_linear_clamp_sampler, uvw1, 0).rgb;
+      return lerp(contrib0, contrib1, uv.a);
+    }
+    case 6: {
+      float3 contrib0 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow6, s_linear_clamp_sampler, uvw0, 0).rgb;
+      float3 contrib1 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow6, s_linear_clamp_sampler, uvw1, 0).rgb;
+      return lerp(contrib0, contrib1, uv.a);
+    }
+    case 7: {
+      float3 contrib0 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow7, s_linear_clamp_sampler, uvw0, 0).rgb;
+      float3 contrib1 = SAMPLE_TEXTURE3D_LOD(_SSNoShadow7, s_linear_clamp_sampler, uvw1, 0).rgb;
+      return lerp(contrib0, contrib1, uv.a);
+    }
+    default:
+      return float3(0, 0, 0);
+  }
+}
+
 float3 sampleMSAccTexture(TexCoord4D uv, int i) {
   float3 uvw0 = float3(uv.x, uv.y, uv.z);
   float3 uvw1 = float3(uv.x, uv.y, uv.w);
@@ -508,6 +557,29 @@ float3 sampleMSAccTexture(TexCoord4D uv, int i) {
       float3 contrib1 = SAMPLE_TEXTURE3D_LOD(_MSAcc7, s_linear_clamp_sampler, uvw1, 0).rgb;
       return lerp(contrib0, contrib1, uv.a);
     }
+    default:
+      return float3(0, 0, 0);
+  }
+}
+
+float3 sampleGITexture(float2 uv, int i) {
+  switch(i) {
+    case 0:
+      return SAMPLE_TEXTURE2D_LOD(_GI0, s_linear_clamp_sampler, uv, 0).rgb;
+    case 1:
+      return SAMPLE_TEXTURE2D_LOD(_GI1, s_linear_clamp_sampler, uv, 0).rgb;
+    case 2:
+      return SAMPLE_TEXTURE2D_LOD(_GI2, s_linear_clamp_sampler, uv, 0).rgb;
+    case 3:
+      return SAMPLE_TEXTURE2D_LOD(_GI3, s_linear_clamp_sampler, uv, 0).rgb;
+    case 4:
+      return SAMPLE_TEXTURE2D_LOD(_GI4, s_linear_clamp_sampler, uv, 0).rgb;
+    case 5:
+      return SAMPLE_TEXTURE2D_LOD(_GI5, s_linear_clamp_sampler, uv, 0).rgb;
+    case 6:
+      return SAMPLE_TEXTURE2D_LOD(_GI6, s_linear_clamp_sampler, uv, 0).rgb;
+    case 7:
+      return SAMPLE_TEXTURE2D_LOD(_GI7, s_linear_clamp_sampler, uv, 0).rgb;
     default:
       return float3(0, 0, 0);
   }
