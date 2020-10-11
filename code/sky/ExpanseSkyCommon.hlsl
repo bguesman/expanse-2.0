@@ -55,14 +55,7 @@ TEXTURE2D(_T);
 
 /* Light Pollution. */
 float4 _resLP; /* Table resolution. */
-TEXTURE2D(_LP0);
-TEXTURE2D(_LP1);
-TEXTURE2D(_LP2);
-TEXTURE2D(_LP3);
-TEXTURE2D(_LP4);
-TEXTURE2D(_LP5);
-TEXTURE2D(_LP6);
-TEXTURE2D(_LP7);
+TEXTURE2D(_LP);
 
 /* Single scattering, with and without shadows. */
 float4 _resSS; /* Table resolution. */
@@ -100,14 +93,7 @@ TEXTURE3D(_MSAcc7);
 
 /* Ground Irradiance. */
 int _resGI; /* Table resolution. */
-TEXTURE2D(_GI0);
-TEXTURE2D(_GI1);
-TEXTURE2D(_GI2);
-TEXTURE2D(_GI3);
-TEXTURE2D(_GI4);
-TEXTURE2D(_GI5);
-TEXTURE2D(_GI6);
-TEXTURE2D(_GI7);
+TEXTURE2D_ARRAY(_GI);
 
 CBUFFER_END // Expanse Sky
 
@@ -563,49 +549,11 @@ float3 sampleMSAccTexture(TexCoord4D uv, int i) {
 }
 
 float3 sampleGITexture(float2 uv, int i) {
-  switch(i) {
-    case 0:
-      return SAMPLE_TEXTURE2D_LOD(_GI0, s_linear_clamp_sampler, uv, 0).rgb;
-    case 1:
-      return SAMPLE_TEXTURE2D_LOD(_GI1, s_linear_clamp_sampler, uv, 0).rgb;
-    case 2:
-      return SAMPLE_TEXTURE2D_LOD(_GI2, s_linear_clamp_sampler, uv, 0).rgb;
-    case 3:
-      return SAMPLE_TEXTURE2D_LOD(_GI3, s_linear_clamp_sampler, uv, 0).rgb;
-    case 4:
-      return SAMPLE_TEXTURE2D_LOD(_GI4, s_linear_clamp_sampler, uv, 0).rgb;
-    case 5:
-      return SAMPLE_TEXTURE2D_LOD(_GI5, s_linear_clamp_sampler, uv, 0).rgb;
-    case 6:
-      return SAMPLE_TEXTURE2D_LOD(_GI6, s_linear_clamp_sampler, uv, 0).rgb;
-    case 7:
-      return SAMPLE_TEXTURE2D_LOD(_GI7, s_linear_clamp_sampler, uv, 0).rgb;
-    default:
-      return float3(0, 0, 0);
-  }
+  return SAMPLE_TEXTURE2D_ARRAY_LOD(_GI, s_linear_clamp_sampler, uv, i, 0).xyz;
 }
 
 float3 sampleLPTexture(float2 uv, int i) {
-  switch(i) {
-    case 0:
-      return SAMPLE_TEXTURE2D_LOD(_LP0, s_linear_clamp_sampler, uv, 0).rgb;
-    case 1:
-      return SAMPLE_TEXTURE2D_LOD(_LP1, s_linear_clamp_sampler, uv, 0).rgb;
-    case 2:
-      return SAMPLE_TEXTURE2D_LOD(_LP2, s_linear_clamp_sampler, uv, 0).rgb;
-    case 3:
-      return SAMPLE_TEXTURE2D_LOD(_LP3, s_linear_clamp_sampler, uv, 0).rgb;
-    case 4:
-      return SAMPLE_TEXTURE2D_LOD(_LP4, s_linear_clamp_sampler, uv, 0).rgb;
-    case 5:
-      return SAMPLE_TEXTURE2D_LOD(_LP5, s_linear_clamp_sampler, uv, 0).rgb;
-    case 6:
-      return SAMPLE_TEXTURE2D_LOD(_LP6, s_linear_clamp_sampler, uv, 0).rgb;
-    case 7:
-      return SAMPLE_TEXTURE2D_LOD(_LP7, s_linear_clamp_sampler, uv, 0).rgb;
-    default:
-      return float3(0, 0, 0);
-  }
+  return SAMPLE_TEXTURE2D_ARRAY_LOD(_LP, s_linear_clamp_sampler, uv, i, 0).xyz;
 }
 
 /******************************************************************************/
