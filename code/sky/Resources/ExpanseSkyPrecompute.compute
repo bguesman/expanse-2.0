@@ -367,8 +367,8 @@ void SS1(uint3 id : SV_DispatchThreadID) {
     }
   }
 
-  for (int k = 0; k < 4; k++) { // TODO: hack TODO: absorption and scatter coeffs separate
-    if (k < _numActiveLayers) {
+  for (int k = 0; k < 4; k++) {
+    if (k < _numActiveLayers) { // For some reason, still need this hack.
       writeSS(id, inScattering[k], k);
       writeSSNoShadow(id, inScatteringNoShadows[k], k);
     }
@@ -502,12 +502,10 @@ void SS2(uint3 id : SV_DispatchThreadID) {
     }
   }
 
-  // for (int k = 4; k < MAX_LAYERS; k++) { // TODO: hack TODO: absorption and scatter coeffs separate
-  //   if (k < _numActiveLayers) {
-  //     writeSS(id, inScattering[k], k);
-  //     writeSSNoShadow(id, inScatteringNoShadows[k], k);
-  //   }
-  // }
+  for (int k = 4; k < _numActiveLayers; k++) {
+      writeSS(id, inScattering[k], k);
+      writeSSNoShadow(id, inScatteringNoShadows[k], k);
+  }
 }
 
 [numthreads(4,1,1)]
@@ -546,24 +544,18 @@ void GI(uint3 id : SV_DispatchThreadID) {
       TexCoord4D ssCoord = mapSky4DCoord(r, mu, mu_l, nu,
         _atmosphereRadius, _planetRadius, t_hit, false, _resSS.z, _resSS.w);
 
-      for (int j = 0; j < 3; j++) {
-        if (j < _numActiveLayers) {
-          float3 ss = sampleSSTexture(ssCoord, j);
-
-          /* Compute single scattering contribution using phase functions. */
-          float dot_L_d = dot(L, d);
-          float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
-
-          gi[j] += ss * phase;
-        }
+      for (int j = 0; j < _numActiveLayers; j++) {
+        float3 ss = sampleSSTexture(ssCoord, j);
+        /* Compute single scattering contribution using phase functions. */
+        float dot_L_d = dot(L, d);
+        float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
+        gi[j] += ss * phase;
       }
     }
   }
 
-  for (int j = 0; j < 4; j++) {
-    if (j < _numActiveLayers) {
-      writeGI(id.xy, gi[j] * 2 * PI / float(_numGISamples), j);
-    }
+  for (int j = 0; j < _numActiveLayers; j++) {
+    writeGI(id.xy, gi[j] * 2 * PI / float(_numGISamples), j);
   }
 
 }
@@ -624,14 +616,12 @@ void MS(uint3 id : SV_DispatchThreadID) {
     TexCoord4D ssCoord = mapSky4DCoord(r, mu, mu_l, nu,
       _atmosphereRadius, _planetRadius, t_hit, intersection.groundHit,
       _resSS.z, _resSS.w);
-    for (int j = 0; j < 3; j++) {
-      if (j < _numActiveLayers) {
-        float3 ss = sampleSSTexture(ssCoord, j);
-        secondOrder += (_layerCoefficientsS[j].xyz * 2 * _layerTint[j].xyz * ss)
-          / (4.0 * PI);
-        float3 ssNoShadow = sampleSSNoShadowTexture(ssCoord, j);
-        transferFunction += (_layerCoefficientsS[j].xyz * 2 * _layerTint[j].xyz * ssNoShadow);
-      }
+    for (int j = 0; j < _numActiveLayers; j++) {
+      float3 ss = sampleSSTexture(ssCoord, j);
+      secondOrder += (_layerCoefficientsS[j].xyz * 2 * _layerTint[j].xyz * ss)
+        / (4.0 * PI);
+      float3 ssNoShadow = sampleSSNoShadowTexture(ssCoord, j);
+      transferFunction += (_layerCoefficientsS[j].xyz * 2 * _layerTint[j].xyz * ssNoShadow);
     }
   }
 
@@ -705,7 +695,7 @@ void MSAcc(uint3 id : SV_DispatchThreadID) {
     float3 msContrib = SAMPLE_TEXTURE2D_LOD(_MS, s_linear_clamp_sampler, msUV, 0).xyz;
 
     /* Compute the scaled density of the layer at the sample point. */
-    for (int j = 0; j < min(4, _numActiveLayers); j++) {
+    for (int j = 0; j < _numActiveLayers; j++) {
       float scaledDensity = ds * computeDensity(_layerDensityDistribution[j],
         samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
         _layerUseDensityAttenuation[j], sampleT, _layerAttenuationBias[j],
@@ -714,10 +704,8 @@ void MSAcc(uint3 id : SV_DispatchThreadID) {
     }
   }
 
-  for (int k = 0; k < 4; k++) { // HACK
-    if (k < _numActiveLayers) {
-      writeMSAcc(id, multipleScattering[k], k);
-    }
+  for (int k = 0; k < _numActiveLayers; k++) {
+    writeMSAcc(id, multipleScattering[k], k);
   }
 
 }
