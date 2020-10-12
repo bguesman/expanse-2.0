@@ -125,6 +125,13 @@ bool floatLT(float a, float b) {
   return a < b + FLT_EPSILON;
 }
 
+#define EXP_LERP_A 1
+#define EXP_LERP_B 1 / (exp(EXP_LERP_A) - 1)
+float3 expLerp(float3 v0, float3 vf, float t) {
+  t = exp(EXP_LERP_A * t) * EXP_LERP_B - EXP_LERP_B;
+  return lerp(v0, vf, t);
+}
+
 /******************************************************************************/
 /*************************** END UTILITY FUNCTIONS ****************************/
 /******************************************************************************/
@@ -391,9 +398,9 @@ float3 sampleSSTexture(TexCoord4D uv, int i) {
   float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw01, i, 0).xyz;
   float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw10, i, 0).xyz;
   float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  float3 result0 = lerp(contrib00, contrib01, uv.b);
-  float3 result1 = lerp(contrib10, contrib11, uv.b);
-  return  lerp(result0, result1, uv.a);
+  float3 result0 = expLerp(contrib00, contrib01, uv.b);
+  float3 result1 = expLerp(contrib10, contrib11, uv.b);
+  return expLerp(result0, result1, uv.a);
 }
 
 float3 sampleSSNoShadowTexture(TexCoord4D uv, int i) {
@@ -405,9 +412,9 @@ float3 sampleSSNoShadowTexture(TexCoord4D uv, int i) {
   float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw01, i, 0).xyz;
   float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw10, i, 0).xyz;
   float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  float3 result0 = lerp(contrib00, contrib01, uv.b);
-  float3 result1 = lerp(contrib10, contrib11, uv.b);
-  return lerp(result0, result1, uv.a);
+  float3 result0 = expLerp(contrib00, contrib01, uv.b);
+  float3 result1 = expLerp(contrib10, contrib11, uv.b);
+  return expLerp(result0, result1, uv.a);
 }
 
 float3 sampleMSAccTexture(TexCoord4D uv, int i) {
@@ -419,9 +426,9 @@ float3 sampleMSAccTexture(TexCoord4D uv, int i) {
   float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw01, i, 0).xyz;
   float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw10, i, 0).xyz;
   float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  float3 result0 = lerp(contrib00, contrib01, uv.b);
-  float3 result1 = lerp(contrib10, contrib11, uv.b);
-  return lerp(result0, result1, uv.a);
+  float3 result0 = expLerp(contrib00, contrib01, uv.b);
+  float3 result1 = expLerp(contrib10, contrib11, uv.b);
+  return expLerp(result0, result1, uv.a);
 }
 
 float3 sampleGITexture(float2 uv, int i) {

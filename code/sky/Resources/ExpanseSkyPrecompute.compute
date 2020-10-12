@@ -221,7 +221,7 @@ void SS(uint3 id : SV_DispatchThreadID) {
         /* We'll add the light scattered off the ground surface. */
         float dot_L_sample = saturate(dot(normalize(L), normalize(lightEndPoint)));
         float3 groundAlbedo = _groundTint.xyz / PI;
-        for (int j = 0; j < min(4, _numActiveLayers); j++) {
+        for (int j = 0; j < _numActiveLayers; j++) {
           inScattering[j] += scaledDensity[j] * T * (dot_L_sample * groundAlbedo);
         }
       }
