@@ -10,13 +10,21 @@
  *         sample(u, v) = a * sample(w0) + (1 - a) * sample(w1)
  *
  */
-float3 uvToDeepTexCoord(float u, float v, int zTexSize, int zTexCount) {
-  float w = (0.5 + u * (zTexSize - 1)) * (1.0/zTexSize);
-  float k = v * (zTexCount - 1);
-  float w0 = (floor(k) + w) * (1.0/zTexCount);
-  float w1 = (ceil(k) + w) * (1.0/zTexCount);
-  float a = frac(k);
-  return float3(w0, w1, a);
+float3 uvToDeepTexCoord(float u, float v, int numRows, int numCols) {
+  // float w = (0.5 + u * (zTexSize - 1)) * (1.0/zTexSize);
+  // float k = v * (zTexCount - 1);
+  // float w0 = (floor(k) + w) * (1.0/zTexCount);
+  // float w1 = (ceil(k) + w) * (1.0/zTexCount);
+  // float a = frac(k);
+  // return float3(w0, w1, a);
+  float w_id = ((u) * (numRows-2)) + 1; // fractional row number
+  float k_id = ((v) * (numCols-2)) + 1; // fractional column number
+  float a = frac(w_id); // 0-1 along row
+  float w_size = 1.0/(numRows); // bucket size for each row
+  float k_size = 1.0/((numRows) * (numCols)); // bucket size for each column
+  float coord_0 = floor(w_id) * w_size + k_id * k_size;
+  float coord_1 = ceil(w_id) * w_size + k_id * k_size;
+  return float3(coord_0, coord_1, a);
 }
 
 /* Converts deep texture index in range zTexSize * zTexCount to the
@@ -25,11 +33,17 @@ float3 uvToDeepTexCoord(float u, float v, int zTexSize, int zTexCount) {
  *
  * Returns (u, v).
  */
-float2 deepTexIndexToUV(uint deepTexCoord, uint zTexSize, int zTexCount) {
-  uint texId = deepTexCoord / zTexSize;
-  uint texCoord = deepTexCoord & (zTexSize - 1);
-  float u = saturate(texCoord / (float(zTexSize) - 1.0));
-  float v = saturate(texId / (float(zTexCount) - 1.0));
+float2 deepTexIndexToUV(uint deepTexCoord, uint numRows, int numCols) {
+  // uint texId = deepTexCoord / zTexSize;
+  // uint texCoord = deepTexCoord & (zTexSize - 1);
+  // float u = saturate(texCoord / (float(zTexSize) - 1.0));
+  // float v = saturate(texId / (float(zTexCount) - 1.0));
+  // return float2(u, v)
+
+  int w_id = deepTexCoord / numCols;
+  int k_id = deepTexCoord % numCols;
+  float u = saturate((w_id - 0.5) / (numRows-2));
+  float v = saturate((k_id - 0.5) / (numCols-2));
   return float2(u, v);
 }
 
@@ -216,13 +230,15 @@ float2 unmapSky2DCoord(float u_r, float u_mu,
 /* Returns u_r, u_mu, u_mu_l/u_nu bundled into z. */
 TexCoord4D mapSky4DCoord(float r, float mu, float mu_l,
   float nu, float atmosphereRadius, float planetRadius, float d,
-  bool groundHit, uint zTexSize, int zTexCount) {
+  bool groundHit, uint yTexSize, uint yTexCount, uint zTexSize, int zTexCount) {
   float2 u_r_mu = map_r_mu(r, mu, atmosphereRadius, planetRadius,
     d, groundHit);
-  float3 deepTexCoord = uvToDeepTexCoord(map_mu_l(mu_l), map_nu(nu),
+  float3 deepYTexCoord = uvToDeepTexCoord(u_r_mu.x, u_r_mu.y,
+    yTexSize, yTexCount);
+  float3 deepZTexCoord = uvToDeepTexCoord(map_mu_l(mu_l), map_nu(nu),
     zTexSize, zTexCount);
-  TexCoord4D toRet = {u_r_mu.x, u_r_mu.y, deepTexCoord.x,
-    deepTexCoord.y, deepTexCoord.z};
+  TexCoord4D toRet = {deepYTexCoord.x, deepYTexCoord.y, deepZTexCoord.x,
+    deepZTexCoord.y, deepYTexCoord.z, deepZTexCoord.z};
   return toRet;
 }
 
@@ -230,11 +246,13 @@ TexCoord4D mapSky4DCoord(float r, float mu, float mu_l,
  * handle the case where we don't want to recompute r/mu's uv's. */
 TexCoord4D mapSky4DCoord(float2 r_mu_uv, float mu_l,
   float nu, float atmosphereRadius, float planetRadius, float d,
-  bool groundHit, uint zTexSize, int zTexCount) {
-  float3 deepTexCoord = uvToDeepTexCoord(map_mu_l(mu_l), map_nu(nu),
+  bool groundHit, uint yTexSize, uint yTexCount, uint zTexSize, int zTexCount) {
+  float3 deepYTexCoord = uvToDeepTexCoord(r_mu_uv.x, r_mu_uv.y,
+    yTexSize, yTexCount);
+  float3 deepZTexCoord = uvToDeepTexCoord(map_mu_l(mu_l), map_nu(nu),
     zTexSize, zTexCount);
-  TexCoord4D toRet = {r_mu_uv.x, r_mu_uv.y, deepTexCoord.x,
-    deepTexCoord.y, deepTexCoord.z};
+  TexCoord4D toRet = {deepYTexCoord.x, deepYTexCoord.y, deepZTexCoord.x,
+    deepZTexCoord.y, deepYTexCoord.z, deepZTexCoord.z};
   return toRet;
 }
 

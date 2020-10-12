@@ -27,9 +27,10 @@ public static readonly int _PixelCoordToViewDirWS = Shader.PropertyToID("_PixelC
 /******************************************************************************/
 
 private RTHandle m_TTable;                        /* Transmittance. */
-private RTHandle[] m_SSTables;                    /* Single Scattering. */
+private RTHandle m_SSTableArray;                  /* Single Scattering. */
+private RTHandle m_SSNoShadowTableArray;          /* Single Scattering. */
 private RTHandle m_MSTable;                       /* Multiple Scattering. */
-private RTHandle[] m_MSAccumulationTables;        /* Multiple Scattering. */
+private RTHandle m_MSAccumulationTableArray;      /* Multiple Scattering. */
 private RTHandle m_LPTableArray;                  /* Light Pollution. */
 private RTHandle m_GITableArray;                  /* Ground Irradiance. */
 /* For checking if table reallocation is required. */
@@ -58,54 +59,27 @@ void allocateSkyPrecomputationTables(ExpanseSky sky) {
     /* Release existing tables. */
     cleanupSkyTables();
 
-    /* Re-allocate space for RTHandle arrays. */
-    m_SSTables = new RTHandle[2 * numEnabled]; /* Shadow and no shadow. */
-    m_MSAccumulationTables = new RTHandle[numEnabled];
-
     ExpanseCommon.SkyTextureResolution res =
       ExpanseCommon.skyQualityToSkyTextureResolution(quality);
 
     m_TTable = allocateSky2DTable(res.T, 0, "SkyT");
     m_MSTable = allocateSky2DTable(res.MS, 0, "SkyMS");
 
+    m_SSTableArray = allocateSky4DArrayTable(res.SS, numEnabled, "SkySS");
+    m_SSNoShadowTableArray = allocateSky4DArrayTable(res.SS, numEnabled, "SkySSNoShadow");
+    m_MSAccumulationTableArray = allocateSky4DArrayTable(res.MSAccumulation, numEnabled, "SkyMSAcc");
     m_GITableArray = allocateSky1DArrayTable(res.GI, numEnabled, "SkyGI");
     m_LPTableArray = allocateSky2DArrayTable(res.LP, numEnabled, "SkyLP");
 
-    for (int i = 0; i < numEnabled; i++) {
-      m_SSTables[2*i] = allocateSky4DTable(res.SS, i, "SkySS");
-      m_SSTables[2*i+1] = allocateSky4DTable(res.SS, i, "SkySSNoShadow");
-      m_MSAccumulationTables[i] = allocateSky4DTable(res.MSAccumulation, i, "SkyMSAccumulation");
-    }
-
     m_numAtmosphereLayersEnabled = numEnabled;
     m_skyTextureResolution = res;
-
 
     Debug.Log("Reallocated " + m_numAtmosphereLayersEnabled + " tables at " + m_skyTextureResolution.quality + " quality.");
   }
 }
 
-void releaseTablesAtIndex(int i) {
-
-  if (m_SSTables != null && m_SSTables[2*i] != null) {
-    RTHandles.Release(m_SSTables[2*i]);
-    m_SSTables[2*i] = null;
-  }
-  if (m_SSTables != null && m_SSTables[2*i+1] != null) {
-    RTHandles.Release(m_SSTables[2*i+1]);
-    m_SSTables[2*i+1] = null;
-  }
-  if (m_MSAccumulationTables != null && m_MSAccumulationTables[i] != null) {
-    RTHandles.Release(m_MSAccumulationTables[i]);
-    m_MSAccumulationTables[i] = null;
-  }
-  if (m_LPTableArray != null) {
-    RTHandles.Release(m_LPTableArray);
-    m_LPTableArray = null;
-  }
-}
-
 void cleanupSkyTables() {
+  /* TODO: null checks may not be necessary. */
   if (m_TTable != null) {
     RTHandles.Release(m_TTable);
     m_TTable = null;
@@ -118,8 +92,21 @@ void cleanupSkyTables() {
     RTHandles.Release(m_GITableArray);
     m_GITableArray = null;
   }
-  for (int i = 0; i < m_numAtmosphereLayersEnabled; i++) {
-    releaseTablesAtIndex(i);
+  if (m_LPTableArray != null) {
+    RTHandles.Release(m_LPTableArray);
+    m_LPTableArray = null;
+  }
+  if (m_SSTableArray != null) {
+    RTHandles.Release(m_SSTableArray);
+    m_SSTableArray = null;
+  }
+  if (m_SSNoShadowTableArray != null) {
+    RTHandles.Release(m_SSNoShadowTableArray);
+    m_SSNoShadowTableArray = null;
+  }
+  if (m_MSAccumulationTableArray != null) {
+    RTHandles.Release(m_MSAccumulationTableArray);
+    m_MSAccumulationTableArray = null;
   }
 }
 
@@ -191,6 +178,21 @@ RTHandle allocateSky4DTable(Vector4 resolution, int index, string name) {
                               colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                               enableRandomWrite: true,
                               name: string.Format(name + "{0}", index));
+
+  Debug.Assert(table != null);
+
+  return table;
+}
+
+/* Allocates 4D sky precomputation table. */
+RTHandle allocateSky4DArrayTable(Vector4 resolution, int depth, string name) {
+  var table = RTHandles.Alloc(((int) resolution.x) * ((int) resolution.y),
+                              ((int) resolution.z) * ((int) resolution.w),
+                              depth,
+                              dimension: TextureDimension.Tex2DArray,
+                              colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
+                              enableRandomWrite: true,
+                              name: name);
 
   Debug.Assert(table != null);
 
@@ -545,8 +547,7 @@ private void DispatchSkyCompute(CommandBuffer cmd) {
       int handle_T = m_skyCS.FindKernel("T");
       int handle_LP = m_skyCS.FindKernel("LP");
       int handle_GI = m_skyCS.FindKernel("GI");
-      int handle_SS1 = m_skyCS.FindKernel("SS1");
-      int handle_SS2 = m_skyCS.FindKernel("SS2");
+      int handle_SS = m_skyCS.FindKernel("SS");
       int handle_MS = m_skyCS.FindKernel("MS");
       int handle_MSAcc = m_skyCS.FindKernel("MSAcc");
 
@@ -554,34 +555,21 @@ private void DispatchSkyCompute(CommandBuffer cmd) {
         (int) m_skyTextureResolution.T.x / 4,
         (int) m_skyTextureResolution.T.y / 4, 1);
 
-
       cmd.DispatchCompute(m_skyCS, handle_LP,
         (int) m_skyTextureResolution.LP.x / 4,
         (int) m_skyTextureResolution.LP.y / 4, 1);
 
-
-      cmd.DispatchCompute(m_skyCS, handle_SS1,
-        (int) m_skyTextureResolution.SS.x / 4,
-        (int) m_skyTextureResolution.SS.y / 4,
-        (int) (m_skyTextureResolution.SS.z * m_skyTextureResolution.SS.w) / 4);
-
-      if (m_numAtmosphereLayersEnabled > 4) {
-        cmd.DispatchCompute(m_skyCS, handle_SS2,
-          (int) m_skyTextureResolution.SS.x / 4,
-          (int) m_skyTextureResolution.SS.y / 4,
-          (int) (m_skyTextureResolution.SS.z * m_skyTextureResolution.SS.w) / 4);
-      }
+      cmd.DispatchCompute(m_skyCS, handle_SS,
+        ((int) (m_skyTextureResolution.SS.x * m_skyTextureResolution.SS.y)) / 4,
+        ((int) (m_skyTextureResolution.SS.z * m_skyTextureResolution.SS.w)) / 4, 1);
 
       cmd.DispatchCompute(m_skyCS, handle_MS,
         (int) m_skyTextureResolution.MS.x / 4,
         (int) m_skyTextureResolution.MS.y / 4, 1);
 
-
       cmd.DispatchCompute(m_skyCS, handle_MSAcc,
-        (int) m_skyTextureResolution.MSAccumulation.x / 4,
-        (int) m_skyTextureResolution.MSAccumulation.y / 4,
-        (int) (m_skyTextureResolution.MSAccumulation.z * m_skyTextureResolution.MSAccumulation.z) / 4);
-
+        ((int) (m_skyTextureResolution.MSAccumulation.x * m_skyTextureResolution.MSAccumulation.y)) / 4,
+        ((int) (m_skyTextureResolution.MSAccumulation.z * m_skyTextureResolution.MSAccumulation.z)) / 4, 1);
 
       cmd.DispatchCompute(m_skyCS, handle_GI,
         (int) m_skyTextureResolution.GI / 4, 1, 1);
@@ -652,8 +640,7 @@ private void setSkyRWTextures() {
   int handle_T = m_skyCS.FindKernel("T");
   int handle_LP = m_skyCS.FindKernel("LP");
   int handle_GI = m_skyCS.FindKernel("GI");
-  int handle_SS1 = m_skyCS.FindKernel("SS1");
-  int handle_SS2 = m_skyCS.FindKernel("SS2");
+  int handle_SS = m_skyCS.FindKernel("SS");
   int handle_MS = m_skyCS.FindKernel("MS");
   int handle_MSAcc = m_skyCS.FindKernel("MSAcc");
 
@@ -662,30 +649,11 @@ private void setSkyRWTextures() {
   if (m_numAtmosphereLayersEnabled > 0) {
     m_skyCS.SetTexture(handle_T, "_T_RW", m_TTable);
     m_skyCS.SetTexture(handle_MS, "_MS_RW", m_MSTable);
-    m_skyCS.SetTexture(handle_GI, "_GI" + "_RW", m_GITableArray);
-    m_skyCS.SetTexture(handle_LP, "_LP" + "_RW", m_LPTableArray);
-  }
-
-  for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
-    /* Only set up actual properties if this layer is enabled. */
-    int idx = (i >= m_numAtmosphereLayersEnabled) ? 0 : i;
-    m_skyCS.SetTexture(handle_MSAcc, "_MSAcc" + i + "_RW", m_MSAccumulationTables[idx]);
-  }
-
-  Debug.Log(m_numAtmosphereLayersEnabled);
-
-  /* First half of SS tables go into ss1. */
-  for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers / 2; i++) {
-    int idx = (i >= m_numAtmosphereLayersEnabled) ? 0 : i;
-    m_skyCS.SetTexture(handle_SS1, "_SS" + i + "_RW", m_SSTables[2*idx]);
-    m_skyCS.SetTexture(handle_SS1, "_SSNoShadow" + i + "_RW", m_SSTables[2*idx+1]);
-  }
-
-  /* Second half of SS tables go into ss1. */
-  for (int i = (int) ExpanseCommon.kMaxAtmosphereLayers / 2; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
-    int idx = (i >= m_numAtmosphereLayersEnabled) ? 0 : i;
-    m_skyCS.SetTexture(handle_SS2, "_SS" + i + "_RW", m_SSTables[2*idx]);
-    m_skyCS.SetTexture(handle_SS2, "_SSNoShadow" + i + "_RW", m_SSTables[2*idx+1]);
+    m_skyCS.SetTexture(handle_GI, "_GI_RW", m_GITableArray);
+    m_skyCS.SetTexture(handle_LP, "_LP_RW", m_LPTableArray);
+    m_skyCS.SetTexture(handle_SS, "_SS_RW", m_SSTableArray);
+    m_skyCS.SetTexture(handle_SS, "_SSNoShadow_RW", m_SSNoShadowTableArray);
+    m_skyCS.SetTexture(handle_MSAcc, "_MSAcc_RW", m_MSAccumulationTableArray);
   }
 }
 
@@ -804,19 +772,6 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, ExpanseSky sky)
 }
 
 private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, ExpanseSky sky) {
-  for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
-    int idx = (i >= m_numAtmosphereLayersEnabled) ? 0 : i;
-    /* Only set up properties if this layer is enabled. */
-    cmd.SetGlobalTexture("_SS" + i, m_SSTables[2*idx]);
-    cmd.SetGlobalTexture("_SSNoShadow" + i, m_SSTables[2*idx+1]);
-    cmd.SetGlobalVector("_resSS", m_skyTextureResolution.SS);
-    cmd.SetGlobalTexture("_MSAcc" + i, m_MSAccumulationTables[idx]);
-    cmd.SetGlobalVector("_resMSAcc", m_skyTextureResolution.MSAccumulation);
-  }
-
-
-  /* TODO: we have only one multiple scattering and one transmittance
-   * table. */
   if (m_numAtmosphereLayersEnabled > 0) {
     cmd.SetGlobalTexture("_GI", m_GITableArray);
     cmd.SetGlobalInt("_resGI", m_skyTextureResolution.GI);
@@ -826,6 +781,12 @@ private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, ExpanseSky sky)
     cmd.SetGlobalVector("_resMS", m_skyTextureResolution.MS);
     cmd.SetGlobalTexture("_LP", m_LPTableArray);
     cmd.SetGlobalVector("_resLP", m_skyTextureResolution.LP);
+    cmd.SetGlobalTexture("_SS", m_SSTableArray);
+    cmd.SetGlobalVector("_resSS", m_skyTextureResolution.SS);
+    cmd.SetGlobalTexture("_SSNoShadow", m_SSNoShadowTableArray);
+    cmd.SetGlobalVector("_resLP", m_skyTextureResolution.SS);
+    cmd.SetGlobalTexture("_MSAcc", m_MSAccumulationTableArray);
+    cmd.SetGlobalVector("_resMSAcc", m_skyTextureResolution.MSAccumulation);
   }
 }
 

@@ -5,8 +5,7 @@
  * tables. */
 #pragma kernel T main=T
 #pragma kernel LP main=LP
-#pragma kernel SS1 main=SS1
-#pragma kernel SS2 main=SS2
+#pragma kernel SS main=SS
 #pragma kernel GI main=GI
 #pragma kernel MS main=MS
 #pragma kernel MSAcc main=MSAcc
@@ -22,38 +21,17 @@
 RW_TEXTURE2D(float3, _T_RW);
 
 /* Light Pollution. */
-RW_TEXTURE2D(float3, _LP_RW);
+RW_TEXTURE2D_ARRAY(float3, _LP_RW);
 
 /* Single scattering, with and without shadows. */
-RW_TEXTURE3D(float3, _SS0_RW);
-RW_TEXTURE3D(float3, _SS1_RW);
-RW_TEXTURE3D(float3, _SS2_RW);
-RW_TEXTURE3D(float3, _SS3_RW);
-RW_TEXTURE3D(float3, _SS4_RW);
-RW_TEXTURE3D(float3, _SS5_RW);
-RW_TEXTURE3D(float3, _SS6_RW);
-RW_TEXTURE3D(float3, _SS7_RW);
-RW_TEXTURE3D(float3, _SSNoShadow0_RW);
-RW_TEXTURE3D(float3, _SSNoShadow1_RW);
-RW_TEXTURE3D(float3, _SSNoShadow2_RW);
-RW_TEXTURE3D(float3, _SSNoShadow3_RW);
-RW_TEXTURE3D(float3, _SSNoShadow4_RW);
-RW_TEXTURE3D(float3, _SSNoShadow5_RW);
-RW_TEXTURE3D(float3, _SSNoShadow6_RW);
-RW_TEXTURE3D(float3, _SSNoShadow7_RW);
+RW_TEXTURE2D_ARRAY(float3, _SS_RW);
+RW_TEXTURE2D_ARRAY(float3, _SSNoShadow_RW);
 
 /* Multiple scattering. */
 RW_TEXTURE2D(float3, _MS_RW);
 
 /* Multiple scattering accumulation. */
-RW_TEXTURE3D(float3, _MSAcc0_RW);
-RW_TEXTURE3D(float3, _MSAcc1_RW);
-RW_TEXTURE3D(float3, _MSAcc2_RW);
-RW_TEXTURE3D(float3, _MSAcc3_RW);
-RW_TEXTURE3D(float3, _MSAcc4_RW);
-RW_TEXTURE3D(float3, _MSAcc5_RW);
-RW_TEXTURE3D(float3, _MSAcc6_RW);
-RW_TEXTURE3D(float3, _MSAcc7_RW);
+RW_TEXTURE2D_ARRAY(float3, _MSAcc_RW);
 
 /* Ground Irradiance. */
 RW_TEXTURE2D_ARRAY(float3, _GI_RW);
@@ -62,95 +40,20 @@ RW_TEXTURE2D_ARRAY(float3, _GI_RW);
 /****************************** TEXTURE WRITERS *******************************/
 /******************************************************************************/
 
-void writeSS(uint3 id, float3 val, int i) {
-  switch(i) {
-    case 0:
-      _SS0_RW[id] = val;
-      break;
-    case 1:
-      _SS1_RW[id] = val;
-      break;
-    case 2:
-      _SS2_RW[id] = val;
-      break;
-    case 3:
-      _SS3_RW[id] = val;
-      break;
-    case 4:
-      _SS4_RW[id] = val;
-      break;
-    case 5:
-      _SS5_RW[id] = val;
-      break;
-    case 6:
-      _SS6_RW[id] = val;
-      break;
-    case 7:
-      _SS7_RW[id] = val;
-      break;
-  }
+void writeSS(uint2 id, float3 val, int i) {
+  _SS_RW[uint3(id, (uint) i)] = val;
 }
 
-void writeSSNoShadow(uint3 id, float3 val, int i) {
-  switch(i) {
-    case 0:
-      _SSNoShadow0_RW[id] = val;
-      break;
-    case 1:
-      _SSNoShadow1_RW[id] = val;
-      break;
-    case 2:
-      _SSNoShadow2_RW[id] = val;
-      break;
-    case 3:
-      _SSNoShadow3_RW[id] = val;
-      break;
-    case 4:
-      _SSNoShadow4_RW[id] = val;
-      break;
-    case 5:
-      _SSNoShadow5_RW[id] = val;
-      break;
-    case 6:
-      _SSNoShadow6_RW[id] = val;
-      break;
-    case 7:
-      _SSNoShadow7_RW[id] = val;
-      break;
-  }
+void writeSSNoShadow(uint2 id, float3 val, int i) {
+  _SSNoShadow_RW[uint3(id, (uint) i)] = val;
 }
 
 void writeGI(uint2 id, float3 val, int i) {
   _GI_RW[float3(id, i)] = val;
 }
 
-void writeMSAcc(uint3 id, float3 val, int i) {
-  switch(i) {
-    case 0:
-      _MSAcc0_RW[id] = val;
-      break;
-    case 1:
-      _MSAcc1_RW[id] = val;
-      break;
-    case 2:
-      _MSAcc2_RW[id] = val;
-      break;
-    case 3:
-      _MSAcc3_RW[id] = val;
-      break;
-    case 4:
-      _MSAcc4_RW[id] = val;
-      break;
-    case 5:
-      _MSAcc5_RW[id] = val;
-      break;
-    case 6:
-      _MSAcc6_RW[id] = val;
-      break;
-    case 7:
-      _MSAcc7_RW[id] = val;
-      break;
-  }
+void writeMSAcc(uint2 id, float3 val, int i) {
+  _MSAcc_RW[uint3(id, (uint) i)] = val;
 }
 
 /******************************************************************************/
@@ -201,16 +104,17 @@ void T(uint3 id : SV_DispatchThreadID) {
 void LP(uint3 id : SV_DispatchThreadID) {
 }
 
-[numthreads(4,4,4)]
-void SS1(uint3 id : SV_DispatchThreadID) {
+[numthreads(4,4,1)]
+void SS(uint3 id : SV_DispatchThreadID) {
   /* Get the uv for this id and unwrap it to a viewing angle, a
    * height, and the sun zenith and azimuth angles. */
+  float2 u_r_mu = deepTexIndexToUV(id.x, _resSS.x, _resSS.y);
   /* Height. */
-  float u_r = (id.x + 0.5f) / float(_resSS.x);
+  float u_r = u_r_mu.x;
   /* Viewing angle. */
-  float u_mu = (id.y + 0.5f) / float(_resSS.y);
+  float u_mu = u_r_mu.y;
 
-  float2 u_mu_l_u_nu = deepTexIndexToUV(id.z, _resSS.z, _resSS.w);
+  float2 u_mu_l_u_nu = deepTexIndexToUV(id.y, _resSS.z, _resSS.w);
   /* Sun zenith angle. */
   float u_mu_l = u_mu_l_u_nu.x;
   /* Sun azimuth angle. */
@@ -239,7 +143,7 @@ void SS1(uint3 id : SV_DispatchThreadID) {
   float3 inScattering[MAX_LAYERS];
   float3 inScatteringNoShadows[MAX_LAYERS];
   float scaledDensity[MAX_LAYERS];
-  for (int j = 0; j < min(4, _numActiveLayers); j++) {
+  for (int j = 0; j < _numActiveLayers; j++) {
     inScattering[j] = float3(0, 0, 0);
     inScatteringNoShadows[j] = float3(0, 0, 0);
     scaledDensity[j] = 0;
@@ -263,7 +167,7 @@ void SS1(uint3 id : SV_DispatchThreadID) {
     float3 normalizedSamplePoint = normalize(samplePoint);
 
     /* Compute the scaled density of the layer at the sample point. */
-    for (int j = 0; j < min(4, _numActiveLayers); j++) {
+    for (int j = 0; j < _numActiveLayers; j++) {
       scaledDensity[j] = ds * computeDensity(_layerDensityDistribution[j],
         samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
         _layerUseDensityAttenuation[j], sampleT, _layerAttenuationBias[j],
@@ -290,7 +194,7 @@ void SS1(uint3 id : SV_DispatchThreadID) {
     T_sampleOut = max(T_sampleOut, FLT_EPSILON);
     T_oToSample /= T_sampleOut;
 
-    for (int j = 0; j < min(4, _numActiveLayers); j++) {
+    for (int j = 0; j < _numActiveLayers; j++) {
       inScatteringNoShadows[j] += scaledDensity[j] * T_oToSample;
     }
 
@@ -322,150 +226,15 @@ void SS1(uint3 id : SV_DispatchThreadID) {
         }
       }
     } else {
-      for (int j = 0; j < min(4, _numActiveLayers); j++) {
+      for (int j = 0; j < _numActiveLayers; j++) {
         inScattering[j] += scaledDensity[j] * T;
       }
     }
   }
 
-  for (int k = 0; k < 4; k++) {
-    if (k < _numActiveLayers) { // For some reason, still need this hack.
-      writeSS(id, inScattering[k], k);
-      writeSSNoShadow(id, inScatteringNoShadows[k], k);
-    }
-  }
-}
-
-[numthreads(4,4,4)]
-void SS2(uint3 id : SV_DispatchThreadID) {
-  /* Get the uv for this id and unwrap it to a viewing angle, a
-   * height, and the sun zenith and azimuth angles. */
-  /* Height. */
-  float u_r = (id.x + 0.5f) / float(_resSS.x);
-  /* Viewing angle. */
-  float u_mu = (id.y + 0.5f) / float(_resSS.y);
-
-  float2 u_mu_l_u_nu = deepTexIndexToUV(id.z, _resSS.z, _resSS.w);
-  /* Sun zenith angle. */
-  float u_mu_l = u_mu_l_u_nu.x;
-  /* Sun azimuth angle. */
-  float u_nu = u_mu_l_u_nu.y;
-
-  float4 ssCoord = unmapSky4DCoord(u_r, u_mu, u_mu_l, u_nu, _atmosphereRadius,
-    _planetRadius);
-
-  float r = ssCoord.x;
-  float mu = ssCoord.y;
-  float mu_l = ssCoord.z;
-  float nu = ssCoord.w;
-
-  float3 O = float3(0, r, 0);
-  float3 d = float3(safeSqrt(1 - mu * mu), mu, 0);
-  float3 L = float3(nu*safeSqrt(1 - mu_l*mu_l), mu_l,
-    safeSqrt(1 - nu * nu)*safeSqrt(1 - mu_l*mu_l));
-
-  /* Trace a ray to see what we hit. */
-  SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
-    _atmosphereRadius);
-
-  float3 endPoint = O + d * intersection.endT;
-  float t_hit = intersection.endT;
-
-  float3 inScattering[MAX_LAYERS];
-  float3 inScatteringNoShadows[MAX_LAYERS];
-  float scaledDensity[MAX_LAYERS];
-  for (int j = 4; j < _numActiveLayers; j++) {
-    inScattering[j] = float3(0, 0, 0);
-    inScatteringNoShadows[j] = float3(0, 0, 0);
-    scaledDensity[j] = 0;
-  }
-
-  for (int i = 0; i < _numSSSamples; i++) {
-    float sampleT = 0.0;
-    float ds = 0.0;
-    if (_useImportanceSampling) {
-      float2 t_ds = t_hit * generateCubicSampleFromIndex(i, _numSSSamples);
-      sampleT = t_ds.x;
-      ds = t_ds.y;
-    } else {
-      /* Distribute linearly. */
-      float2 t_ds = t_hit * generateLinearSampleFromIndex(i, _numSSSamples);
-      sampleT = t_ds.x;
-      ds = t_ds.y;
-    }
-
-    float3 samplePoint = O + d * sampleT;
-    float3 normalizedSamplePoint = normalize(samplePoint);
-
-    /* Compute the scaled density of the layer at the sample point. */
-    for (int j = 4; j < _numActiveLayers; j++) {
-      scaledDensity[j] = ds * computeDensity(_layerDensityDistribution[j],
-        samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
-        _layerUseDensityAttenuation[j], sampleT, _layerAttenuationBias[j],
-        _layerAttenuationDistance[j]);
-    }
-
-    /* Compute transmittance from O to sample point, and then from sample
-     * point through to the light hit. */
-    float2 oToSample = mapSky2DCoord(length(O),
-      mu, _atmosphereRadius, _planetRadius, t_hit, intersection.groundHit);
-
-    float3 T_oToSample = SAMPLE_TEXTURE2D_LOD(_T,
-      s_linear_clamp_sampler, oToSample, 0).rgb;
-
-    /* Our transmittance value for O to the sample point is too large---we
-     * need to divide out the transmittance from the sample point to the
-     * atmosphere, or ground, depending on what we hit. */
-    float2 sampleOut = mapSky2DCoord(length(samplePoint),
-      clampCosine(dot(normalizedSamplePoint, d)), _atmosphereRadius,
-      _planetRadius, t_hit - sampleT, intersection.groundHit);
-    float3 T_sampleOut = SAMPLE_TEXTURE2D_LOD(_T,
-      s_linear_clamp_sampler, sampleOut, 0).rgb;
-    /* Clamp sample out for division. */
-    T_sampleOut = max(T_sampleOut, FLT_EPSILON);
-    T_oToSample /= T_sampleOut;
-
-    for (int j = 4; j < _numActiveLayers; j++) {
-      inScatteringNoShadows[j] += scaledDensity[j] * T_oToSample;
-    }
-
-    /* Trace a ray from the sample point to the light to check visibility.
-     * Displace just a little bit just in case we hit the ground. */
-    SkyIntersectionData lightIntersection = traceSkyVolume(samplePoint * 1.001,
-      L, _planetRadius, _atmosphereRadius);
-
-    float3 lightEndPoint = samplePoint + L * lightIntersection.endT;
-    float t_light_hit = lightIntersection.endT;
-
-    /* Compute the light transmittance to the sample point. */
-    float2 sampleToL = mapSky2DCoord(length(samplePoint),
-      clampCosine(dot(normalizedSamplePoint, L)), _atmosphereRadius,
-      _planetRadius, t_light_hit, lightIntersection.groundHit);
-    /* Compute transmittance through sample to light hit point. */
-    float3 T_sampleToL = SAMPLE_TEXTURE2D_LOD(_T,
-      s_linear_clamp_sampler, sampleToL, 0).rgb;
-
-    float3 T = T_oToSample * T_sampleToL;
-
-    if (lightIntersection.groundHit) {
-      if (!intersection.groundHit) {
-        /* We'll add the light scattered off the ground surface. */
-        float dot_L_sample = saturate(dot(normalize(L), normalize(lightEndPoint)));
-        float3 groundAlbedo = _groundTint.xyz / PI;
-        for (int j = 4; j < _numActiveLayers; j++) {
-          inScattering[j] += scaledDensity[j] * T * (dot_L_sample * groundAlbedo);
-        }
-      }
-    } else {
-      for (int j = 4; j < _numActiveLayers; j++) {
-        inScattering[j] += scaledDensity[j] * T;
-      }
-    }
-  }
-
-  for (int k = 4; k < _numActiveLayers; k++) {
-      writeSS(id, inScattering[k], k);
-      writeSSNoShadow(id, inScatteringNoShadows[k], k);
+  for (int k = 0; k < _numActiveLayers; k++) {
+    writeSS(id.xy, inScattering[k], k);
+    writeSSNoShadow(id.xy, inScatteringNoShadows[k], k);
   }
 }
 
@@ -503,7 +272,8 @@ void GI(uint3 id : SV_DispatchThreadID) {
     if (!intersection.groundHit) {
       float t_hit = intersection.endT;
       TexCoord4D ssCoord = mapSky4DCoord(r, mu, mu_l, nu,
-        _atmosphereRadius, _planetRadius, t_hit, false, _resSS.z, _resSS.w);
+        _atmosphereRadius, _planetRadius, t_hit, false, _resSS.x, _resSS.y,
+        _resSS.z, _resSS.w);
 
       for (int j = 0; j < _numActiveLayers; j++) {
         float3 ss = sampleSSTexture(ssCoord, j);
@@ -576,7 +346,7 @@ void MS(uint3 id : SV_DispatchThreadID) {
     /* Sample the single scattering tables. */
     TexCoord4D ssCoord = mapSky4DCoord(r, mu, mu_l, nu,
       _atmosphereRadius, _planetRadius, t_hit, intersection.groundHit,
-      _resSS.z, _resSS.w);
+      _resSS.x, _resSS.y, _resSS.z, _resSS.w);
     for (int j = 0; j < _numActiveLayers; j++) {
       float3 ss = sampleSSTexture(ssCoord, j);
       secondOrder += (_layerCoefficientsS[j].xyz * 2 * _layerTint[j].xyz * ss)
@@ -595,16 +365,17 @@ void MS(uint3 id : SV_DispatchThreadID) {
   _MS_RW[id.xy] = secondOrder * transferFunction;
 }
 
-[numthreads(4,4,4)]
+[numthreads(4,4,1)]
 void MSAcc(uint3 id : SV_DispatchThreadID) {
   /* Get the uv for this id and unwrap it to a viewing angle, a
    * height, and the sun zenith and azimuth angles. */
+  float2 u_r_mu = deepTexIndexToUV(id.x, _resMSAcc.x, _resMSAcc.y);
   /* Height. */
-  float u_r = (id.x + 0.5f) / float(_resMSAcc.x);
+  float u_r = u_r_mu.x;
   /* Viewing angle. */
-  float u_mu = (id.y + 0.5f) / float(_resMSAcc.y);
+  float u_mu = u_r_mu.y;
 
-  float2 u_mu_l_u_nu = deepTexIndexToUV(id.z, _resMSAcc.z, _resMSAcc.w);
+  float2 u_mu_l_u_nu = deepTexIndexToUV(id.y, _resMSAcc.z, _resMSAcc.w);
   /* Sun zenith angle. */
   float u_mu_l = u_mu_l_u_nu.x;
   /* Sun azimuth angle. */
@@ -666,7 +437,7 @@ void MSAcc(uint3 id : SV_DispatchThreadID) {
   }
 
   for (int k = 0; k < _numActiveLayers; k++) {
-    writeMSAcc(id, multipleScattering[k], k);
+    writeMSAcc(id.xy, multipleScattering[k], k);
   }
 
 }

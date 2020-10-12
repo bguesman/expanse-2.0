@@ -109,7 +109,7 @@ namespace Expanse {
           return new SkyTextureResolution() {
             quality = quality,
             T = new Vector2(32, 128),
-            SS = new Vector4(32, 64, 16, 16),
+            SS = new Vector4(32, 32, 16, 16),
             MS = new Vector2(32, 32),
             MSAccumulation = new Vector4(32, 128, 32, 32),
             LP = new Vector2(32, 128),
@@ -119,7 +119,7 @@ namespace Expanse {
           return new SkyTextureResolution() {
             quality = quality,
             T = new Vector2(64, 128),
-            SS = new Vector4(32, 128, 32, 32),
+            SS = new Vector4(32, 64, 16, 32),
             MS = new Vector2(32, 32),
             MSAccumulation = new Vector4(32, 128, 32, 32),
             LP = new Vector2(32, 128),
@@ -129,7 +129,7 @@ namespace Expanse {
           return new SkyTextureResolution() {
             quality = quality,
             T = new Vector2(128, 256),
-            SS = new Vector4(32, 256, 64, 32),
+            SS = new Vector4(32, 128, 16, 64),
             MS = new Vector2(32, 32),
             MSAccumulation = new Vector4(32, 128, 32, 32),
             LP = new Vector2(32, 128),

@@ -230,7 +230,7 @@ float3 shadeGround(float3 endPoint) {
 
   /* Compute albedo, emission. */
   float3 albedo = (_groundTint * 2.0) / PI;
-  float3 uv = mul(endPointNormalized, (float3x3) _planetRotation);
+  float3 uv = mul(endPointNormalized, (float3x3) _planetRotation).xyz;
   if (_groundAlbedoTextureEnabled) {
     albedo = (_groundTint * 2.0) *
       SAMPLE_TEXTURECUBE_LOD(_groundAlbedoTexture, s_linear_clamp_sampler, uv, 0).xyz;
@@ -254,7 +254,7 @@ float3 shadeGround(float3 endPoint) {
     float3 giAcc = float3(0, 0, 0);
     for (int j = 0; j < _numActiveLayers; j++) {
       float3 gi = sampleGITexture(uvGI, j);
-      giAcc += _layerCoefficientsS[j] * 2.0 * _layerTint[j].xyz * gi;
+      giAcc += _layerCoefficientsS[j].xyz * 2.0 * _layerTint[j].xyz * gi;
     }
 
     color += albedo * (giAcc * lightColor + cosTheta * lightColor) + emission;
@@ -396,9 +396,11 @@ float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d, float 
   float3 proj_d = normalize(d - startNormalized * dot(startNormalized, d));
   float nu = clampCosine(dot(proj_L, proj_d));
   TexCoord4D uvSS = mapSky4DCoord(r_mu_uv, mu_l, nu,
-    _atmosphereRadius, _planetRadius, t_hit, groundHit, _resSS.z, _resSS.w);
+    _atmosphereRadius, _planetRadius, t_hit, groundHit,
+    _resSS.x, _resSS.y, _resSS.z, _resSS.w);
   TexCoord4D uvMSAcc = mapSky4DCoord(r_mu_uv, mu_l, nu,
-    _atmosphereRadius, _planetRadius, t_hit, groundHit, _resMSAcc.z, _resMSAcc.w);
+    _atmosphereRadius, _planetRadius, t_hit, groundHit,
+    _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
 
   /* Loop through layers and accumulate contributions for this body. */
   float dot_L_d = dot(L, d);
