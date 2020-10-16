@@ -339,31 +339,6 @@ public int GetSkyHashCode() {
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationDistance" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationBias" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((ColorParameter) this.GetType().GetField("layerTint" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerMultipleScatteringMultiplier" + i).GetValue(this)).value.GetHashCode();
-    }
-
-    /* Celestial bodies. */
-    for (int i = 0; i < ExpanseCommon.kMaxCelestialBodies; i++) {
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyEnabled" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("bodyDirection" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("bodyAngularRadius" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyDistance" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyReceivesLight" + i).GetValue(this)).value.GetHashCode();
-      var albTex = (CubemapParameter) this.GetType().GetField("bodyAlbedoTexture" + i).GetValue(this);
-      hash = albTex.value != null ? hash * 23 + albTex.value.GetHashCode() : hash;
-      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("bodyAlbedoTextureRotation" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ColorParameter) this.GetType().GetField("bodyAlbedoTint" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyEmissive" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyUseTemperature" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyLightIntensity" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ColorParameter) this.GetType().GetField("bodyLightColor" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("bodyLightTemperature" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyLimbDarkening" + i).GetValue(this)).value.GetHashCode();
-      var emTex = (CubemapParameter) this.GetType().GetField("bodyEmissionTexture" + i).GetValue(this);
-      hash = emTex.value != null ? hash * 23 + emTex.value.GetHashCode() : hash;
-      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("bodyEmissionTextureRotation" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ColorParameter) this.GetType().GetField("bodyEmissionTint" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyEmissionMultiplier" + i).GetValue(this)).value.GetHashCode();
     }
 
     /* Night Sky. TODO */
@@ -377,9 +352,6 @@ public int GetSkyHashCode() {
     hash = hash * 23 + numberOfMultipleScatteringSamples.value.GetHashCode();
     hash = hash * 23 + numberOfMultipleScatteringAccumulationSamples.value.GetHashCode();
     hash = hash * 23 + useImportanceSampling.value.GetHashCode();
-    hash = hash * 23 + useAntiAliasing.value.GetHashCode();
-    hash = hash * 23 + ditherAmount.value.GetHashCode();
-
   }
   return hash;
 }

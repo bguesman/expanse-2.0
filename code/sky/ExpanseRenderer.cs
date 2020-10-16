@@ -238,6 +238,9 @@ int m_currentCubemapCloudsRT;
 Vector2 m_currentFullscreenRTSize;
 Vector2 m_currentCubemapRTSize;
 
+/* For aerial perspective. */
+RTHandle m_aerialPerspectiveRT;
+
 SkyRenderTexture buildSkyRenderTexture(Vector2 resolution, int index, string name) {
   SkyRenderTexture r = new SkyRenderTexture();
   r.colorBuffer = allocateSky2DTable(resolution, index, name + "_Color");
@@ -258,6 +261,7 @@ private void buildFullscreenRenderTextures(Vector2 resolution) {
   for (int i = 0; i < 2; i++) {
     m_fullscreenCloudRT[i] = buildCloudRenderTexture(resolution, i, "fullscreenCloudRT");
   }
+  m_aerialPerspectiveRT = allocateSky2DTable(resolution, 0, "_fullscreenAerialPerspective");
   m_currentFullscreenCloudsRT = 0;
   m_currentFullscreenRTSize = resolution;
 }
@@ -284,6 +288,9 @@ private void cleanupFullscreenRenderTextures() {
     m_fullscreenCloudRT[i].colorBuffer = null;
     m_fullscreenCloudRT[i].transmittanceBuffer = null;
   }
+
+  RTHandles.Release(m_aerialPerspectiveRT);
+  m_aerialPerspectiveRT = null;
 }
 
 private void cleanupCubemapRenderTextures() {
@@ -323,6 +330,7 @@ private static int m_RenderCubemapCloudsID = 2;
 private static int m_RenderFullscreenCloudsID = 3;
 private static int m_CompositeCubemapSkyAndCloudsID = 4;
 private static int m_CompositeFullscreenSkyAndCloudsID = 5;
+private static int m_AerialPerspective = 6;
 
 /******************************************************************************/
 /**************************** END MEMBER VARIABLES ****************************/
@@ -423,7 +431,7 @@ private void RenderSkyPass(BuiltinSkyParameters builtinParams, bool renderForCub
       outputs, m_PropertyBlock, skyPassID);
   } else {
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
-      outputs, builtinParams.depthBuffer, m_PropertyBlock, skyPassID);
+      outputs, builtinParams.depthBuffer, m_PropertyBlock, skyPassID); // builtinParams.depthBuffer,
   }
 }
 
@@ -490,6 +498,11 @@ private void RenderCompositePass(BuiltinSkyParameters builtinParams, bool render
   }
 }
 
+private void RenderAerialPerspective(BuiltinSkyParameters builtinParams) {
+  CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
+    m_aerialPerspectiveRT, builtinParams.depthBuffer, m_PropertyBlock, m_AerialPerspective);
+}
+
 private void checkAndResizeFramebuffers(BuiltinSkyParameters builtinParams, bool renderForCubemap) {
   Vector2 currSize = (renderForCubemap) ? m_currentCubemapRTSize : m_currentFullscreenRTSize;
   Vector2Int trueSize = Vector2Int.Max(new Vector2Int(1, 1),
@@ -515,15 +528,17 @@ public override void RenderSky(BuiltinSkyParameters builtinParams, bool renderFo
     checkAndResizeFramebuffers(builtinParams, renderForCubemap);
 
     /* Set the depth buffer to use when computing transmittance. */
-    if (!renderForCubemap) {
-      m_PropertyBlock.SetTexture("_depthBuffer", builtinParams.depthBuffer);
-    }
 
     /* Render sky pass. */
     RenderSkyPass(builtinParams, renderForCubemap);
 
     /* Render clouds pass. */
     RenderCloudsPass(builtinParams, renderForCubemap);
+
+    if (!renderForCubemap) {
+      RenderAerialPerspective(builtinParams);
+      m_PropertyBlock.SetTexture("_aerialPerspective", m_aerialPerspectiveRT);
+    }
 
     /* Composite the two together. */
     RenderCompositePass(builtinParams, renderForCubemap);
@@ -579,55 +594,6 @@ private void DispatchSkyCompute(CommandBuffer cmd) {
 
 /******************************************************************************/
 /************************ END COMPUTE SHADER FUNCTIONS ************************/
-/******************************************************************************/
-
-
-
-/******************************************************************************/
-/************************* PHYSICAL PROPERTY FUNCTIONS ************************/
-/******************************************************************************/
-
-private Vector4 blackbodyTempToColor(float t) {
-  t = t / 100;
-  float r = 0;
-  float g = 0;
-  float b = 0;
-
-  /* Red. */
-  if (t <= 66) {
-    r = 255;
-  } else {
-    r = t - 60;
-    r = 329.698727446f * (Mathf.Pow(r, -0.1332047592f));
-  }
-
-  /* Green. */
-  if (t <= 66) {
-    g = t;
-    g = 99.4708025861f * Mathf.Log(t) - 161.1195681661f;
-  } else {
-    g = 288.1221695283f * (Mathf.Pow((t-60), -0.0755148492f));
-  }
-
-  /* Blue. */
-  if (t >= 66) {
-    b = 255;
-  } else {
-    if (t <= 19) {
-      b = 0;
-    } else {
-      b = 138.5177312231f * Mathf.Log(t-b) - 305.0447927307f;
-    }
-  }
-
-  r = Mathf.Clamp(r, 0, 255) / 255;
-  g = Mathf.Clamp(g, 0, 255) / 255;
-  b = Mathf.Clamp(b, 0, 255) / 255;
-  return new Vector4(r, g, b, 0);
-}
-
-/******************************************************************************/
-/*********************** END PHYSICAL PROPERTY FUNCTIONS **********************/
 /******************************************************************************/
 
 
@@ -725,7 +691,6 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, ExpanseSky sky)
   float[] layerAttenuationDistance = new float[n];
   float[] layerAttenuationBias = new float[n];
   Vector4[] layerTint = new Vector4[n];
-  float[] layerMultipleScatteringMultiplier = new float[n];
 
   int numActiveLayers = 0;
   for (int i = 0; i < n; i++) {
@@ -749,7 +714,6 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, ExpanseSky sky)
       layerAttenuationDistance[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationDistance" + i).GetValue(sky)).value;
       layerAttenuationBias[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationBias" + i).GetValue(sky)).value;
       layerTint[numActiveLayers] = ((ColorParameter) sky.GetType().GetField("layerTint" + i).GetValue(sky)).value;
-      layerMultipleScatteringMultiplier[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerMultipleScatteringMultiplier" + i).GetValue(sky)).value;
 
       numActiveLayers++;
     }
@@ -768,7 +732,6 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, ExpanseSky sky)
   cmd.SetGlobalFloatArray("_layerAttenuationDistance", layerAttenuationDistance);
   cmd.SetGlobalFloatArray("_layerAttenuationBias", layerAttenuationBias);
   cmd.SetGlobalVectorArray("_layerTint", layerTint);
-  cmd.SetGlobalFloatArray("_layerMultipleScatteringMultiplier", layerMultipleScatteringMultiplier);
 }
 
 private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, ExpanseSky sky) {
@@ -814,6 +777,9 @@ private void setMaterialPropertyBlock(BuiltinSkyParameters builtinParams) {
   /* Get sky object. */
   var sky = builtinParams.skySettings as ExpanseSky;
 
+  /* Atmosphere Layers. */
+  setMaterialPropertyBlockAtmosphereLayers(sky);
+
   /* Celestial bodies. */
   setMaterialPropertyBlockCelestialBodies(sky);
 
@@ -822,6 +788,26 @@ private void setMaterialPropertyBlock(BuiltinSkyParameters builtinParams) {
 
   m_PropertyBlock.SetVector(_WorldSpaceCameraPos1ID, builtinParams.worldSpaceCameraPos);
   m_PropertyBlock.SetMatrix(_PixelCoordToViewDirWS, builtinParams.pixelCoordToViewDirMatrix);
+}
+
+private void setMaterialPropertyBlockAtmosphereLayers(ExpanseSky sky) {
+
+  int n = (int) ExpanseCommon.kMaxCelestialBodies;
+
+  /* Set up arrays to pass to shader. */
+  float[] layerMultipleScatteringMultiplier = new float[n];
+
+  int numActiveLayers = 0;
+  for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
+    bool enabled = (((BoolParameter) sky.GetType().GetField("layerEnabled" + i).GetValue(sky)).value);
+    if (enabled) {
+      layerMultipleScatteringMultiplier[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerMultipleScatteringMultiplier" + i).GetValue(sky)).value;
+      numActiveLayers++;
+    }
+  }
+
+  /* Actually set everything in the property block. */
+  m_PropertyBlock.SetFloatArray("_layerMultipleScatteringMultiplier", layerMultipleScatteringMultiplier);
 }
 
 private void setMaterialPropertyBlockCelestialBodies(ExpanseSky sky) {
@@ -876,7 +862,7 @@ private void setMaterialPropertyBlockCelestialBodies(ExpanseSky sky) {
       Vector4 lightColor = ((ColorParameter) sky.GetType().GetField("bodyLightColor" + i).GetValue(sky)).value;
       if (useTemperature) {
         float temperature = ((ClampedFloatParameter) sky.GetType().GetField("bodyLightTemperature" + i).GetValue(sky)).value;
-        Vector4 temperatureColor = blackbodyTempToColor(temperature);
+        Vector4 temperatureColor = ExpanseCommon.blackbodyTempToColor(temperature);
         bodyLightColor[numActiveBodies] = lightIntensity * (new Vector4(temperatureColor.x * lightColor.x,
           temperatureColor.y * lightColor.y,
           temperatureColor.z * lightColor.z,

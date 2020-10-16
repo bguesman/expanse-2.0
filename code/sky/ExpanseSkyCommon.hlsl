@@ -36,7 +36,6 @@ bool _layerUseDensityAttenuation[MAX_LAYERS];
 float _layerAttenuationDistance[MAX_LAYERS];
 float _layerAttenuationBias[MAX_LAYERS];
 float4 _layerTint[MAX_LAYERS];
-float _layerMultipleScatteringMultiplier[MAX_LAYERS];
 
 /* Quality. */
 int _numTSamples;

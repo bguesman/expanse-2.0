@@ -11,12 +11,6 @@
  *
  */
 float3 uvToDeepTexCoord(float u, float v, int numRows, int numCols) {
-  // float w = (0.5 + u * (zTexSize - 1)) * (1.0/zTexSize);
-  // float k = v * (zTexCount - 1);
-  // float w0 = (floor(k) + w) * (1.0/zTexCount);
-  // float w1 = (ceil(k) + w) * (1.0/zTexCount);
-  // float a = frac(k);
-  // return float3(w0, w1, a);
   float w_id = ((u) * (numRows-2)) + 1; // fractional row number
   float k_id = ((v) * (numCols-2)) + 1; // fractional column number
   float a = frac(w_id); // 0-1 along row
@@ -34,12 +28,6 @@ float3 uvToDeepTexCoord(float u, float v, int numRows, int numCols) {
  * Returns (u, v).
  */
 float2 deepTexIndexToUV(uint deepTexCoord, uint numRows, int numCols) {
-  // uint texId = deepTexCoord / zTexSize;
-  // uint texCoord = deepTexCoord & (zTexSize - 1);
-  // float u = saturate(texCoord / (float(zTexSize) - 1.0));
-  // float v = saturate(texId / (float(zTexCount) - 1.0));
-  // return float2(u, v)
-
   int w_id = deepTexCoord / numCols;
   int k_id = deepTexCoord % numCols;
   float u = saturate((w_id - 0.5) / (numRows-2));
@@ -117,12 +105,12 @@ float unmap_mu(float u_r, float u_mu, float atmosphereRadius,
   if (floatLT(u_mu, 0.5)) {
     float d_min = r - planetRadius;
     float d_max = rho;
-    float d = d_min + (d_max - d_min) * (1.0 - (1.0 / 0.49) * u_mu);
+    float d = d_min + (d_max - d_min) * saturate((1.0 - (1.0 / 0.49) * u_mu));
     mu = (d == 0.0) ? -1.0 : clampCosine(-(rho * rho + d * d) / (2 * r * d));
   } else {
     float d_min = atmosphereRadius - r;
     float d_max = rho + H;
-    float d = d_min + (d_max - d_min) * (2.0 * u_mu - 1.02);
+    float d = d_min + (d_max - d_min) * saturate(((1.0 / 0.49) * (u_mu-0.51)));
     mu = (d == 0.0) ? 1.0 : clampCosine((H * H - rho * rho - d * d) / (2 * r * d));
   }
 
@@ -178,12 +166,12 @@ float2 unmap_r_mu(float u_r, float u_mu, float atmosphereRadius,
   if (floatLT(u_mu, 0.5)) {
     float d_min = r - planetRadius;
     float d_max = rho;
-    float d = d_min + (d_max - d_min) * (1.0 - (1.0 / 0.49) * u_mu);
+    float d = d_min + (d_max - d_min) * saturate(1.0 - (1.0 / 0.49) * u_mu);
     mu = (d == 0.0) ? -1.0 : clampCosine(-(rho * rho + d * d) / (2 * r * d));
   } else {
     float d_min = atmosphereRadius - r;
     float d_max = rho + H;
-    float d = d_min + (d_max - d_min) * (2.0 * u_mu - 1.02);
+    float d = d_min + (d_max - d_min) * saturate(((1.0 / 0.49) * (u_mu-0.51)));
     mu = (d == 0.0) ? 1.0 : clampCosine((H * H - rho * rho - d * d) / (2 * r * d));
   }
 
