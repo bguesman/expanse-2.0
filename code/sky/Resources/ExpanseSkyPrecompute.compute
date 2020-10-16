@@ -195,12 +195,11 @@ void SS(uint3 id : SV_DispatchThreadID) {
     T_oToSample /= T_sampleOut;
 
     for (int j = 0; j < _numActiveLayers; j++) {
-      inScatteringNoShadows[j] += scaledDensity[j] * T_oToSample;
+      inScatteringNoShadows[j] += scaledDensity[j] * saturate(T_oToSample);
     }
 
-    /* Trace a ray from the sample point to the light to check visibility.
-     * Displace just a little bit just in case we hit the ground. */
-    SkyIntersectionData lightIntersection = traceSkyVolume(samplePoint * 1.001,
+    /* Trace a ray from the sample point to the light to check visibility. */
+    SkyIntersectionData lightIntersection = traceSkyVolume(samplePoint,
       L, _planetRadius, _atmosphereRadius);
 
     float3 lightEndPoint = samplePoint + L * lightIntersection.endT;
@@ -214,18 +213,9 @@ void SS(uint3 id : SV_DispatchThreadID) {
     float3 T_sampleToL = SAMPLE_TEXTURE2D_LOD(_T,
       s_linear_clamp_sampler, sampleToL, 0).rgb;
 
-    float3 T = T_oToSample * T_sampleToL;
+    float3 T = saturate(T_oToSample * T_sampleToL);
 
-    if (lightIntersection.groundHit) {
-      if (!intersection.groundHit) {
-        /* We'll add the light scattered off the ground surface. */
-        float dot_L_sample = saturate(dot(normalize(L), normalize(lightEndPoint)));
-        float3 groundAlbedo = _groundTint.xyz / PI;
-        for (int j = 0; j < _numActiveLayers; j++) {
-          inScattering[j] += scaledDensity[j] * T * (dot_L_sample * groundAlbedo);
-        }
-      }
-    } else {
+    if (!lightIntersection.groundHit) {
       for (int j = 0; j < _numActiveLayers; j++) {
         inScattering[j] += scaledDensity[j] * T;
       }
