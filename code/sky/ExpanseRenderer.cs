@@ -204,7 +204,6 @@ RTHandle allocateSky4DArrayTable(Vector4 resolution, int depth, string name) {
  *    using depth buffer. */
 struct SkyRenderTexture {
   public RTHandle colorBuffer;
-  public RTHandle transmittanceBuffer;
 };
 SkyRenderTexture m_fullscreenSkyRT;
 SkyRenderTexture m_cubemapSkyRT;
@@ -230,7 +229,6 @@ Vector2 m_currentCubemapRTSize;
 SkyRenderTexture buildSkyRenderTexture(Vector2 resolution, int index, string name) {
   SkyRenderTexture r = new SkyRenderTexture();
   r.colorBuffer = allocateSky2DTable(resolution, index, name + "_Color");
-  r.transmittanceBuffer = allocateSky2DTable(resolution, index, name + "_Transmittance");
   return r;
 }
 
@@ -263,9 +261,7 @@ private void buildCubemapRenderTextures(Vector2 resolution) {
 
 private void cleanupFullscreenRenderTextures() {
   RTHandles.Release(m_fullscreenSkyRT.colorBuffer);
-  RTHandles.Release(m_fullscreenSkyRT.transmittanceBuffer);
   m_fullscreenSkyRT.colorBuffer = null;
-  m_fullscreenSkyRT.transmittanceBuffer = null;
 
   for (int i = 0; i < 2; i++) {
     RTHandles.Release(m_fullscreenCloudRT[i].colorBuffer);
@@ -277,9 +273,7 @@ private void cleanupFullscreenRenderTextures() {
 
 private void cleanupCubemapRenderTextures() {
   RTHandles.Release(m_cubemapSkyRT.colorBuffer);
-  RTHandles.Release(m_cubemapSkyRT.transmittanceBuffer);
   m_cubemapSkyRT.colorBuffer = null;
-  m_cubemapSkyRT.transmittanceBuffer = null;
 
   for (int i = 0; i < 2; i++) {
     RTHandles.Release(m_cubemapCloudRT[i].colorBuffer);
@@ -444,7 +438,6 @@ private void RenderSkyPass(BuiltinSkyParameters builtinParams, bool renderForCub
   SkyRenderTexture outTex = renderForCubemap ? m_cubemapSkyRT : m_fullscreenSkyRT;
   RenderTargetIdentifier[] outputs = new RenderTargetIdentifier[] {
     new RenderTargetIdentifier(outTex.colorBuffer),
-    new RenderTargetIdentifier(outTex.transmittanceBuffer)
   };
   if (renderForCubemap) {
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
@@ -500,7 +493,6 @@ private void RenderCompositePass(BuiltinSkyParameters builtinParams, bool render
 
   if (renderForCubemap) {
     m_PropertyBlock.SetTexture("_cubemapSkyColorRT", m_cubemapSkyRT.colorBuffer);
-    m_PropertyBlock.SetTexture("_cubemapSkyTransmittanceRT", m_cubemapSkyRT.transmittanceBuffer);
     m_PropertyBlock.SetTexture("_currCubemapCloudColorRT", m_cubemapCloudRT[m_currentCubemapCloudsRT].colorBuffer);
     m_PropertyBlock.SetTexture("_currCubemapCloudTransmittanceRT", m_cubemapCloudRT[m_currentCubemapCloudsRT].transmittanceBuffer);
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
@@ -508,7 +500,6 @@ private void RenderCompositePass(BuiltinSkyParameters builtinParams, bool render
     m_currentCubemapCloudsRT = (m_currentCubemapCloudsRT + 1) % 2;
   } else {
     m_PropertyBlock.SetTexture("_fullscreenSkyColorRT", m_fullscreenSkyRT.colorBuffer);
-    m_PropertyBlock.SetTexture("_fullscreenSkyTransmittanceRT", m_fullscreenSkyRT.transmittanceBuffer);
     m_PropertyBlock.SetTexture("_currFullscreenCloudColorRT", m_fullscreenCloudRT[m_currentFullscreenCloudsRT].colorBuffer);
     m_PropertyBlock.SetTexture("_currFullscreenCloudTransmittanceRT", m_fullscreenCloudRT[m_currentFullscreenCloudsRT].transmittanceBuffer);
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,

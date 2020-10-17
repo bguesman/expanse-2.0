@@ -82,9 +82,7 @@ float _ditherAmount;
 
 /* Render textures. */
 TEXTURE2D(_fullscreenSkyColorRT);
-TEXTURE2D(_fullscreenSkyTransmittanceRT);
 TEXTURE2D(_cubemapSkyColorRT);
-TEXTURE2D(_cubemapSkyTransmittanceRT);
 TEXTURE2D(_lastFullscreenCloudColorRT);
 TEXTURE2D(_lastFullscreenCloudTransmittanceRT);
 TEXTURE2D(_lastCubemapCloudColorRT);
@@ -120,11 +118,6 @@ struct Varyings
   float4 positionCS : SV_POSITION;
   float2 screenPosition : TEXCOORD0;
   UNITY_VERTEX_OUTPUT_STEREO
-};
-
-struct SkyResult {
-  float4 color : SV_Target0;
-  float4 transmittance : SV_Target1;
 };
 
 struct CloudResult {
@@ -462,7 +455,7 @@ float3 computeStarScatteringColor() {
   return color;
 }
 
-SkyResult RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
+float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   /* Trace a ray to see what we hit. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
@@ -493,10 +486,7 @@ SkyResult RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   /* If we didn't hit the ground or the atmosphere, return just direct
    * light. */
   if (!intersection.groundHit && !intersection.atmoHit) {
-    SkyResult result;
-    result.color = float4(directLight, 1);
-    result.transmittance = float4(1, 1, 1, 1);
-    return result;
+    return float4(directLight, 1);
   }
 
   /* Precompute 2D texture coordinate. */
@@ -537,21 +527,18 @@ SkyResult RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   float3 starScattering = computeStarScatteringColor();
 
   /* Final result. */
-  SkyResult result;
-  result.color = float4(directLight * transmittance + skyColor
-    + lightPollution + starScattering, 1);
-  result.transmittance = float4(blendTransmittance, 1);
-  return result;
+  return float4(directLight * transmittance + skyColor + lightPollution
+    + starScattering, dot(blendTransmittance, blendTransmittance)/3.0);
 }
 
-SkyResult SkyCubemap(Varyings input) : SV_Target {
+float4 SkyCubemap(Varyings input) : SV_Target {
   /* Compute origin point and sample direction. */
   float3 O = _WorldSpaceCameraPos1 - float3(0, -_planetRadius, 0);
   float3 d = -GetSkyViewDirWS(input.positionCS.xy);
   return RenderSky(input, O, d, true);
 }
 
-SkyResult SkyFullscreen(Varyings input) : SV_Target {
+float4 SkyFullscreen(Varyings input) : SV_Target {
   UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
   /* Compute origin point and sample direction. */
@@ -569,19 +556,13 @@ SkyResult SkyFullscreen(Varyings input) : SV_Target {
   if (closeToEdge) {
     float MSAA_8X_OFFSETS_X[8] = {1.0/16.0, -1.0/16.0, 5.0/16.0, -3.0/16.0, -5.0/16.0, -7.0/16.0, 3.0/16.0, 7.0/16.0};
     float MSAA_8X_OFFSETS_Y[8] =  {-3.0/16.0, 3.0/16.0, 1.0/16.0, -5.0/16.0, 5.0/16.0, -1.0/16.0, 7.0/16.0, -7.0/16.0};
-    SkyResult result;
-    result.color = float4(0, 0, 0, 0);
-    result.transmittance = float4(0, 0, 0, 0);
+    float4 result = float4(0, 0, 0, 0);
     for (int i = 0; i < 8; i++) {
       float3 dOffset = -GetSkyViewDirWS(input.positionCS.xy
         + float2(MSAA_8X_OFFSETS_X[i], MSAA_8X_OFFSETS_Y[i]));
-      SkyResult msaaSample = RenderSky(input, O, dOffset, false);
-      result.color += msaaSample.color;
-      result.transmittance += msaaSample.transmittance;
+      result += RenderSky(input, O, dOffset, false);
     }
-    result.color /= 8.0;
-    result.transmittance /= 8.0;
-    return result;
+    return result / 8.0;
   }
 
   return RenderSky(input, O, d, false);
@@ -599,7 +580,7 @@ SkyResult SkyFullscreen(Varyings input) : SV_Target {
 
 CloudResult RenderClouds(Varyings input, bool cubemap) {
   /* Final result. */
-  SkyResult r;
+  CloudResult r;
   r.color = float4(1, 1, 1, 1);
   r.transmittance = float4(1, 1, 1, 1);
   return r;
@@ -629,10 +610,8 @@ float4 Composite(Varyings input, bool cubemap, float exposure) {
   float2 textureCoordinate = input.screenPosition;
 
   /* Sample all of our fullscreen textures. */
-  float3 skyCol = SAMPLE_TEXTURE2D_LOD(_fullscreenSkyColorRT,
-    s_linear_clamp_sampler, textureCoordinate, 0).xyz;
-  float3 skyT = SAMPLE_TEXTURE2D_LOD(_fullscreenSkyTransmittanceRT,
-    s_linear_clamp_sampler, textureCoordinate, 0).xyz;
+  float4 skyCol = SAMPLE_TEXTURE2D_LOD(_fullscreenSkyColorRT,
+    s_linear_clamp_sampler, textureCoordinate, 0);
   float3 cloudCol = SAMPLE_TEXTURE2D_LOD(_currFullscreenCloudColorRT,
     s_linear_clamp_sampler, textureCoordinate, 0).xyz;
   float4 cloudTAndBlend = SAMPLE_TEXTURE2D_LOD(_currFullscreenCloudTransmittanceRT,
@@ -640,9 +619,9 @@ float4 Composite(Varyings input, bool cubemap, float exposure) {
   float3 cloudT = cloudTAndBlend.xyz;
   float3 cloudBlend = cloudTAndBlend.w;
 
-  float3 finalColor = (exposure * skyCol);
+  float3 finalColor = (exposure * skyCol.xyz);
 
-  return float4(finalColor, dot(skyT, skyT)/3.0);
+  return float4(finalColor, skyCol.w);
 }
 
 float4 CompositeCubemap(Varyings input) : SV_Target {
