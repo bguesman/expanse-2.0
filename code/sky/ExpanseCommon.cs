@@ -78,9 +78,9 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
         quality = quality,
         T = new Vector2(8, 32),
         SS = new Vector4(8, 64, 16, 8),
-        MS = new Vector2(4, 4),
+        MS = new Vector2(8, 8),
         MSAccumulation = new Vector4(4, 8, 16, 4),
-        LP = new Vector2(8, 32),
+        LP = new Vector2(8, 64),
         GI = 8
       };
     case SkyTextureQuality.Low:
@@ -90,7 +90,7 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
         SS = new Vector4(16, 64, 16, 8),
         MS = new Vector2(8, 16),
         MSAccumulation = new Vector4(8, 16, 16, 8),
-        LP = new Vector2(16, 32),
+        LP = new Vector2(16, 64),
         GI = 16
       };
     case SkyTextureQuality.Medium:
@@ -120,7 +120,7 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
         SS = new Vector4(64, 64, 64, 16),
         MS = new Vector2(32, 32),
         MSAccumulation = new Vector4(32, 64, 32, 16),
-        LP = new Vector2(32, 128),
+        LP = new Vector2(64, 64),
         GI = 128
       };
     case SkyTextureQuality.RippingThroughTheMetaverse:
@@ -130,7 +130,7 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
         SS = new Vector4(64, 256, 64, 64),
         MS = new Vector2(32, 32),
         MSAccumulation = new Vector4(32, 128, 32, 32),
-        LP = new Vector2(32, 128),
+        LP = new Vector2(64, 256),
         GI = 512
       };
     default:

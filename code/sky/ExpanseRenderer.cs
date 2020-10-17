@@ -567,27 +567,27 @@ private void DispatchSkyCompute(CommandBuffer cmd) {
       int handle_MSAcc = m_skyCS.FindKernel("MSAcc");
 
       cmd.DispatchCompute(m_skyCS, handle_T,
-        (int) m_skyTextureResolution.T.x / 4,
-        (int) m_skyTextureResolution.T.y / 4, 1);
+        (int) m_skyTextureResolution.T.x / 8,
+        (int) m_skyTextureResolution.T.y / 8, 1);
 
       cmd.DispatchCompute(m_skyCS, handle_LP,
-        (int) m_skyTextureResolution.LP.x / 4,
-        (int) m_skyTextureResolution.LP.y / 4, 1);
+        (int) m_skyTextureResolution.LP.x / 8,
+        (int) m_skyTextureResolution.LP.y / 8, 1);
 
       cmd.DispatchCompute(m_skyCS, handle_SS,
-        ((int) (m_skyTextureResolution.SS.x * m_skyTextureResolution.SS.y)) / 4,
-        ((int) (m_skyTextureResolution.SS.z * m_skyTextureResolution.SS.w)) / 4, 1);
+        ((int) (m_skyTextureResolution.SS.x * m_skyTextureResolution.SS.y)) / 8,
+        ((int) (m_skyTextureResolution.SS.z * m_skyTextureResolution.SS.w)) / 8, 1);
 
       cmd.DispatchCompute(m_skyCS, handle_MS,
-        (int) m_skyTextureResolution.MS.x / 4,
-        (int) m_skyTextureResolution.MS.y / 4, 1);
+        (int) m_skyTextureResolution.MS.x / 8,
+        (int) m_skyTextureResolution.MS.y / 8, 1);
 
       cmd.DispatchCompute(m_skyCS, handle_MSAcc,
-        ((int) (m_skyTextureResolution.MSAccumulation.x * m_skyTextureResolution.MSAccumulation.y)) / 4,
-        ((int) (m_skyTextureResolution.MSAccumulation.z * m_skyTextureResolution.MSAccumulation.z)) / 4, 1);
+        ((int) (m_skyTextureResolution.MSAccumulation.x * m_skyTextureResolution.MSAccumulation.y)) / 8,
+        ((int) (m_skyTextureResolution.MSAccumulation.z * m_skyTextureResolution.MSAccumulation.z)) / 8, 1);
 
       cmd.DispatchCompute(m_skyCS, handle_GI,
-        (int) m_skyTextureResolution.GI / 4, 1, 1);
+        (int) m_skyTextureResolution.GI / 8, 1, 1);
     }
   }
 }
@@ -780,6 +780,9 @@ private void setMaterialPropertyBlock(BuiltinSkyParameters builtinParams) {
   /* Celestial bodies. */
   setMaterialPropertyBlockCelestialBodies(sky);
 
+  /* Night sky. */
+  setMaterialPropertyBlockNightSky(sky);
+
   /* Quality. */
   setMaterialPropertyBlockQuality(sky);
 
@@ -914,6 +917,11 @@ private void setMaterialPropertyBlockCelestialBodies(ExpanseSky sky) {
 
   m_PropertyBlock.SetFloatArray("_bodyAlbedoTextureEnabled", bodyAlbedoTextureEnabled);
   m_PropertyBlock.SetFloatArray("_bodyEmissionTextureEnabled", bodyEmissionTextureEnabled);
+}
+
+private void setMaterialPropertyBlockNightSky(ExpanseSky sky) {
+  m_PropertyBlock.SetVector("_lightPollutionTint", sky.lightPollutionTint.value
+    * sky.lightPollutionIntensity.value);
 }
 
 private void setMaterialPropertyBlockQuality(ExpanseSky sky) {

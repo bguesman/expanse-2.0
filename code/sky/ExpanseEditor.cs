@@ -126,6 +126,8 @@ SerializedDataParameter[] bodyEmissionMultiplier
 
 
 /* Night Sky. TODO */
+SerializedDataParameter lightPollutionTint;
+SerializedDataParameter lightPollutionIntensity;
 
 /* Quality parameters. */
 SerializedDataParameter skyTextureQuality;
@@ -394,6 +396,8 @@ private void celestialBody(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle
 
 private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
   EditorGUILayout.LabelField("Night Sky", titleStyle);
+  PropertyField(lightPollutionTint);
+  PropertyField(lightPollutionIntensity);
 }
 
 private void quality(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
@@ -495,6 +499,8 @@ private void unpackSerializedProperties(PropertyFetcher<ExpanseSky> o) {
   }
 
   /* Night Sky. TODO */
+  lightPollutionTint = Unpack(o.Find(x => x.lightPollutionTint));
+  lightPollutionIntensity = Unpack(o.Find(x => x.lightPollutionIntensity));
 
   /* Quality. */
   skyTextureQuality = Unpack(o.Find(x => x.skyTextureQuality));

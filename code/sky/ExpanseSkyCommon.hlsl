@@ -54,7 +54,7 @@ TEXTURE2D(_T);
 
 /* Light Pollution. */
 float4 _resLP; /* Table resolution. */
-TEXTURE2D(_LP);
+TEXTURE2D_ARRAY(_LP);
 
 /* Single scattering, with and without shadows. */
 float4 _resSS; /* Table resolution. */

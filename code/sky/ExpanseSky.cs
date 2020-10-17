@@ -139,6 +139,10 @@ public MinFloatParameter bodyEmissionMultiplier0, bodyEmissionMultiplier1, bodyE
   bodyEmissionMultiplier3, bodyEmissionMultiplier4, bodyEmissionMultiplier5, bodyEmissionMultiplier6, bodyEmissionMultiplier7;
 
 /* Night Sky. TODO */
+[Tooltip("Color of light coming from the ground used for modeling light pollution.")]
+public ColorParameter lightPollutionTint = new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true);
+[Tooltip("Intensity of light scattered up from the ground used for modeling light pollution. Specified in lux.")]
+public MinFloatParameter lightPollutionIntensity = new MinFloatParameter(100, 0);
 
 /* Quality. */
 [Tooltip("Quality of sky texture.")]

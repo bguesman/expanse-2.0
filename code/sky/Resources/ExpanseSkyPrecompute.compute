@@ -31,7 +31,7 @@ RW_TEXTURE2D_ARRAY(float3, _MSAcc_RW);
 /* Ground Irradiance. */
 RW_TEXTURE2D_ARRAY(float3, _GI_RW);
 
-[numthreads(4,4,1)]
+[numthreads(8,8,1)]
 void T(uint3 id : SV_DispatchThreadID) {
   /* Get the uv for this id and unwrap it to a viewing angle and a
    * height. */
@@ -66,11 +66,97 @@ void T(uint3 id : SV_DispatchThreadID) {
   _T_RW[id.xy] = saturate(exp(-power));
 }
 
-[numthreads(4,4,1)]
+[numthreads(8,8,1)]
 void LP(uint3 id : SV_DispatchThreadID) {
+  /* Get the uv for this id and unwrap it to a viewing angle and a
+   * height. */
+  float u_r = (id.x + 0.5f) / float(_resLP.x);
+  float u_mu = (id.y + 0.5f) / float(_resLP.y);
+
+  float2 r_mu = unmapSky2DCoord(u_r, u_mu, _atmosphereRadius, _planetRadius);
+
+  float r = r_mu.x;
+  float mu = r_mu.y;
+
+  float3 O = float3(0, r, 0);
+  float3 d = float3(safeSqrt(1 - mu * mu), mu, 0);
+
+  /* Trace a ray to see what we hit. */
+  SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
+    _atmosphereRadius);
+  float3 endPoint = O + d * intersection.endT;
+  float t_hit = intersection.endT;
+
+  float2 oToSample = mapSky2DCoord(length(O),
+    mu, _atmosphereRadius, _planetRadius, t_hit, intersection.groundHit);
+
+  float3 lightPollution[MAX_LAYERS];
+  float scaledDensity[MAX_LAYERS];
+  for (int i = 0; i < MAX_LAYERS; i++) {
+    lightPollution[i] = float3(0, 0, 0);
+    scaledDensity[i] = 0;
+  }
+
+  for (int i = 0; i < _numLPSamples; i++) {
+    float sampleT = 0.0;
+    float ds = 0.0;
+    if (_useImportanceSampling) {
+      float2 t_ds = t_hit * generateCubicSampleFromIndex(i, _numLPSamples);
+      sampleT = t_ds.x;
+      ds = t_ds.y;
+    } else {
+      /* Distribute linearly. */
+      float2 t_ds = t_hit * generateLinearSampleFromIndex(i, _numLPSamples);
+      sampleT = t_ds.x;
+      ds = t_ds.y;
+    }
+
+    float3 samplePoint = O + d * sampleT;
+    float3 normalizedSamplePoint = normalize(samplePoint);
+
+    /* Compute the scaled density for each layer.  */
+    for (int j = 0; j < _numActiveLayers; j++) {
+      scaledDensity[j] = ds * computeDensity(_layerDensityDistribution[j],
+        samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
+        _layerUseDensityAttenuation[j], sampleT, _layerAttenuationBias[j],
+        _layerAttenuationDistance[j]);
+    }
+
+    /* Compute transmittance from O to sample point. */
+    float3 T_oToSample = SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler,
+      oToSample, 0).xyz;
+
+    /* Our transmittance value for O to the sample point is too large---we
+     * need to divide out the transmittance from the sample point to the
+     * atmosphere, or ground, depending on what we hit. */
+    float2 sampleOut = mapSky2DCoord(length(samplePoint),
+      clampCosine(dot(normalizedSamplePoint, d)), _atmosphereRadius,
+      _planetRadius, t_hit - sampleT, intersection.groundHit);
+    float3 T_sampleOut = SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler,
+      sampleOut, 0).xyz;
+    /* Clamp sample out for division. */
+    T_sampleOut = max(T_sampleOut, FLT_EPSILON);
+    T_oToSample /= T_sampleOut;
+
+    /* Compute the light transmittance to the ground. */
+    float2 sampleToGround = mapSky2DCoord(length(samplePoint), -1.0,
+      _atmosphereRadius, _planetRadius, length(samplePoint) - _planetRadius, true);
+    float3 T_sampleToGround = SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler,
+      sampleToGround, 0).xyz;
+
+    float3 T = T_oToSample * T_sampleToGround;
+
+    for (int j = 0; j < _numActiveLayers; j++) {
+      lightPollution[j] += scaledDensity[j] * T;
+    }
+  }
+
+  for (int i = 0; i < _numActiveLayers; i++) {
+    _LP_RW[uint3(id.xy, (uint) i)] = lightPollution[i];
+  }
 }
 
-[numthreads(4,4,1)]
+[numthreads(8,8,1)]
 void SS(uint3 id : SV_DispatchThreadID) {
   /* Get the uv for this id and unwrap it to a viewing angle, a
    * height, and the sun zenith and azimuth angles. */
@@ -105,6 +191,9 @@ void SS(uint3 id : SV_DispatchThreadID) {
 
   float3 endPoint = O + d * intersection.endT;
   float t_hit = intersection.endT;
+
+  float2 oToSample = mapSky2DCoord(length(O),
+    mu, _atmosphereRadius, _planetRadius, t_hit, intersection.groundHit);
 
   float3 inScattering[MAX_LAYERS];
   float3 inScatteringNoShadows[MAX_LAYERS];
@@ -142,9 +231,6 @@ void SS(uint3 id : SV_DispatchThreadID) {
 
     /* Compute transmittance from O to sample point, and then from sample
      * point through to the light hit. */
-    float2 oToSample = mapSky2DCoord(length(O),
-      mu, _atmosphereRadius, _planetRadius, t_hit, intersection.groundHit);
-
     float3 T_oToSample = SAMPLE_TEXTURE2D_LOD(_T,
       s_linear_clamp_sampler, oToSample, 0).rgb;
 
@@ -244,7 +330,7 @@ void GI(uint3 id : SV_DispatchThreadID) {
   }
 }
 
-[numthreads(4,4,1)]
+[numthreads(8,8,1)]
 void MS(uint3 id : SV_DispatchThreadID) {
   /* Unmap the uv coordinates to get the light direction and sample point. */
   float u_r = (id.x + 0.5f) / float(_resMS.x);
@@ -320,7 +406,7 @@ void MS(uint3 id : SV_DispatchThreadID) {
   _MS_RW[id.xy] = secondOrder * transferFunction;
 }
 
-[numthreads(4,4,1)]
+[numthreads(8,8,1)]
 void MSAcc(uint3 id : SV_DispatchThreadID) {
   /* Get the uv for this id and unwrap it to a viewing angle, a
    * height, and the sun zenith and azimuth angles. */

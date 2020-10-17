@@ -75,6 +75,7 @@ TEXTURECUBE(_bodyEmissionTexture6);
 TEXTURECUBE(_bodyEmissionTexture7);
 
 /* Night Sky. TODO */
+float4 _lightPollutionTint;
 
 /* Quality. */
 bool _useAntiAliasing;
@@ -442,10 +443,9 @@ float3 computeLightPollutionColor(float2 uv) {
   float3 color = float3(0, 0, 0);
   for (int i = 0; i < _numActiveLayers; i++) {
     float3 lp = sampleLPTexture(uv, i);
-    color += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz)
-      * lp;
+    color += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz) * lp;
   }
-  color *= 0.0; // TODO: light pollution intensity and tint controls
+  color *= _lightPollutionTint; // TODO: light pollution intensity and tint controls
   return color;
 }
 
