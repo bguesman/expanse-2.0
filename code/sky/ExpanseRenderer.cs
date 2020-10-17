@@ -227,9 +227,6 @@ int m_currentCubemapCloudsRT;
 Vector2 m_currentFullscreenRTSize;
 Vector2 m_currentCubemapRTSize;
 
-/* For aerial perspective. */
-RTHandle m_aerialPerspectiveRT;
-
 SkyRenderTexture buildSkyRenderTexture(Vector2 resolution, int index, string name) {
   SkyRenderTexture r = new SkyRenderTexture();
   r.colorBuffer = allocateSky2DTable(resolution, index, name + "_Color");
@@ -250,7 +247,6 @@ private void buildFullscreenRenderTextures(Vector2 resolution) {
   for (int i = 0; i < 2; i++) {
     m_fullscreenCloudRT[i] = buildCloudRenderTexture(resolution, i, "fullscreenCloudRT");
   }
-  m_aerialPerspectiveRT = allocateSky2DTable(resolution, 0, "_fullscreenAerialPerspective");
   m_currentFullscreenCloudsRT = 0;
   m_currentFullscreenRTSize = resolution;
 }
@@ -277,9 +273,6 @@ private void cleanupFullscreenRenderTextures() {
     m_fullscreenCloudRT[i].colorBuffer = null;
     m_fullscreenCloudRT[i].transmittanceBuffer = null;
   }
-
-  RTHandles.Release(m_aerialPerspectiveRT);
-  m_aerialPerspectiveRT = null;
 }
 
 private void cleanupCubemapRenderTextures() {
@@ -319,7 +312,6 @@ private static int m_RenderCubemapCloudsID = 2;
 private static int m_RenderFullscreenCloudsID = 3;
 private static int m_CompositeCubemapSkyAndCloudsID = 4;
 private static int m_CompositeFullscreenSkyAndCloudsID = 5;
-private static int m_AerialPerspective = 6;
 
 /******************************************************************************/
 /**************************** END MEMBER VARIABLES ****************************/
@@ -525,11 +517,6 @@ private void RenderCompositePass(BuiltinSkyParameters builtinParams, bool render
   }
 }
 
-private void RenderAerialPerspective(BuiltinSkyParameters builtinParams) {
-  CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
-    m_aerialPerspectiveRT, builtinParams.depthBuffer, m_PropertyBlock, m_AerialPerspective);
-}
-
 private void checkAndResizeFramebuffers(BuiltinSkyParameters builtinParams, bool renderForCubemap) {
   Vector2 currSize = (renderForCubemap) ? m_currentCubemapRTSize : m_currentFullscreenRTSize;
   Vector2Int trueSize = Vector2Int.Max(new Vector2Int(1, 1),
@@ -560,11 +547,6 @@ public override void RenderSky(BuiltinSkyParameters builtinParams, bool renderFo
 
     /* Render clouds pass. */
     RenderCloudsPass(builtinParams, renderForCubemap);
-
-    if (!renderForCubemap) {
-      RenderAerialPerspective(builtinParams);
-      m_PropertyBlock.SetTexture("_aerialPerspective", m_aerialPerspectiveRT);
-    }
 
     /* Composite the two together. */
     RenderCompositePass(builtinParams, renderForCubemap);

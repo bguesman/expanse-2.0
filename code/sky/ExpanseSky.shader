@@ -53,6 +53,7 @@ float4 _bodyLightColor[MAX_BODIES];
 float _bodyLimbDarkening[MAX_BODIES];
 float4x4 _bodyEmissionTextureRotation[MAX_BODIES];
 float4 _bodyEmissionTint[MAX_BODIES];
+
 // Textures can't be array, so declare them individually.
 bool _bodyAlbedoTextureEnabled[MAX_BODIES];
 TEXTURECUBE(_bodyAlbedoTexture0);
@@ -92,8 +93,6 @@ TEXTURE2D(_currFullscreenCloudColorRT);
 TEXTURE2D(_currFullscreenCloudTransmittanceRT);
 TEXTURE2D(_currCubemapCloudColorRT);
 TEXTURE2D(_currCubemapCloudTransmittanceRT);
-TEXTURE2D(_geometryColor);
-TEXTURE2D(_aerialPerspective);
 
 float3 _WorldSpaceCameraPos1;
 float4x4 _ViewMatrix1;
@@ -164,8 +163,8 @@ Varyings Vert(Attributes input)
 /******************************************************************************/
 
 /* Sadly, there's no way to have an array of textures in hlsl. Well, there is
- * as a texture array, but unity doesn't support setting it. So we need to
- * do something hacky. */
+ * as a texture array, but in that case all textures need to be the same
+ * resolution. So we have to do something hacky. */
 
 float3 sampleBodyEmissionTexture(float3 uv, int i) {
   switch(i) {
@@ -225,7 +224,6 @@ float3 sampleBodyAlbedoTexture(float3 uv, int i) {
 
 /* Given uv coodinate representing direction, computes sky transmittance. */
 float3 computeSkyTransmittance(float2 uv) {
-  /* There's only one transmittance table to sample. */
   return SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler, uv, 0).xyz;
 }
 
@@ -234,11 +232,13 @@ float3 shadeGround(float3 endPoint) {
   float3 endPointNormalized = normalize(endPoint);
 
   /* Compute albedo, emission. */
-  float3 albedo = (_groundTint * 2.0) / PI;
+  float3 albedo = _groundTint;
   float3 uv = mul(endPointNormalized, (float3x3) _planetRotation).xyz;
   if (_groundAlbedoTextureEnabled) {
-    albedo = (_groundTint * 2.0) *
+    albedo *= 2.0 *
       SAMPLE_TEXTURECUBE_LOD(_groundAlbedoTexture, s_linear_clamp_sampler, uv, 0).xyz;
+  } else {
+    albedo /= PI;
   }
 
   float3 emission = float3(0, 0, 0);
@@ -247,7 +247,8 @@ float3 shadeGround(float3 endPoint) {
       SAMPLE_TEXTURECUBE_LOD(_groundEmissionTexture, s_linear_clamp_sampler, uv, 0).xyz;
   }
 
-  /* Loop over all the celestial bodies. */
+  /* Loop over all the celestial bodies. TODO: could check occlusion for
+   * celestial bodies. */
   for (int i = 0; i < _numActiveBodies; i++) {
     float3 L = _bodyDirection[i];
     float3 lightColor = _bodyLightColor[i];
@@ -267,17 +268,15 @@ float3 shadeGround(float3 endPoint) {
   return color;
 }
 
-/* Compute the luminance of a Celestial given the illuminance and the cosine
- * of half the angular extent. */
+/* Compute the luminance multiplier of a celestial body given the illuminance
+ * and the cosine of half the angular extent. */
 float3 computeCelestialBodyLuminanceMultiplier(float cosTheta) {
   /* Compute solid angle. */
   float solidAngle = 2.0 * PI * (1.0 - cosTheta);
   return 1.0 / solidAngle;
 }
 
-
 float3 limbDarkening(float dot_L_d, float cosTheta, float amount) {
-  /* amount = max(FLT_EPS, amount); */
   float centerToEdge = 1.0 - abs((dot_L_d - cosTheta) / (1.0 - cosTheta));
   float mu = safeSqrt(1.0 - centerToEdge * centerToEdge);
   float mu2 = mu * mu;
@@ -293,9 +292,7 @@ float3 limbDarkening(float dot_L_d, float cosTheta, float amount) {
   return max(0.0, pow(a0 + a1 * mu + a2 * mu2 + a3 * mu3 + a4 * mu4 + a5 * mu5, amount));
 }
 
-/* Given direction to sample in, shades closest celestial body.
- * TODO: luminance, not illuminance.
- * TODO: limb darkening. */
+/* Given direction to sample in, shades closest celestial body. */
 float3 shadeClosestCelestialBody(float3 d) {
   /* First, compute closest intersection. */
   int minIdx = -1;
@@ -316,6 +313,8 @@ float3 shadeClosestCelestialBody(float3 d) {
 
   /* Otherwise, compute lighting. */
   float3 directLighting = float3(0, 0, 0);
+
+  /* Compute illumination. */
   if (_bodyReceivesLight[minIdx]) {
     /* We have to do some work to compute the surface normal of the body
      * to light it. */
@@ -324,29 +323,31 @@ float3 shadeClosestCelestialBody(float3 d) {
     float sinInner = sin(_bodyAngularRadius[minIdx]);
     float bodyRadius = sinInner * dist;
     float3 planetOriginInBodyFrame = -(L * dist);
+
     /* Intersect the body at the point we're looking at. */
     float3 bodyIntersection = intersectSphere(planetOriginInBodyFrame, d, bodyRadius);
     float3 bodyIntersectionPoint = planetOriginInBodyFrame
       + minNonNegative(bodyIntersection.x, bodyIntersection.y) * d;
     float3 surfaceNormal = normalize(bodyIntersectionPoint);
 
-    float3 albedo = float3(0, 0, 0);
+    /* Compute the body's albedo. */
+    float3 albedo = _bodyAlbedoTint[minIdx].xyz;
     if (_bodyAlbedoTextureEnabled[minIdx]) {
       float3 albedoTex = sampleBodyAlbedoTexture(
         mul(surfaceNormal, (float3x3) _bodyAlbedoTextureRotation[minIdx]), minIdx);
-      albedo = albedoTex * 2 * _bodyAlbedoTint[minIdx].xyz / PI;
+      albedo *= albedoTex * 2;
     } else {
-      albedo = _bodyAlbedoTint[minIdx].xyz / PI;
+      albedo /= PI;
     }
 
     /* Now, have to loop over bodies again to illuminate. */
+    float3 bodyPosition = _bodyDirection[minIdx] * _bodyDistance[minIdx];
     for (int i = 0; i < _numActiveBodies; i++) {
       if (i != minIdx && _bodyEmissive[i]) {
         /* No interreflections between bodies---only emissive bodies can
          * light non-emissive bodies. Also, for now we won't model
          * occlusion by the earth; though TODO: it wouldn't be so bad. */
          float3 emissivePosition = _bodyDistance[i] * _bodyDirection[i];
-         float3 bodyPosition = _bodyDirection[minIdx] * _bodyDistance[minIdx];
          float3 emissiveDir = normalize(emissivePosition - bodyPosition);
          directLighting += saturate(dot(emissiveDir, surfaceNormal))
            * _bodyLightColor[i].xyz * albedo;
@@ -354,13 +355,15 @@ float3 shadeClosestCelestialBody(float3 d) {
     }
   }
 
+  /* Compute emission. */
   if (_bodyEmissive[minIdx]) {
     /* We have to do some work to compute the intersection. */
     float3 L = _bodyDirection[minIdx];
-    float3 emission = float3(0, 0, 0);
+    float3 emission = _bodyEmissionTint[minIdx].xyz;
+    float cosInner = cos(_bodyAngularRadius[minIdx]);
     if (_bodyEmissionTextureEnabled[minIdx]) {
       float dist = _bodyDistance[minIdx];
-      float sinInner = sin(_bodyAngularRadius[minIdx]);
+      float sinInner = safeSqrt(1 - cosInner * cosInner);
       float bodyRadius = sinInner * dist;
       float3 planetOriginInBodyFrame = -(L * dist);
       /* Intersect the body at the point we're looking at. */
@@ -370,17 +373,14 @@ float3 shadeClosestCelestialBody(float3 d) {
       float3 surfaceNormal = normalize(bodyIntersectionPoint);
       float3 emissionTex = sampleBodyEmissionTexture(
         mul(surfaceNormal, (float3x3) _bodyEmissionTextureRotation[minIdx]), minIdx);
-      emission += emissionTex * _bodyEmissionTint[minIdx].xyz;
+      emission *= emissionTex;
     } else {
-      emission += _bodyLightColor[minIdx].xyz * _bodyEmissionTint[minIdx].xyz;
+      emission *= _bodyLightColor[minIdx].xyz;
     }
-    float cosInner = cos(_bodyAngularRadius[minIdx]);
-    emission *= limbDarkening(dot(L, d), cosInner,
-      _bodyLimbDarkening[minIdx]);
+    emission *= limbDarkening(dot(L, d), cosInner, _bodyLimbDarkening[minIdx]);
     emission *= computeCelestialBodyLuminanceMultiplier(cosInner);
     directLighting += emission;
   }
-
 
   return directLighting;
 }
@@ -390,17 +390,14 @@ float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
   /* Get the body's direction. */
   float3 L = _bodyDirection[i];
   float3 lightColor = _bodyLightColor[i].xyz;
-  float dot_L_d = dot(L, d);
+  float dot_L_d = clampCosine(dot(L, d));
 
   /* Now, technically, this is a hack. But it's a good hack for far
    * away geo. We basically see how "behind" the geo the light is by
    * checking how parallel the view and light vectors are. If they're
    * really parallel, that means the light is totally behind the geo.
    * If they're less parallel, then the light is less behind the geo. */
-  float occlusionMultiplier = 1.0;
-  if (geoHit) {
-    occlusionMultiplier = pow(1-saturate(dot_L_d), 1);
-  }
+  float occlusionMultiplier = (geoHit) ? pow(1-saturate(dot_L_d), 1) : 1.0;
 
   /* TODO: how to figure out if body is occluded? Could use global bool array.
    * But need to do better. Need to figure out HOW occluded and attenuate
@@ -408,7 +405,7 @@ float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
 
   /* Compute 4D tex coords. */
   float3 startNormalized = normalize(start);
-  float mu_l = clampCosine(dot(normalize(startNormalized), L));
+  float mu_l = clampCosine(dot(startNormalized, L));
   float3 proj_L = normalize(L - startNormalized * mu_l);
   float3 proj_d = normalize(d - startNormalized * dot(startNormalized, d));
   float nu = clampCosine(dot(proj_L, proj_d));
@@ -430,15 +427,16 @@ float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
     float3 ms = sampleMSAccTexture(uvMSAcc, j);
 
     /* Final color. */
-    color += occlusionMultiplier * lightColor * _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
+    color +=  _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
       * (ss * phase + ms * _layerMultipleScatteringMultiplier[j]);
   }
 
-  return color;
+  return color * occlusionMultiplier * lightColor;
 }
 
-/* Given uv coordinate representing direction, computes sky transmittance. */
-float3 computeSkyColor(float2 r_mu_uv, float3 start, float3 d, float t_hit, bool groundHit, bool geoHit) {
+/* Given uv coordinate representing direction, computes sky color. */
+float3 computeSkyColor(float2 r_mu_uv, float3 start, float3 d, float t_hit,
+  bool groundHit, bool geoHit) {
   /* Loop through all the celestial bodies. */
   float3 color = float3(0, 0, 0);
   for (int i = 0; i < _numActiveBodies; i++) {
@@ -464,26 +462,7 @@ float3 computeStarScatteringColor() {
   return color;
 }
 
-float3 computeSkyBlendTransmittance(float depth, float t_hit,
-  bool groundHit, float3 startPoint, float3 d, float3 outT) {
-  /* If our hit point is further than the recorded depth, there's no object
-   * to blend with, so our blend is entirely sky. */
-  if (!(depth < t_hit && depth < _ProjectionParams.z - 0.001)) {
-    return float3(0, 0, 0);
-  }
-
-  /* Otherwise, we have to compute the transmittance to that point. */
-  float3 samplePoint = startPoint + depth * d;
-  float r = length(samplePoint);
-  float mu = dot(normalize(samplePoint), d);
-  float2 coord2D = mapSky2DCoord(r, mu, _atmosphereRadius, _planetRadius,
-    t_hit - depth, groundHit);
-  float3 T_sampleOut = computeSkyTransmittance(coord2D);
-  return outT / T_sampleOut;
-}
-
 SkyResult RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
-
   /* Trace a ray to see what we hit. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
@@ -506,14 +485,13 @@ SkyResult RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     if (intersection.groundHit) {
       directLight = shadeGround(endPoint);
     } else {
-      /* Shade the closest celestial body and the stars.
-       * TODO: should make this return a "closeness to edge" parameter
-       * that allows us to determine if we want to use MSAA to
-       * anti-alias the edges. Or put this value as 4th in SS table. */
+      /* Shade the closest celestial body and the stars. */
       directLight = shadeClosestCelestialBody(d);
     }
   }
 
+  /* If we didn't hit the ground or the atmosphere, return just direct
+   * light. */
   if (!intersection.groundHit && !intersection.atmoHit) {
     SkyResult result;
     result.color = float4(directLight, 1);
@@ -521,32 +499,33 @@ SkyResult RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     return result;
   }
 
-  /* TODO: may want to precompute a bunch of texture coords here. */
+  /* Precompute 2D texture coordinate. */
   float r = length(startPoint);
   float mu = dot(normalize(startPoint), d);
   float2 coord2D = mapSky2DCoord(r, mu, _atmosphereRadius, _planetRadius,
     t_hit, intersection.groundHit);
 
-  /* Compute transmittance. TODO: Sample against depth buffer if not
-   * cubemap. Otherwise leave at 1. */
+  /* Compute transmittance. */
   float3 transmittance = computeSkyTransmittance(coord2D);
 
   /* Compute sky color. */
   float3 skyColor = computeSkyColor(coord2D, startPoint, d, t_hit,
     intersection.groundHit, geoHit);
 
-  /* Attenuate it if we hit something in front of us. */
+  /* Attenuate sky color and compute blend transmittance if we hit
+   * something and are rendering fullscreen. For the cubemap, we just
+   * want the sky, no geo. */
   float3 blendTransmittance = float3(0, 0, 0);
-  if (geoHit) {
+  if (geoHit && !cubemap) {
     float3 depthSamplePoint = startPoint + d * depth;
     float depthR = length(depthSamplePoint);
     float depthMu = dot(normalize(depthSamplePoint), d);
-    float2 depthCoord2D = mapSky2DCoord(depthR, depthMu, _atmosphereRadius, _planetRadius,
-      t_hit-depth, intersection.groundHit);
+    float2 depthCoord2D = mapSky2DCoord(depthR, depthMu, _atmosphereRadius,
+      _planetRadius, t_hit-depth, intersection.groundHit);
     float3 aerialPerspectiveTransmittance = computeSkyTransmittance(depthCoord2D);
     float3 attenuatedSkyColor = computeSkyColor(depthCoord2D, depthSamplePoint, d, t_hit-depth,
       intersection.groundHit, geoHit);
-    blendTransmittance = max(FLT_EPSILON, transmittance/aerialPerspectiveTransmittance);//exp(max(0, log(transmittance)-log(aerialPerspectiveTransmittance)));
+    blendTransmittance = max(FLT_EPSILON, transmittance/aerialPerspectiveTransmittance);
     skyColor -= blendTransmittance * min(skyColor, attenuatedSkyColor);
     skyColor = max(0, skyColor);
   }
@@ -556,12 +535,6 @@ SkyResult RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
 
   /* Compute star scattering. */
   float3 starScattering = computeStarScatteringColor();
-
-  /* Do depth buffer check to get blending value. */
-  // if (!cubemap) {
-  //   blendTransmittance = (geoHit) ? float3(1, 1, 1) : float3(0, 0, 0);//computeSkyBlendTransmittance(depth,
-  //     //t_hit, intersection.groundHit, startPoint, d, transmittance);
-  // }
 
   /* Final result. */
   SkyResult result;
@@ -575,7 +548,6 @@ SkyResult SkyCubemap(Varyings input) : SV_Target {
   /* Compute origin point and sample direction. */
   float3 O = _WorldSpaceCameraPos1 - float3(0, -_planetRadius, 0);
   float3 d = -GetSkyViewDirWS(input.positionCS.xy);
-
   return RenderSky(input, O, d, true);
 }
 
@@ -613,10 +585,6 @@ SkyResult SkyFullscreen(Varyings input) : SV_Target {
   }
 
   return RenderSky(input, O, d, false);
-}
-
-float4 AerialPerspective(Varyings input) : SV_Target {
-  return float4(0, 0, 0, 0);
 }
 
 /******************************************************************************/
@@ -672,19 +640,7 @@ float4 Composite(Varyings input, bool cubemap, float exposure) {
   float3 cloudT = cloudTAndBlend.xyz;
   float3 cloudBlend = cloudTAndBlend.w;
 
-  /* Sample the color texture. */
-  float3 geoCol = float3(0, 0, 0);
-  if (!cubemap) {
-    geoCol = LoadCameraColor(input.positionCS.xy);
-  }
-
-  /* Blend sky and geometry together so the fog affects the geometry. */
-  float3 finalColor = (exposure * skyCol);// + skyT * geoCol;
-
-  /* Blend them all together and return!
-   * TODO: sky transmittance/cloud transmittance compositing. */
-  // float3 finalColor = cloudT * skyCol
-  //   + (1-cloudT) * (cloudBlend * skyCol + (1-cloudBlend) * cloudCol);
+  float3 finalColor = (exposure * skyCol);
 
   return float4(finalColor, dot(skyT, skyT)/3.0);
 }
@@ -724,7 +680,7 @@ SubShader
   Pass
   {
     ZWrite Off
-    ZTest Always /* TODO: maybe turn off but turn on alpha blending for transmission? */
+    ZTest Always
     Blend Off
     Cull Off
 
@@ -750,7 +706,7 @@ SubShader
   Pass
   {
     ZWrite Off
-    ZTest Always /* TODO: maybe turn off but turn on alpha blending for transmission? */
+    ZTest Always
     Blend Off
     Cull Off
 
@@ -785,18 +741,6 @@ SubShader
     ENDHLSL
   }
 
-  /* Aerial Perspective LUT. */
-  Pass
-  {
-    ZWrite Off
-    ZTest Always
-    Blend Off
-    Cull Off
-
-    HLSLPROGRAM
-        #pragma fragment AerialPerspective
-    ENDHLSL
-  }
 }
 Fallback Off
 }
