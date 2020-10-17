@@ -1,14 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEditor.Rendering;
 using UnityEditor;
-using Expanse;
 
 namespace Expanse {
   /* Generic enum parameter class. */
