@@ -51,6 +51,10 @@ public class ExpanseLightControl : MonoBehaviour
       light.color = lightColor;
     }
 
+    Vector3 transmittance = ExpanseCommon.bodyTransmittances[0];
+    Vector4 transmittanceV4 = new Vector4(transmittance.x, transmittance.y, transmittance.z, 1);
+    light.color = light.color * transmittanceV4;
+
     light.intensity = lightIntensity;
 
     t += 0.1f;

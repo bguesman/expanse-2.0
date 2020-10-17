@@ -181,6 +181,8 @@ public ClampedFloatParameter ditherAmount = new ClampedFloatParameter(0.05f, 0.0
 /************************** END SERIALIZED PARAMETERS *************************/
 /******************************************************************************/
 
+
+
 /* Constructor to initialize defaults for array parameters. */
 public ExpanseSky() {
   /* TODO: how can we initialize layers to be earthlike by default and still

@@ -129,9 +129,9 @@ namespace Expanse {
           return new SkyTextureResolution() {
             quality = quality,
             T = new Vector2(128, 256),
-            SS = new Vector4(64, 128, 64, 64),
+            SS = new Vector4(64, 256, 64, 64),
             MS = new Vector2(32, 32),
-            MSAccumulation = new Vector4(32, 64, 32, 32),
+            MSAccumulation = new Vector4(32, 128, 32, 32),
             LP = new Vector2(32, 128),
             GI = 512
           };
@@ -156,6 +156,49 @@ namespace Expanse {
     public static Vector3 anglesToDirectionVector(Vector2 angles) {
       return new Vector3(Mathf.Sin(angles.y) * Mathf.Cos(angles.x),
         Mathf.Sin(angles.y) * Mathf.Sin(angles.x), Mathf.Cos(angles.y));
+    }
+
+    /* Returns t values of ray intersection with sphere. Third value indicates
+     * if there was an intersection at all; if negative, there was no
+     * intersection. TODO: maybe optimize. */
+    public static Vector3 intersectSphere(Vector3 p, Vector3 d, float r) {
+      float A = Vector3.Dot(d, d);
+      float B = 2.0f * Vector3.Dot(d, p);
+      float C = Vector3.Dot(p, p) - (r * r);
+      float det = (B * B) - 4.0f * A * C;
+      if (det >= 0) {
+        det = Mathf.Sqrt(det);
+        return new Vector3((-B + det) / (2.0f * A), (-B - det) / (2.0f * A), 1);
+      }
+      return new Vector3(0, 0, -1);
+    }
+
+    /* Maps r and mu to uv. For sampling transmittance table to set
+     * directional light color. */
+    public static Vector2 map_r_mu(float r, float mu, float atmosphereRadius,
+      float planetRadius, float d, bool groundHit) {
+      float planetRadiusSq = planetRadius * planetRadius;
+      float rSq = r * r;
+      float rho = Mathf.Sqrt(rSq - planetRadiusSq);
+      float H = Mathf.Sqrt(atmosphereRadius * atmosphereRadius - planetRadiusSq);
+
+      float u_mu = 0.0f;
+      float discriminant = rSq * mu * mu - rSq + planetRadiusSq;
+      if (groundHit) {
+        float d_min = r - planetRadius;
+        float d_max = rho;
+        /* Use lower half of [0, 1] range. */
+        u_mu = 0.49f - 0.49f * (d_max == d_min ? 0.0f : (d - d_min) / (d_max - d_min));
+      } else {
+        float d_min = atmosphereRadius - r;
+        float d_max = rho + H;
+        /* Use upper half of [0, 1] range. */
+        u_mu = 0.51f + 0.49f * (d_max == d_min ? 0.0f : (d - d_min) / (d_max - d_min));
+      }
+
+      float u_r = rho / H;
+
+      return new Vector2(u_r, u_mu);
     }
 
 /******************************************************************************/
@@ -203,6 +246,19 @@ namespace Expanse {
 
 /******************************************************************************/
 /*********************** END PHYSICAL PROPERTY FUNCTIONS **********************/
+/******************************************************************************/
+
+
+
+/******************************************************************************/
+/******************************* LIGHTING STATE *******************************/
+/******************************************************************************/
+
+/* Sadly, this seemed to be the only reasonable way to do this. */
+    public static Vector3[] bodyTransmittances = new Vector3[kMaxCelestialBodies];
+
+/******************************************************************************/
+/***************************** END LIGHTING STATE *****************************/
 /******************************************************************************/
 
   } /* class ExpanseCommon */

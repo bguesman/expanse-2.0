@@ -393,11 +393,14 @@ float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
   float dot_L_d = dot(L, d);
 
   /* Now, technically, this is a hack. But it's a good hack for far
-   * away geo. We basically treat the geo like a piece of cardboard.
-   * If the light is coming from behind the geo, don't compute SS.
-   * If it's in front of it, then do.
-   * TODO: it's actually a bad hack. */
-  bool computeSS = true;//!(geoHit && dot_L_d > 0.0);
+   * away geo. We basically see how "behind" the geo the light is by
+   * checking how parallel the view and light vectors are. If they're
+   * really parallel, that means the light is totally behind the geo.
+   * If they're less parallel, then the light is less behind the geo. */
+  float occlusionMultiplier = 1.0;
+  if (geoHit) {
+    occlusionMultiplier = pow(1-saturate(dot_L_d), 1);
+  }
 
   /* TODO: how to figure out if body is occluded? Could use global bool array.
    * But need to do better. Need to figure out HOW occluded and attenuate
@@ -420,18 +423,14 @@ float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
   float3 color = float3(0, 0, 0);
   for (int j = 0; j < _numActiveLayers; j++) {
     /* Single scattering. */
-    float3 ss = float3(0, 0, 0);
-    float phase = 0;
-    if (computeSS) {
-      phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
-      ss = sampleSSTexture(uvSS, j);
-    }
+    float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
+    float3 ss = sampleSSTexture(uvSS, j);
 
     /* Multiple scattering. */
     float3 ms = sampleMSAccTexture(uvMSAcc, j);
 
     /* Final color. */
-    color += lightColor * _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
+    color += occlusionMultiplier * lightColor * _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
       * (ss * phase + ms * _layerMultipleScatteringMultiplier[j]);
   }
 
@@ -483,16 +482,11 @@ float3 computeSkyBlendTransmittance(float depth, float t_hit,
   return outT / T_sampleOut;
 }
 
-SkyResult RenderSky(Varyings input, bool cubemap) {
-  /* Compute origin point and sample direction. */
-  float3 O = _WorldSpaceCameraPos1 - float3(0, -_planetRadius, 0);
-  float3 d = -GetSkyViewDirWS(input.positionCS.xy);
+SkyResult RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
 
   /* Trace a ray to see what we hit. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
-
-
 
   /* You might think the start point is just O, but we may be looking
    * at the planet from space, in which case the start point is the point
@@ -552,8 +546,8 @@ SkyResult RenderSky(Varyings input, bool cubemap) {
     float3 aerialPerspectiveTransmittance = computeSkyTransmittance(depthCoord2D);
     float3 attenuatedSkyColor = computeSkyColor(depthCoord2D, depthSamplePoint, d, t_hit-depth,
       intersection.groundHit, geoHit);
-    blendTransmittance = transmittance/aerialPerspectiveTransmittance;
-    skyColor -= blendTransmittance * attenuatedSkyColor;
+    blendTransmittance = max(FLT_EPSILON, transmittance/aerialPerspectiveTransmittance);//exp(max(0, log(transmittance)-log(aerialPerspectiveTransmittance)));
+    skyColor -= blendTransmittance * min(skyColor, attenuatedSkyColor);
     skyColor = max(0, skyColor);
   }
 
@@ -578,12 +572,47 @@ SkyResult RenderSky(Varyings input, bool cubemap) {
 }
 
 SkyResult SkyCubemap(Varyings input) : SV_Target {
-  return RenderSky(input, true);
+  /* Compute origin point and sample direction. */
+  float3 O = _WorldSpaceCameraPos1 - float3(0, -_planetRadius, 0);
+  float3 d = -GetSkyViewDirWS(input.positionCS.xy);
+
+  return RenderSky(input, O, d, true);
 }
 
 SkyResult SkyFullscreen(Varyings input) : SV_Target {
   UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-  return RenderSky(input, false);
+
+  /* Compute origin point and sample direction. */
+  float3 O = _WorldSpaceCameraPos1 - float3(0, -_planetRadius, 0);
+  float3 d = -GetSkyViewDirWS(input.positionCS.xy);
+
+  /* If we aren't using anti-aliasing, just render. */
+  if (!_useAntiAliasing) {
+      return RenderSky(input, O, d, false);
+  }
+
+  /* Otherwise, see how close we are to the planet's edge, and if we are
+   * close, then use MSAA 8x. TODO: do this. */
+  bool closeToEdge = true;
+  if (closeToEdge) {
+    float MSAA_8X_OFFSETS_X[8] = {1.0/16.0, -1.0/16.0, 5.0/16.0, -3.0/16.0, -5.0/16.0, -7.0/16.0, 3.0/16.0, 7.0/16.0};
+    float MSAA_8X_OFFSETS_Y[8] =  {-3.0/16.0, 3.0/16.0, 1.0/16.0, -5.0/16.0, 5.0/16.0, -1.0/16.0, 7.0/16.0, -7.0/16.0};
+    SkyResult result;
+    result.color = float4(0, 0, 0, 0);
+    result.transmittance = float4(0, 0, 0, 0);
+    for (int i = 0; i < 8; i++) {
+      float3 dOffset = -GetSkyViewDirWS(input.positionCS.xy
+        + float2(MSAA_8X_OFFSETS_X[i], MSAA_8X_OFFSETS_Y[i]));
+      SkyResult msaaSample = RenderSky(input, O, dOffset, false);
+      result.color += msaaSample.color;
+      result.transmittance += msaaSample.transmittance;
+    }
+    result.color /= 8.0;
+    result.transmittance /= 8.0;
+    return result;
+  }
+
+  return RenderSky(input, O, d, false);
 }
 
 float4 AerialPerspective(Varyings input) : SV_Target {

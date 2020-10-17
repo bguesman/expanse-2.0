@@ -27,6 +27,8 @@ public static readonly int _PixelCoordToViewDirWS = Shader.PropertyToID("_PixelC
 /******************************************************************************/
 
 private RTHandle m_TTable;                        /* Transmittance. */
+private Texture2D m_TTableCPU;
+private bool m_TTableCPUNeedsUpdate;
 private RTHandle m_SSTableArray;                  /* Single Scattering. */
 private RTHandle m_SSNoShadowTableArray;          /* Single Scattering. */
 private RTHandle m_MSTable;                       /* Multiple Scattering. */
@@ -73,6 +75,9 @@ void allocateSkyPrecomputationTables(ExpanseSky sky) {
 
     m_numAtmosphereLayersEnabled = numEnabled;
     m_skyTextureResolution = res;
+
+    /* Resize CPU copy of transmittance table. */
+    m_TTableCPU = new Texture2D((int) res.T.x, (int) res.T.y, TextureFormat.RGB24, false);
 
     Debug.Log("Reallocated " + m_numAtmosphereLayersEnabled + " tables at " + m_skyTextureResolution.quality + " quality.");
   }
@@ -373,8 +378,43 @@ public override void Cleanup()
   cleanupCubemapRenderTextures();
 }
 
+private void setLightingData(Vector4 cameraPos, float planetRadius, float atmosphereRadius) {
+  /* Use data from the property block, so that we don't go out of
+   * sync. */
+  int numActiveBodies = m_PropertyBlock.GetInt("_numActiveBodies");
+  Vector4[] directions = m_PropertyBlock.GetVectorArray("_bodyDirection");
+  Vector4 O = cameraPos - (new Vector4(0, -planetRadius, 0, 0));
+  Vector3 O3 = new Vector3(O.x, O.y, O.z);
+  for (int i = 0; i < numActiveBodies; i++) {
+    /* Check if the body is occluded by the planet. */
+    Vector3 L = new Vector3(directions[i].x, directions[i].y, directions[i].z);
+    Vector3 intersection = ExpanseCommon.intersectSphere(O3, L, planetRadius);
+    if (intersection.z >= 0 && (intersection.x >= 0 || intersection.y >= 0)) {
+      ExpanseCommon.bodyTransmittances[i] = new Vector3(0, 0, 0);
+    } else {
+      /* Sample transmittance. */
+      Vector3 skyIntersection = ExpanseCommon.intersectSphere(O3, L, atmosphereRadius);
+      float r = O3.magnitude;
+      float mu = Vector3.Dot(Vector3.Normalize(O3), L);
+      float d = (skyIntersection.x > 0) ? (skyIntersection.y > 0 ? Mathf.Min(skyIntersection.x, skyIntersection.y) : skyIntersection.x) : skyIntersection.y;
+      Vector2 uv = ExpanseCommon.map_r_mu(r, mu, atmosphereRadius, planetRadius,
+        d, false);
+      Vector4 transmittance = m_TTableCPU.GetPixelBilinear(uv.x, uv.y);
+      ExpanseCommon.bodyTransmittances[i] = new Vector3(transmittance.x, transmittance.y, transmittance.z);
+    }
+  }
+}
+
 protected override bool Update(BuiltinSkyParameters builtinParams)
 {
+  if (m_TTableCPUNeedsUpdate) {
+    RenderTexture.active = m_TTable;
+    m_TTableCPU.ReadPixels(new Rect(0, 0, m_TTable.rt.width, m_TTable.rt.height), 0, 0);
+    m_TTableCPU.Apply();
+    RenderTexture.active = null;
+    m_TTableCPUNeedsUpdate = false;
+  }
+
   var sky = builtinParams.skySettings as ExpanseSky;
 
   /* Allocate the tables and update info about atmosphere layers that are
@@ -401,6 +441,9 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
 
     Debug.Log("Recomputed sky tables.");
 
+    /* Update the CPU copy of the transmittance table. */
+    m_TTableCPUNeedsUpdate = true;
+
     m_LastSkyHash = currentSkyHash;
   }
 
@@ -411,6 +454,11 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
     /* TODO */
     Debug.Log("Regenerated cloud noise textures.");
   }
+
+  /* Set lighting properties so that light scripts can use them to affect
+   * the directional lights in the scene. */
+  setLightingData(builtinParams.worldSpaceCameraPos, sky.planetRadius.value,
+    sky.planetRadius.value + sky.atmosphereThickness.value);
 
   return false;
 }
@@ -518,7 +566,6 @@ private void checkAndResizeFramebuffers(BuiltinSkyParameters builtinParams, bool
   }
 }
 
-
 public override void RenderSky(BuiltinSkyParameters builtinParams, bool renderForCubemap, bool renderSunDisk) {
   using (new ProfilingSample(builtinParams.commandBuffer, "Draw sky"))
   {
@@ -542,6 +589,7 @@ public override void RenderSky(BuiltinSkyParameters builtinParams, bool renderFo
 
     /* Composite the two together. */
     RenderCompositePass(builtinParams, renderForCubemap);
+
   }
 }
 
