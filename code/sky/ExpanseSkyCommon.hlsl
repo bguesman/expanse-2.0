@@ -26,10 +26,10 @@ TEXTURECUBE(_groundEmissionTexture);
 int _numActiveLayers;
 float4 _layerCoefficientsA[MAX_LAYERS]; /* Absorption */
 float4 _layerCoefficientsS[MAX_LAYERS]; /* Scattering */
-float _layerDensityDistribution[MAX_LAYERS]; /* todo: may get set wrong since we're setting float? */
+float _layerDensityDistribution[MAX_LAYERS];
 float _layerHeight[MAX_LAYERS];
 float _layerThickness[MAX_LAYERS];
-float _layerPhaseFunction[MAX_LAYERS]; /* todo: may get set wrong since we're setting float? */
+float _layerPhaseFunction[MAX_LAYERS];
 float _layerAnisotropy[MAX_LAYERS];
 float _layerDensity[MAX_LAYERS];
 bool _layerUseDensityAttenuation[MAX_LAYERS];
@@ -143,7 +143,7 @@ float3 expLerp(float3 v0, float3 vf, float t) {
 
 /* Returns t values of ray intersection with sphere. Third value indicates
  * if there was an intersection at all; if negative, there was no
- * intersection. TODO: maybe optimize. */
+ * intersection. */
 float3 intersectSphere(float3 p, float3 d, float r) {
   float A = dot(d, d);
   float B = 2.f * dot(d, p);
