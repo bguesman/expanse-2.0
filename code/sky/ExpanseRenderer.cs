@@ -383,7 +383,7 @@ private void setLightingData(Vector4 cameraPos, float planetRadius, float atmosp
    * sync. */
   int numActiveBodies = m_PropertyBlock.GetInt("_numActiveBodies");
   Vector4[] directions = m_PropertyBlock.GetVectorArray("_bodyDirection");
-  Vector4 O = cameraPos - (new Vector4(0, -planetRadius-20, 0, 0));
+  Vector4 O = cameraPos - (new Vector4(0, -planetRadius, 0, 0));
   Vector3 O3 = new Vector3(O.x, O.y, O.z);
   for (int i = 0; i < numActiveBodies; i++) {
     /* Check if the body is occluded by the planet. */

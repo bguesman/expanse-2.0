@@ -573,7 +573,7 @@ SkyResult RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
 
 SkyResult SkyCubemap(Varyings input) : SV_Target {
   /* Compute origin point and sample direction. */
-  float3 O = _WorldSpaceCameraPos1 - float3(0, -_planetRadius-20, 0);
+  float3 O = _WorldSpaceCameraPos1 - float3(0, -_planetRadius, 0);
   float3 d = -GetSkyViewDirWS(input.positionCS.xy);
 
   return RenderSky(input, O, d, true);
@@ -583,7 +583,7 @@ SkyResult SkyFullscreen(Varyings input) : SV_Target {
   UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
   /* Compute origin point and sample direction. */
-  float3 O = _WorldSpaceCameraPos1 - float3(0, -_planetRadius-20, 0);
+  float3 O = _WorldSpaceCameraPos1 - float3(0, -_planetRadius, 0);
   float3 d = -GetSkyViewDirWS(input.positionCS.xy);
 
   /* If we aren't using anti-aliasing, just render. */
