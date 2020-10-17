@@ -38,6 +38,7 @@ private RTHandle m_GITableArray;                  /* Ground Irradiance. */
 /* For checking if table reallocation is required. */
 private Expanse.ExpanseCommon.SkyTextureResolution m_skyTextureResolution;
 private int m_numAtmosphereLayersEnabled = 0;
+
 /* Allocates all sky precomputation tables for all atmosphere layers at a
  * specified quality level. */
 void allocateSkyPrecomputationTables(ExpanseSky sky) {
@@ -78,41 +79,24 @@ void allocateSkyPrecomputationTables(ExpanseSky sky) {
 
     /* Resize CPU copy of transmittance table. */
     m_TTableCPU = new Texture2D((int) res.T.x, (int) res.T.y, TextureFormat.RGB24, false);
-
-    Debug.Log("Reallocated " + m_numAtmosphereLayersEnabled + " tables at " + m_skyTextureResolution.quality + " quality.");
   }
 }
 
 void cleanupSkyTables() {
-  /* TODO: null checks may not be necessary. */
-  if (m_TTable != null) {
-    RTHandles.Release(m_TTable);
-    m_TTable = null;
-  }
-  if (m_MSTable != null) {
-    RTHandles.Release(m_MSTable);
-    m_MSTable = null;
-  }
-  if (m_GITableArray != null) {
-    RTHandles.Release(m_GITableArray);
-    m_GITableArray = null;
-  }
-  if (m_LPTableArray != null) {
-    RTHandles.Release(m_LPTableArray);
-    m_LPTableArray = null;
-  }
-  if (m_SSTableArray != null) {
-    RTHandles.Release(m_SSTableArray);
-    m_SSTableArray = null;
-  }
-  if (m_SSNoShadowTableArray != null) {
-    RTHandles.Release(m_SSNoShadowTableArray);
-    m_SSNoShadowTableArray = null;
-  }
-  if (m_MSAccumulationTableArray != null) {
-    RTHandles.Release(m_MSAccumulationTableArray);
-    m_MSAccumulationTableArray = null;
-  }
+  RTHandles.Release(m_TTable);
+  m_TTable = null;
+  RTHandles.Release(m_MSTable);
+  m_MSTable = null;
+  RTHandles.Release(m_GITableArray);
+  m_GITableArray = null;
+  RTHandles.Release(m_LPTableArray);
+  m_LPTableArray = null;
+  RTHandles.Release(m_SSTableArray);
+  m_SSTableArray = null;
+  RTHandles.Release(m_SSNoShadowTableArray);
+  m_SSNoShadowTableArray = null;
+  RTHandles.Release(m_MSAccumulationTableArray);
+  m_MSAccumulationTableArray = null;
 }
 
 /* Allocates 1D sky precomputation table. */
@@ -439,8 +423,6 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
     /* Run the compute shader kernels. */
     DispatchSkyCompute(builtinParams.commandBuffer);
 
-    Debug.Log("Recomputed sky tables.");
-
     /* Update the CPU copy of the transmittance table. */
     m_TTableCPUNeedsUpdate = true;
 
@@ -451,8 +433,6 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
   if (currentCloudHash != m_LastCloudHash) {
     /* Update the cloud noise tables. */
     m_LastCloudHash = currentCloudHash;
-    /* TODO */
-    Debug.Log("Regenerated cloud noise textures.");
   }
 
   /* Set lighting properties so that light scripts can use them to affect
@@ -491,8 +471,7 @@ private void RenderCloudsPass(BuiltinSkyParameters builtinParams, bool renderFor
   /* TODO: might wanna set cloud cube map tex for GI. Cool we can do that!
    * multi-pass, f-yeah! */
 
-  /* Pass in the previous cloud render texture to use for reprojection.
-   * TODO: probably also pass in camera velocity here. */
+  /* Pass in the previous cloud render texture to use for reprojection. */
   CloudRenderTexture prevTex = (renderForCubemap ? m_cubemapCloudRT : m_fullscreenCloudRT)[prevRTID];
   if (renderForCubemap) {
     m_PropertyBlock.SetTexture("_lastCubemapCloudColorRT", prevTex.colorBuffer);
@@ -657,9 +636,6 @@ private void setSkyRWTextures() {
   int handle_SS = m_skyCS.FindKernel("SS");
   int handle_MS = m_skyCS.FindKernel("MS");
   int handle_MSAcc = m_skyCS.FindKernel("MSAcc");
-
-  /* TODO: we have only one multiple scattering and one transmittance
-   * table. */
   if (m_numAtmosphereLayersEnabled > 0) {
     m_skyCS.SetTexture(handle_T, "_T_RW", m_TTable);
     m_skyCS.SetTexture(handle_MS, "_MS_RW", m_MSTable);
