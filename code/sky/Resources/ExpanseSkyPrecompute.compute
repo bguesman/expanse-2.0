@@ -1,8 +1,5 @@
 #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
 
-// Each #kernel tells which function to compile; you can have many kernels
-/* For now, we'll start with one kernel to compute the transmittance
- * tables. */
 #pragma kernel T main=T
 #pragma kernel LP main=LP
 #pragma kernel SS main=SS
@@ -11,8 +8,6 @@
 #pragma kernel MSAcc main=MSAcc
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
-#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonLighting.hlsl"
-#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Sampling/Sampling.hlsl"
 #include "../ExpanseSkyCommon.hlsl"
 #include "../ExpanseSkyMapping.hlsl"
 
@@ -35,33 +30,6 @@ RW_TEXTURE2D_ARRAY(float3, _MSAcc_RW);
 
 /* Ground Irradiance. */
 RW_TEXTURE2D_ARRAY(float3, _GI_RW);
-
-/******************************************************************************/
-/****************************** TEXTURE WRITERS *******************************/
-/******************************************************************************/
-
-void writeSS(uint2 id, float3 val, int i) {
-  _SS_RW[uint3(id, (uint) i)] = val;
-}
-
-void writeSSNoShadow(uint2 id, float3 val, int i) {
-  _SSNoShadow_RW[uint3(id, (uint) i)] = val;
-}
-
-void writeGI(uint2 id, float3 val, int i) {
-  _GI_RW[float3(id, i)] = val;
-}
-
-void writeMSAcc(uint2 id, float3 val, int i) {
-  _MSAcc_RW[uint3(id, (uint) i)] = val;
-}
-
-/******************************************************************************/
-/**************************** END TEXTURE WRITERS *****************************/
-/******************************************************************************/
-
-// TODO: lots of indexing hacks in here to avoid the "texture is not set" shit.
-// annoying as fuck and we will have to fix at some point.
 
 [numthreads(4,4,1)]
 void T(uint3 id : SV_DispatchThreadID) {
@@ -95,9 +63,7 @@ void T(uint3 id : SV_DispatchThreadID) {
   }
 
   /* Compute transmittance from optical depth. */
-  float3 T = saturate(exp(-power));
-
-  _T_RW[id.xy] = T;
+  _T_RW[id.xy] = saturate(exp(-power));
 }
 
 [numthreads(4,4,1)]
@@ -202,29 +168,28 @@ void SS(uint3 id : SV_DispatchThreadID) {
     SkyIntersectionData lightIntersection = traceSkyVolume(samplePoint,
       L, _planetRadius, _atmosphereRadius);
 
-    float3 lightEndPoint = samplePoint + L * lightIntersection.endT;
-    float t_light_hit = lightIntersection.endT;
-
-    /* Compute the light transmittance to the sample point. */
-    float2 sampleToL = mapSky2DCoord(length(samplePoint),
-      clampCosine(dot(normalizedSamplePoint, L)), _atmosphereRadius,
-      _planetRadius, t_light_hit, lightIntersection.groundHit);
-    /* Compute transmittance through sample to light hit point. */
-    float3 T_sampleToL = SAMPLE_TEXTURE2D_LOD(_T,
-      s_linear_clamp_sampler, sampleToL, 0).rgb;
-
-    float3 T = saturate(T_oToSample * T_sampleToL);
-
     if (!lightIntersection.groundHit) {
+      float3 lightEndPoint = samplePoint + L * lightIntersection.endT;
+      float t_light_hit = lightIntersection.endT;
+
+      /* Compute the light transmittance to the sample point. */
+      float2 sampleToL = mapSky2DCoord(length(samplePoint),
+        clampCosine(dot(normalizedSamplePoint, L)), _atmosphereRadius,
+        _planetRadius, t_light_hit, lightIntersection.groundHit);
+      /* Compute transmittance through sample to light hit point. */
+      float3 T_sampleToL = SAMPLE_TEXTURE2D_LOD(_T,
+        s_linear_clamp_sampler, sampleToL, 0).rgb;
+
+      float3 T = saturate(T_oToSample * T_sampleToL);
       for (int j = 0; j < _numActiveLayers; j++) {
         inScattering[j] += scaledDensity[j] * T;
       }
     }
   }
 
-  for (int k = 0; k < _numActiveLayers; k++) {
-    writeSS(id.xy, inScattering[k], k);
-    writeSSNoShadow(id.xy, inScatteringNoShadows[k], k);
+  for (int i = 0; i < _numActiveLayers; i++) {
+    _SS_RW[uint3(id.xy, (uint) i)] = inScattering[i];
+    _SSNoShadow_RW[uint3(id.xy, (uint) i)] = inScatteringNoShadows[i];
   }
 }
 
@@ -236,9 +201,12 @@ void GI(uint3 id : SV_DispatchThreadID) {
   float r = r_mu_l.x;
   float mu_l = r_mu_l.y;
 
-  float3 O = float3(0, r + 10, 0);
+  float3 O = float3(0, r, 0);
   float3 O_normalized = float3(0, 1, 0);
   float3 L = float3(safeSqrt(1 - mu_l * mu_l), mu_l, 0);
+
+  /* Precompute outside of loop. */
+  float3 proj_L = normalize(L - O_normalized * mu_l);
 
   float3 gi[MAX_LAYERS];
   for (int j = 0; j < _numActiveLayers; j++) {
@@ -250,13 +218,10 @@ void GI(uint3 id : SV_DispatchThreadID) {
     float3 d = fibonacciHemisphere(i, _numGISamples);
 
     float mu = dot(d, O_normalized);
-
-    float3 proj_L = normalize(L - O_normalized * mu_l);
     float3 proj_d = normalize(d - O_normalized * dot(O_normalized, d));
-    /* Take their dot product to get the cosine of the angle between them. */
     float nu = clampCosine(dot(proj_L, proj_d));
 
-    /* Sample the sky table for each layer. */
+    /* Check to see if we hit the sky. */
     SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
       _atmosphereRadius);
     if (!intersection.groundHit) {
@@ -264,21 +229,19 @@ void GI(uint3 id : SV_DispatchThreadID) {
       TexCoord4D ssCoord = mapSky4DCoord(r, mu, mu_l, nu,
         _atmosphereRadius, _planetRadius, t_hit, false, _resSS.x, _resSS.y,
         _resSS.z, _resSS.w);
-
+      float dot_L_d = dot(L, d);
       for (int j = 0; j < _numActiveLayers; j++) {
+        /* Compute single scattering contribution using phase function. */
         float3 ss = sampleSSTexture(ssCoord, j);
-        /* Compute single scattering contribution using phase functions. */
-        float dot_L_d = dot(L, d);
         float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
         gi[j] += ss * phase;
       }
     }
   }
 
-  for (int j = 0; j < _numActiveLayers; j++) {
-    writeGI(id.xy, gi[j] * 2 * PI / float(_numGISamples), j);
+  for (int i = 0; i < _numActiveLayers; i++) {
+    _GI_RW[float3(id.xy, i)] = gi[i] * 2 * PI / float(_numGISamples);
   }
-
 }
 
 [numthreads(4,4,1)]
@@ -292,9 +255,11 @@ void MS(uint3 id : SV_DispatchThreadID) {
   float r = r_mu_l.x;
   float mu_l = r_mu_l.y;
 
-  float3 O = float3(0, r + 0.01, 0);
+  float3 O = float3(0, r, 0);
   float3 O_normalized = float3(0, 1, 0);
   float3 L = float3(safeSqrt(1 - mu_l * mu_l), mu_l, 0);
+  /* Precompute. */
+  float3 proj_L = normalize(L - O_normalized * mu_l);
 
   /* Sample a bunch of directions, uniformly distributed on a sphere. */
   float3 secondOrder = float3(0, 0, 0);
@@ -315,8 +280,8 @@ void MS(uint3 id : SV_DispatchThreadID) {
     float mu = d.y;
 
     /* Nu we can compute as we've done before: by projecting d and
-     * L onto the plane defined by O and taking the dot product. */
-    float3 proj_L = normalize(L - O_normalized * mu_l);
+     * L onto the plane defined by O and taking the dot product.
+     * We precomputed the projection of L, so don't do that here. */
     float3 proj_d = normalize(d - O_normalized * dot(O_normalized, d));
     /* Take their dot product to get the cosine of the angle between them. */
     float nu = clampCosine(dot(proj_L, proj_d));
@@ -325,12 +290,12 @@ void MS(uint3 id : SV_DispatchThreadID) {
      * reflections if we hit the ground. */
     if (intersection.groundHit) {
       float2 groundUV = mapSky2DCoord(r, mu, _atmosphereRadius,
-        _planetRadius, t_hit, intersection.groundHit);
+        _planetRadius, t_hit, true);
       float3 groundTransmittance = SAMPLE_TEXTURE2D_LOD(_T,
-        s_linear_clamp_sampler, groundUV, 0).rgb;
+        s_linear_clamp_sampler, groundUV, 0).xyz;
       float3 groundAlbedo = 2 * _groundTint.xyz / PI;
       secondOrder += groundTransmittance * groundAlbedo
-        * saturate(dot(L, normalize(hitPoint)));
+        * saturate(dot(L, normalize(hitPoint))); // THIS PRODUCES ARTIFACTS?
     }
 
     /* Sample the single scattering tables. */
@@ -426,8 +391,7 @@ void MSAcc(uint3 id : SV_DispatchThreadID) {
     }
   }
 
-  for (int k = 0; k < _numActiveLayers; k++) {
-    writeMSAcc(id.xy, multipleScattering[k], k);
+  for (int i = 0; i < _numActiveLayers; i++) {
+    _MSAcc_RW[uint3(id.xy, (uint) i)] = multipleScattering[i];
   }
-
 }
