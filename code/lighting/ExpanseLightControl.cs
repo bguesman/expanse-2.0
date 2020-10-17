@@ -32,7 +32,7 @@ public class ExpanseLightControl : MonoBehaviour
     t = 0;
   }
 
-  // Update is called once per frame
+  // Update is called once per fram
   void Update() {
     gameObject.transform.eulerAngles = new Vector3(sky.bodyDirection0.value.x, sky.bodyDirection0.value.y, 0);
 
