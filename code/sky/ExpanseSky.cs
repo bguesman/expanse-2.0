@@ -79,7 +79,7 @@ public ColorParameter layerTint0, layerTint1, layerTint2,
 public MinFloatParameter layerMultipleScatteringMultiplier0, layerMultipleScatteringMultiplier1, layerMultipleScatteringMultiplier2,
   layerMultipleScatteringMultiplier3, layerMultipleScatteringMultiplier4, layerMultipleScatteringMultiplier5, layerMultipleScatteringMultiplier6, layerMultipleScatteringMultiplier7;
 
-/* Celestial Bodies. TODO */
+/* Celestial Bodies. */
 [Tooltip("Whether or not this celestial body is enabled.")]
 public BoolParameter bodyEnabled0, bodyEnabled1, bodyEnabled2,
   bodyEnabled3, bodyEnabled4, bodyEnabled5, bodyEnabled6, bodyEnabled7;
@@ -235,7 +235,6 @@ public override Type GetSkyRendererType() {
 }
 
 public override int GetHashCode() {
-  /* TODO */
   int hash = base.GetHashCode();
   unchecked {
   /***********************/
@@ -311,7 +310,6 @@ public override int GetHashCode() {
 }
 
 public int GetSkyHashCode() {
-  /* TODO: not all of the params are relevant here. */
   int hash = base.GetHashCode();
   unchecked {
   /***********************/
