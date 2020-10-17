@@ -52,16 +52,7 @@ SerializedDataParameter groundEmissionTexture;
 SerializedDataParameter groundEmissionTint;
 SerializedDataParameter groundEmissionMultiplier;
 
-/* Atmosphere layers. TODO */
-/* TODO: artistic overrides go here. Every layer has an individual tint
- * and MS multiplier. */
-/* TODO: what's the best way to indicate
- *  A) what kind of density distribution we use?
- *  B) whether or not we use distance attenuation?
- *  C) what kind of phase function we use?
- *
- * The answer: probably use a clamped int parameter linked to an enum
- * in common, then have a UI element that allows for selection somehow. */
+/* Atmosphere layers. */
 SerializedDataParameter[] layerEnabled
  = new SerializedDataParameter[ExpanseCommon.kMaxAtmosphereLayers];
 SerializedDataParameter[] layerCoefficientsA
@@ -92,9 +83,7 @@ SerializedDataParameter[] layerTint
 SerializedDataParameter[] layerMultipleScatteringMultiplier
   = new SerializedDataParameter[ExpanseCommon.kMaxAtmosphereLayers];
 
-/* Celestial bodies. TODO */
-
-/* Celestial Bodies. TODO */
+/* Celestial Bodies. */
 SerializedDataParameter[] bodyEnabled
   = new SerializedDataParameter[ExpanseCommon.kMaxCelestialBodies];
 SerializedDataParameter[] bodyDirection
@@ -227,8 +216,6 @@ public override void OnInspectorGUI()
   EditorGUILayout.Space();
 
   /* Atmosphere layers. */
-  /* TODO: artistic overrides go here. Every layer has an individual tint
-   * and MS multiplier. */
   EditorGUILayout.Space();
   atmosphereLayer(titleStyle, subtitleStyle);
   EditorGUILayout.Space();
@@ -485,7 +472,7 @@ private void unpackSerializedProperties(PropertyFetcher<ExpanseSky> o) {
     layerMultipleScatteringMultiplier[i] = Unpack(o.Find("layerMultipleScatteringMultiplier" + i));
   }
 
-  /* Celestial bodies. TODO */
+  /* Celestial bodies. */
   for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
     bodyEnabled[i] = Unpack(o.Find("bodyEnabled" + i));
     bodyDirection[i] = Unpack(o.Find("bodyDirection" + i));
