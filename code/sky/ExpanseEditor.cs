@@ -134,6 +134,11 @@ SerializedDataParameter nightSkyTint;
 SerializedDataParameter nightSkyIntensity;
 SerializedDataParameter nightSkyScatterTint;
 SerializedDataParameter nightSkyScatterIntensity;
+SerializedDataParameter useTwinkle;
+SerializedDataParameter twinkleThreshold;
+SerializedDataParameter twinkleFrequencyRange;
+SerializedDataParameter twinkleBias;
+SerializedDataParameter twinkleAmplitude;
 
 /* Quality parameters. */
 SerializedDataParameter skyTextureQuality;
@@ -415,6 +420,13 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
   PropertyField(nightSkyTint);
   PropertyField(nightSkyScatterIntensity);
   PropertyField(nightSkyScatterTint);
+  PropertyField(useTwinkle);
+  if (useTwinkle.value.boolValue) {
+    PropertyField(twinkleThreshold);
+    PropertyField(twinkleFrequencyRange);
+    PropertyField(twinkleBias);
+    PropertyField(twinkleAmplitude, new UnityEngine.GUIContent("Twinkle Intensity"));
+  }
 }
 
 private void quality(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
@@ -524,6 +536,11 @@ private void unpackSerializedProperties(PropertyFetcher<ExpanseSky> o) {
   nightSkyIntensity = Unpack(o.Find(x => x.nightSkyIntensity));
   nightSkyScatterTint = Unpack(o.Find(x => x.nightSkyScatterTint));
   nightSkyScatterIntensity = Unpack(o.Find(x => x.nightSkyScatterIntensity));
+  useTwinkle = Unpack(o.Find(x => x.useTwinkle));
+  twinkleThreshold = Unpack(o.Find(x => x.twinkleThreshold));
+  twinkleFrequencyRange = Unpack(o.Find(x => x.twinkleFrequencyRange));
+  twinkleBias = Unpack(o.Find(x => x.twinkleBias));
+  twinkleAmplitude = Unpack(o.Find(x => x.twinkleAmplitude));
 
   /* Quality. */
   skyTextureQuality = Unpack(o.Find(x => x.skyTextureQuality));

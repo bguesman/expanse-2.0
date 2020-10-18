@@ -21,6 +21,7 @@ HLSLINCLUDE
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/CookieSampling.hlsl"
 
 #include "ExpanseSkyCommon.hlsl"
+#include "ExpanseRandom.hlsl"
 #include "ExpanseSkyMapping.hlsl"
 
 /******************************************************************************/
@@ -82,6 +83,12 @@ float4 _nightSkyTint;         /* Tint and intensity. */
 float4x4 _nightSkyRotation;
 float4 _averageNightSkyColor;
 float4 _nightSkyScatterTint;  /* Tint and intensity. */
+bool _useTwinkle;
+float _twinkleThreshold;
+float _twinkleFrequencyMin;
+float _twinkleFrequencyMax;
+float _twinkleBias;
+float _twinkleAmplitude;
 
 /* Quality. */
 bool _useAntiAliasing;
@@ -389,12 +396,27 @@ float3 shadeClosestCelestialBody(float3 d) {
 
 /* Given direction to sample in, shades direct light from night sky. */
 float3 shadeNightSky(float3 d) {
+  /* Sample the sky texture. */
   float3 nightSkyColor = _nightSkyTint.xyz;
+  float3 starColor = float3(0, 0, 0);
+  float3 textureCoordinate = mul(d, (float3x3)_nightSkyRotation);
   if (_hasNightSkyTexture) {
-    nightSkyColor *= SAMPLE_TEXTURECUBE_LOD(_nightSkyTexture,
-      s_linear_clamp_sampler, mul(d, (float3x3)_nightSkyRotation), 0).xyz;
+    starColor = SAMPLE_TEXTURECUBE_LOD(_nightSkyTexture,
+      s_linear_clamp_sampler, textureCoordinate, 0).xyz;
   }
-  return nightSkyColor;
+
+  /* Calculate the twinkling effect. */
+  float twinkle = 1;
+  if (_useTwinkle) {
+    float magnitude = dot(starColor, starColor) / 3.0;
+    if (magnitude > _twinkleThreshold) {
+      float phase = 2 * PI * random_3_1(textureCoordinate);
+      float frequency = _twinkleFrequencyMin +
+        (_twinkleFrequencyMax - _twinkleFrequencyMin) * random_3_1(textureCoordinate * 1.37);
+      twinkle = max(0, _twinkleAmplitude * pow(sin(frequency * _Time.y + phase), 2) + _twinkleBias);
+    }
+  }
+  return twinkle * nightSkyColor * starColor;
 }
 
 float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
@@ -605,7 +627,8 @@ float4 SkyFullscreen(Varyings input) : SV_Target {
   }
 
   /* Otherwise, see how close we are to the planet's edge, and if we are
-   * close, then use MSAA 8x. TODO: do this. */
+   * close, then use MSAA 8x. TODO: do this. TODO: doesn't seem to work
+   * for planet edge when close to ground---clue to why atmo is weird there too? */
   bool closeToEdge = true;
   if (closeToEdge) {
     float MSAA_8X_OFFSETS_X[8] = {1.0/16.0, -1.0/16.0, 5.0/16.0, -3.0/16.0, -5.0/16.0, -7.0/16.0, 3.0/16.0, 7.0/16.0};

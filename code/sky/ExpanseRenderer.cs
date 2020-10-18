@@ -378,6 +378,7 @@ private void setLightingData(Vector4 cameraPos, float planetRadius, float atmosp
 }
 
 private Vector4 computeAverageNightSkyColor(ExpanseSky sky) {
+  /* TODO: make more efficient. */
   if (sky.nightSkyTexture.value != null) {
     Vector4 averageColor = new Vector4(0, 0, 0, 0);
     for (int i = 0; i < 6; i++) {
@@ -965,6 +966,13 @@ private void setMaterialPropertyBlockNightSky(ExpanseSky sky) {
   m_PropertyBlock.SetVector("_nightSkyScatterTint", sky.nightSkyTint.value
     * sky.nightSkyScatterTint.value * sky.nightSkyScatterIntensity.value
     * sky.nightSkyIntensity.value);
+
+  m_PropertyBlock.SetFloat("_useTwinkle", (sky.useTwinkle.value) ? 1 : 0);
+  m_PropertyBlock.SetFloat("_twinkleThreshold", sky.twinkleThreshold.value);
+  m_PropertyBlock.SetFloat("_twinkleFrequencyMin", sky.twinkleFrequencyRange.value.x);
+  m_PropertyBlock.SetFloat("_twinkleFrequencyMax", sky.twinkleFrequencyRange.value.y);
+  m_PropertyBlock.SetFloat("_twinkleBias", sky.twinkleBias.value);
+  m_PropertyBlock.SetFloat("_twinkleAmplitude", sky.twinkleAmplitude.value);
 }
 
 private void setMaterialPropertyBlockQuality(ExpanseSky sky) {

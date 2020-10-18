@@ -138,7 +138,7 @@ public ColorParameter bodyEmissionTint0, bodyEmissionTint1, bodyEmissionTint2,
 public MinFloatParameter bodyEmissionMultiplier0, bodyEmissionMultiplier1, bodyEmissionMultiplier2,
   bodyEmissionMultiplier3, bodyEmissionMultiplier4, bodyEmissionMultiplier5, bodyEmissionMultiplier6, bodyEmissionMultiplier7;
 
-/* Night Sky. TODO */
+/* Night Sky. */
 [Tooltip("Color of light coming from the ground used for modeling light pollution.")]
 public ColorParameter lightPollutionTint = new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true);
 [Tooltip("Intensity of light scattered up from the ground used for modeling light pollution. Specified in lux.")]
@@ -155,6 +155,17 @@ public ColorParameter nightSkyTint = new ColorParameter(Color.white, hdr: false,
 public MinFloatParameter nightSkyScatterIntensity = new MinFloatParameter(50, 0);
 [Tooltip("An additional tint applied on top of the night sky tint, but only to the scattering. This is useful as an artistsic override for if the average color of your sky texture doesn't quite get you the scattering behavior you want. For instance, you may want the scattering to be bluer.")]
 public ColorParameter nightSkyScatterTint = new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true);
+/* Star twinkle effect. */
+[Tooltip("Whether or not to use star twinkle effect.")]
+public BoolParameter useTwinkle = new BoolParameter(false);
+[Tooltip("Threshold for night sky texture value for twinkle effect to be applied. Useful for avoiding noise-like artifactss on non-star features like nebulae.")]
+public MinFloatParameter twinkleThreshold = new MinFloatParameter(0.001f, 0);
+[Tooltip("Range of randomly generated twinkle frequencies. Higher values will make the stars twinkle faster. Lower values will make them twinkle slower. A value of zero will result in no twinkling at all.")]
+public FloatRangeParameter twinkleFrequencyRange = new FloatRangeParameter(new Vector2(0.5f, 3), 0, 10);
+[Tooltip("Bias to twinkle effect. Negative values increase the time when the star is not visible.")]
+public FloatParameter twinkleBias = new FloatParameter(0);
+[Tooltip("Intensity of twinkle effect.")]
+public MinFloatParameter twinkleAmplitude = new MinFloatParameter(1, 0);
 
 /* Quality. */
 [Tooltip("Quality of sky texture.")]
