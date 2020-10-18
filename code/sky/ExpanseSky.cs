@@ -143,6 +143,18 @@ public MinFloatParameter bodyEmissionMultiplier0, bodyEmissionMultiplier1, bodyE
 public ColorParameter lightPollutionTint = new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true);
 [Tooltip("Intensity of light scattered up from the ground used for modeling light pollution. Specified in lux.")]
 public MinFloatParameter lightPollutionIntensity = new MinFloatParameter(100, 0);
+[Tooltip("The night sky as a cubemap texture. If no texture is specified, the night sky tint color will be used.")]
+public CubemapParameter nightSkyTexture = new CubemapParameter(null);
+[Tooltip("The rotation of the night sky texture as euler angles.")]
+public Vector3Parameter nightSkyRotation = new Vector3Parameter(new Vector3(0.0f, 0.0f, 0.0f));
+[Tooltip("Tint to the night sky.")]
+public MinFloatParameter nightSkyIntensity = new MinFloatParameter(0, 0);
+[Tooltip("Tint to the night sky.")]
+public ColorParameter nightSkyTint = new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true);
+[Tooltip("Expanse computes sky scattering using the average color of the sky texture. There are so many light sources in the night sky that this is really the only computationally tractable option. However, this usually results in scattering that's not nearly intense enough. This multiplier is an artistic override to mitigate that issue.")]
+public MinFloatParameter nightSkyScatterIntensity = new MinFloatParameter(50, 0);
+[Tooltip("An additional tint applied on top of the night sky tint, but only to the scattering. This is useful as an artistsic override for if the average color of your sky texture doesn't quite get you the scattering behavior you want. For instance, you may want the scattering to be bluer.")]
+public ColorParameter nightSkyScatterTint = new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true);
 
 /* Quality. */
 [Tooltip("Quality of sky texture.")]
@@ -295,7 +307,15 @@ public override int GetHashCode() {
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyEmissionMultiplier" + i).GetValue(this)).value.GetHashCode();
     }
 
-    /* Night Sky. TODO */
+    /* Night Sky. */
+    hash = hash * 23 + lightPollutionTint.value.GetHashCode();
+    hash = hash * 23 + lightPollutionIntensity.value.GetHashCode();
+    hash = nightSkyTexture.value != null ? hash * 23 + nightSkyTexture.value.GetHashCode() : hash;
+    hash = hash * 23 + nightSkyRotation.value.GetHashCode();
+    hash = hash * 23 + nightSkyTint.value.GetHashCode();
+    hash = hash * 23 + nightSkyIntensity.value.GetHashCode();
+    hash = hash * 23 + nightSkyScatterTint.value.GetHashCode();
+    hash = hash * 23 + nightSkyScatterIntensity.value.GetHashCode();
 
     /* Quality. */
     hash = hash * 23 + skyTextureQuality.value.GetHashCode();
@@ -365,6 +385,17 @@ public int GetCloudHashCode() {
   int hash = base.GetHashCode();
   unchecked {
 
+  }
+  return hash;
+}
+
+public int GetNightSkyHashCode() {
+  /* Used for checking if a recomputation of the average sky color needs
+   * to take place. */
+  /* TODO */
+  int hash = base.GetHashCode();
+  unchecked {
+    hash = nightSkyTexture.value != null ? hash * 23 + nightSkyTexture.value.GetHashCode() : hash;
   }
   return hash;
 }

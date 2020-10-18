@@ -300,6 +300,8 @@ ComputeShader m_skyCS;
 /* Hash values for determining update behavior. */
 int m_LastSkyHash;
 int m_LastCloudHash;
+int m_LastNightSkyHash;
+Vector4 m_averageNightSkyColor;
 private static int m_RenderCubemapSkyID = 0;
 private static int m_RenderFullscreenSkyID = 1;
 private static int m_RenderCubemapCloudsID = 2;
@@ -375,6 +377,25 @@ private void setLightingData(Vector4 cameraPos, float planetRadius, float atmosp
   }
 }
 
+private Vector4 computeAverageNightSkyColor(ExpanseSky sky) {
+  if (sky.nightSkyTexture.value != null) {
+    Vector4 averageColor = new Vector4(0, 0, 0, 0);
+    for (int i = 0; i < 6; i++) {
+      Vector4 faceColor = new Vector4(0, 0, 0, 0);
+      Color[] pixels = sky.nightSkyTexture.value.GetPixels(0);
+      foreach (Color p in pixels) {
+        faceColor += (Vector4) p;
+      }
+      faceColor /= pixels.Length;
+      averageColor += faceColor;
+    }
+    averageColor /= 6;
+    return averageColor;
+  } else {
+    return sky.nightSkyTint.value;
+  }
+}
+
 protected override bool Update(BuiltinSkyParameters builtinParams)
 {
   if (m_TTableCPUNeedsUpdate) {
@@ -419,6 +440,13 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
   if (currentCloudHash != m_LastCloudHash) {
     /* Update the cloud noise tables. */
     m_LastCloudHash = currentCloudHash;
+  }
+
+  /* Check if we need to recompute the average night sky color. */
+  int currentNightSkyHash = sky.GetNightSkyHashCode();
+  if (currentNightSkyHash != m_LastNightSkyHash) {
+    m_averageNightSkyColor = computeAverageNightSkyColor(sky);
+    m_LastNightSkyHash = currentNightSkyHash;
   }
 
   /* Set lighting properties so that light scripts can use them to affect
@@ -922,6 +950,21 @@ private void setMaterialPropertyBlockCelestialBodies(ExpanseSky sky) {
 private void setMaterialPropertyBlockNightSky(ExpanseSky sky) {
   m_PropertyBlock.SetVector("_lightPollutionTint", sky.lightPollutionTint.value
     * sky.lightPollutionIntensity.value);
+  m_PropertyBlock.SetFloat("_hasNightSkyTexture", (sky.nightSkyTexture.value == null) ? 0 : 1);
+  if (sky.nightSkyTexture.value != null) {
+    m_PropertyBlock.SetTexture("_nightSkyTexture", sky.nightSkyTexture.value);
+  }
+  Vector3 nightSkyRotation = sky.nightSkyRotation.value;
+  Quaternion nightSkyRotationMatrix = Quaternion.Euler(nightSkyRotation.x,
+                                                nightSkyRotation.y,
+                                                nightSkyRotation.z);
+  m_PropertyBlock.SetMatrix("_nightSkyRotation", Matrix4x4.Rotate(nightSkyRotationMatrix));
+  m_PropertyBlock.SetVector("_nightSkyTint", sky.nightSkyTint.value
+    * sky.nightSkyIntensity.value);
+  m_PropertyBlock.SetVector("_averageNightSkyColor", m_averageNightSkyColor);
+  m_PropertyBlock.SetVector("_nightSkyScatterTint", sky.nightSkyTint.value
+    * sky.nightSkyScatterTint.value * sky.nightSkyScatterIntensity.value
+    * sky.nightSkyIntensity.value);
 }
 
 private void setMaterialPropertyBlockQuality(ExpanseSky sky) {

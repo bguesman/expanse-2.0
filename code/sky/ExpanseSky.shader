@@ -75,7 +75,13 @@ TEXTURECUBE(_bodyEmissionTexture6);
 TEXTURECUBE(_bodyEmissionTexture7);
 
 /* Night Sky. TODO */
-float4 _lightPollutionTint;
+float4 _lightPollutionTint;   /* Tint and intensity. */
+bool _hasNightSkyTexture;
+TEXTURECUBE(_nightSkyTexture);
+float4 _nightSkyTint;         /* Tint and intensity. */
+float4x4 _nightSkyRotation;
+float4 _averageNightSkyColor;
+float4 _nightSkyScatterTint;  /* Tint and intensity. */
 
 /* Quality. */
 bool _useAntiAliasing;
@@ -286,7 +292,8 @@ float3 limbDarkening(float dot_L_d, float cosTheta, float amount) {
   return max(0.0, pow(a0 + a1 * mu + a2 * mu2 + a3 * mu3 + a4 * mu4 + a5 * mu5, amount));
 }
 
-/* Given direction to sample in, shades closest celestial body. */
+/* Given direction to sample in, shades closest celestial body. Returns
+ * negative number if nothing is hit. */
 float3 shadeClosestCelestialBody(float3 d) {
   /* First, compute closest intersection. */
   int minIdx = -1;
@@ -300,9 +307,10 @@ float3 shadeClosestCelestialBody(float3 d) {
     }
   }
 
-  /* If we didn't hit anything, there's nothing to shade. */
+  /* If we didn't hit anything, there's nothing to shade. Return negative
+   * number to indicate that we hit nothing. */
   if (minIdx < 0) {
-    return float3(0, 0, 0);
+    return float3(-1, -1, -1);
   }
 
   /* Otherwise, compute lighting. */
@@ -379,6 +387,16 @@ float3 shadeClosestCelestialBody(float3 d) {
   return directLighting;
 }
 
+/* Given direction to sample in, shades direct light from night sky. */
+float3 shadeNightSky(float3 d) {
+  float3 nightSkyColor = _nightSkyTint.xyz;
+  if (_hasNightSkyTexture) {
+    nightSkyColor *= SAMPLE_TEXTURECUBE_LOD(_nightSkyTexture,
+      s_linear_clamp_sampler, mul(d, (float3x3)_nightSkyRotation), 0).xyz;
+  }
+  return nightSkyColor;
+}
+
 float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
   float t_hit, bool groundHit, bool geoHit) {
   /* Get the body's direction. */
@@ -449,10 +467,31 @@ float3 computeLightPollutionColor(float2 uv) {
   return color;
 }
 
-float3 computeStarScatteringColor() {
-  /* TODO */
+float3 computeStarScatteringColor(float2 r_mu_uv, float mu, float3 directLight,
+  float t_hit, bool groundHit) {
+  /* HACK: to get some sort of approximation of rayleigh scattering
+   * for the ambient night color of the sky,  */
+  TexCoord4D uvSS = mapSky4DCoord(r_mu_uv, mu, 1, _atmosphereRadius,
+    _planetRadius, t_hit, groundHit, _resSS.x, _resSS.y, _resSS.z, _resSS.w);
+  TexCoord4D uvMSAcc = mapSky4DCoord(r_mu_uv, mu, 1, _atmosphereRadius,
+    _planetRadius, t_hit, groundHit, _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
+
+  /* Accumulate contribution from each layer. */
   float3 color = float3(0, 0, 0);
-  return color;
+  for (int j = 0; j < _numActiveLayers; j++) {
+    /* Single scattering. Use isotropic phase, since this approximation
+     * has no directionality. */
+    float3 ss = sampleSSTexture(uvSS, j) * isotropicPhase();
+
+    /* Multiple scattering. */
+    float3 ms = sampleMSAccTexture(uvMSAcc, j);
+
+    /* Final color. */
+    color +=  _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
+      * (ss + ms * _layerMultipleScatteringMultiplier[j]);
+  }
+
+  return color * _nightSkyScatterTint * _averageNightSkyColor;
 }
 
 float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
@@ -474,12 +513,18 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
 
   /* Compute direct illumination, but only if we don't hit anything. */
   float3 directLight = float3(0, 0, 0);
+  float3 directLightNightSky = float3(0, 0, 0); /* Cached for scattering. */
   if (!geoHit) {
     if (intersection.groundHit) {
       directLight = shadeGround(endPoint);
     } else {
       /* Shade the closest celestial body and the stars. */
       directLight = shadeClosestCelestialBody(d);
+      if (directLight.x < 0) {
+        /* Shade the stars. */
+        directLightNightSky = shadeNightSky(d);
+        directLight = directLightNightSky;
+      }
     }
   }
 
@@ -520,11 +565,20 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     skyColor = max(0, skyColor);
   }
 
-  /* Compute light pollution. */
-  float3 lightPollution = computeLightPollutionColor(coord2D);
+  /* Compute light pollution. TODO: attenuate for aerial perspective!!! or
+   * maybe just don't render. */
+  float3 lightPollution = float3(0, 0, 0);
+  if (!geoHit || cubemap) {
+    lightPollution = computeLightPollutionColor(coord2D);
+  }
 
-  /* Compute star scattering. */
-  float3 starScattering = computeStarScatteringColor();
+  /* Compute star scattering. TODO: attenuate for aerial perspective!!! or
+   * maybe just don't render. */
+  float3 starScattering = float3(0, 0, 0);
+  if (!geoHit || cubemap) {
+    starScattering = computeStarScatteringColor(coord2D, mu,
+      directLightNightSky, t_hit, intersection.groundHit);
+  }
 
   /* Final result. */
   return float4(directLight * transmittance + skyColor + lightPollution

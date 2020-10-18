@@ -128,6 +128,12 @@ SerializedDataParameter[] bodyEmissionMultiplier
 /* Night Sky. TODO */
 SerializedDataParameter lightPollutionTint;
 SerializedDataParameter lightPollutionIntensity;
+SerializedDataParameter nightSkyTexture;
+SerializedDataParameter nightSkyRotation;
+SerializedDataParameter nightSkyTint;
+SerializedDataParameter nightSkyIntensity;
+SerializedDataParameter nightSkyScatterTint;
+SerializedDataParameter nightSkyScatterIntensity;
 
 /* Quality parameters. */
 SerializedDataParameter skyTextureQuality;
@@ -295,7 +301,10 @@ private void planet(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtit
   PropertyField(groundTint);
   PropertyField(groundEmissionTexture);
   PropertyField(groundEmissionMultiplier);
-  PropertyField(planetRotation);
+  if (groundAlbedoTexture.value.objectReferenceValue != null
+    || groundEmissionTexture.value.objectReferenceValue != null) {
+    PropertyField(planetRotation);
+  }
 }
 
 private void atmosphereLayer(UnityEngine.GUIStyle titleStyle,
@@ -398,6 +407,14 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
   EditorGUILayout.LabelField("Night Sky", titleStyle);
   PropertyField(lightPollutionTint);
   PropertyField(lightPollutionIntensity);
+  PropertyField(nightSkyTexture);
+  if (nightSkyTexture.value.objectReferenceValue != null) {
+    PropertyField(nightSkyRotation);
+  }
+  PropertyField(nightSkyIntensity);
+  PropertyField(nightSkyTint);
+  PropertyField(nightSkyScatterIntensity);
+  PropertyField(nightSkyScatterTint);
 }
 
 private void quality(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
@@ -501,6 +518,12 @@ private void unpackSerializedProperties(PropertyFetcher<ExpanseSky> o) {
   /* Night Sky. TODO */
   lightPollutionTint = Unpack(o.Find(x => x.lightPollutionTint));
   lightPollutionIntensity = Unpack(o.Find(x => x.lightPollutionIntensity));
+  nightSkyTexture = Unpack(o.Find(x => x.nightSkyTexture));
+  nightSkyRotation = Unpack(o.Find(x => x.nightSkyRotation));
+  nightSkyTint = Unpack(o.Find(x => x.nightSkyTint));
+  nightSkyIntensity = Unpack(o.Find(x => x.nightSkyIntensity));
+  nightSkyScatterTint = Unpack(o.Find(x => x.nightSkyScatterTint));
+  nightSkyScatterIntensity = Unpack(o.Find(x => x.nightSkyScatterIntensity));
 
   /* Quality. */
   skyTextureQuality = Unpack(o.Find(x => x.skyTextureQuality));
