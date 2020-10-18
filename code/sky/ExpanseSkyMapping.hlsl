@@ -1,4 +1,4 @@
-#include "ExpanseSkyCommon.hlsl"
+#include "../common/shaders/ExpanseSkyCommon.hlsl"
 
 /* Converts u, v in unit range to a deep texture coordinate (w0, w1, a) with
  * zTexSize rows and zTexCount columns.

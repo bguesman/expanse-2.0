@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 using UnityEditor.Rendering;
 using UnityEditor;
 
-namespace Expanse {
+namespace ExpanseCommonNamespace {
   /* Generic enum parameter class. */
   [Serializable, DebuggerDisplay(k_DebuggerDisplay)]
   public class EnumParameter<T> : VolumeParameter<T>

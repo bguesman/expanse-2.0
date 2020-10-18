@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 /* Class for common global variables shared between classes. */
-namespace Expanse {
+namespace ExpanseCommonNamespace {
 
 public class ExpanseCommon {
 /* Enum for atmosphere layers. Currently we support up to 8 different
@@ -258,6 +258,6 @@ public static Vector3[] bodyTransmittances = new Vector3[kMaxCelestialBodies];
 /***************************** END LIGHTING STATE *****************************/
 /******************************************************************************/
 
-} /* class ExpanseCommon */
+} /* class ExpanseCommonNamespace */
 
 } /* namespace Expanse */

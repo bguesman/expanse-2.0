@@ -8,8 +8,8 @@
 #pragma kernel MSAcc main=MSAcc
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
-#include "../ExpanseSkyCommon.hlsl"
-#include "../ExpanseSkyMapping.hlsl"
+#include "../../common/shaders/ExpanseSkyCommon.hlsl"
+#include "../../sky/ExpanseSkyMapping.hlsl"
 
 /* RW Textures. */
 /* Transmittance. */
@@ -63,7 +63,7 @@ void T(uint3 id : SV_DispatchThreadID) {
   }
 
   /* Compute transmittance from optical depth. */
-  _T_RW[id.xy] = saturate(exp(-power));
+  _T_RW[id.xy] = -power;
 }
 
 [numthreads(8,8,1)]
@@ -124,7 +124,7 @@ void LP(uint3 id : SV_DispatchThreadID) {
 
     /* Compute transmittance from O to sample point. */
     float3 T_oToSample = SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler,
-      oToSample, 0).xyz;
+      oToSample, 0);
 
     /* Our transmittance value for O to the sample point is too large---we
      * need to divide out the transmittance from the sample point to the
@@ -134,9 +134,7 @@ void LP(uint3 id : SV_DispatchThreadID) {
       _planetRadius, t_hit - sampleT, intersection.groundHit);
     float3 T_sampleOut = SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler,
       sampleOut, 0).xyz;
-    /* Clamp sample out for division. */
-    T_sampleOut = max(T_sampleOut, FLT_EPSILON);
-    T_oToSample /= T_sampleOut;
+    T_oToSample -= T_sampleOut;
 
     /* Compute the light transmittance to the ground. */
     float2 sampleToGround = mapSky2DCoord(length(samplePoint), -1.0,
@@ -144,7 +142,7 @@ void LP(uint3 id : SV_DispatchThreadID) {
     float3 T_sampleToGround = SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler,
       sampleToGround, 0).xyz;
 
-    float3 T = T_oToSample * T_sampleToGround;
+    float3 T = exp(T_oToSample + T_sampleToGround);
 
     for (int j = 0; j < _numActiveLayers; j++) {
       lightPollution[j] += scaledDensity[j] * T;
@@ -242,12 +240,10 @@ void SS(uint3 id : SV_DispatchThreadID) {
       _planetRadius, t_hit - sampleT, intersection.groundHit);
     float3 T_sampleOut = SAMPLE_TEXTURE2D_LOD(_T,
       s_linear_clamp_sampler, sampleOut, 0).rgb;
-    /* Clamp sample out for division. */
-    T_sampleOut = max(T_sampleOut, FLT_EPSILON);
-    T_oToSample /= T_sampleOut;
+    T_oToSample -= T_sampleOut;
 
     for (int j = 0; j < _numActiveLayers; j++) {
-      inScatteringNoShadows[j] += scaledDensity[j] * saturate(T_oToSample);
+      inScatteringNoShadows[j] += scaledDensity[j] * saturate(exp(T_oToSample));
     }
 
     /* Trace a ray from the sample point to the light to check visibility. */
@@ -266,7 +262,7 @@ void SS(uint3 id : SV_DispatchThreadID) {
       float3 T_sampleToL = SAMPLE_TEXTURE2D_LOD(_T,
         s_linear_clamp_sampler, sampleToL, 0).rgb;
 
-      float3 T = saturate(T_oToSample * T_sampleToL);
+      float3 T = saturate(exp(T_oToSample + T_sampleToL));
       for (int j = 0; j < _numActiveLayers; j++) {
         inScattering[j] += scaledDensity[j] * T;
       }
@@ -373,16 +369,17 @@ void MS(uint3 id : SV_DispatchThreadID) {
     float nu = clampCosine(dot(proj_L, proj_d));
 
     /* Add ground albedo times the transmittance to the second order
-     * reflections if we hit the ground. */
-    if (intersection.groundHit) {
-      float2 groundUV = mapSky2DCoord(r, mu, _atmosphereRadius,
-        _planetRadius, t_hit, true);
-      float3 groundTransmittance = SAMPLE_TEXTURE2D_LOD(_T,
-        s_linear_clamp_sampler, groundUV, 0).xyz;
-      float3 groundAlbedo = 2 * _groundTint.xyz / PI;
-      secondOrder += groundTransmittance * groundAlbedo
-        * saturate(dot(L, normalize(hitPoint))); // THIS PRODUCES ARTIFACTS?
-    }
+     * reflections if we hit the ground. HACK: screws up aerial perspective,
+     * commenting out. */
+    // if (intersection.groundHit) {
+    //   float2 groundUV = mapSky2DCoord(r, mu, _atmosphereRadius,
+    //     _planetRadius, t_hit, true);
+    //   float3 groundTransmittance = exp(SAMPLE_TEXTURE2D_LOD(_T,
+    //     s_linear_clamp_sampler, groundUV, 0).xyz);
+    //   float3 groundAlbedo = 2 * _groundTint.xyz / PI;
+    //   secondOrder += groundTransmittance * groundAlbedo
+    //     * saturate(dot(L, normalize(hitPoint))); // THIS PRODUCES ARTIFACTS?
+    // }
 
     /* Sample the single scattering tables. */
     TexCoord4D ssCoord = mapSky4DCoord(r, mu, mu_l, nu,

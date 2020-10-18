@@ -3,9 +3,9 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.Experimental.Rendering;
-using Expanse;
+using ExpanseCommonNamespace;
 
-class ExpanseSkyRenderer : SkyRenderer
+class ExpanseRenderer : SkyRenderer
 {
 
 /******************************************************************************/
@@ -36,12 +36,12 @@ private RTHandle m_MSAccumulationTableArray;      /* Multiple Scattering. */
 private RTHandle m_LPTableArray;                  /* Light Pollution. */
 private RTHandle m_GITableArray;                  /* Ground Irradiance. */
 /* For checking if table reallocation is required. */
-private Expanse.ExpanseCommon.SkyTextureResolution m_skyTextureResolution;
+private ExpanseCommon.SkyTextureResolution m_skyTextureResolution;
 private int m_numAtmosphereLayersEnabled = 0;
 
 /* Allocates all sky precomputation tables for all atmosphere layers at a
  * specified quality level. */
-void allocateSkyPrecomputationTables(ExpanseSky sky) {
+void allocateSkyPrecomputationTables(Expanse sky) {
 
   /* Count how many layers are active. */
   int numEnabled = 0;
@@ -333,7 +333,7 @@ public override void Build() {
 
 /* Returns reference to Expanse sky shader. */
 Shader GetSkyShader() {
-  return Shader.Find("Hidden/HDRP/Sky/ExpanseSky");
+  return Shader.Find("Hidden/HDRP/Sky/Expanse");
 }
 
 /* Returns reference to expanse sky precompute shader. */
@@ -372,12 +372,12 @@ private void setLightingData(Vector4 cameraPos, float planetRadius, float atmosp
       Vector2 uv = ExpanseCommon.map_r_mu(r, mu, atmosphereRadius, planetRadius,
         d, false);
       Vector4 transmittance = m_TTableCPU.GetPixelBilinear(uv.x, uv.y);
-      ExpanseCommon.bodyTransmittances[i] = new Vector3(transmittance.x, transmittance.y, transmittance.z);
+      ExpanseCommon.bodyTransmittances[i] = new Vector3(Mathf.Exp(transmittance.x), Mathf.Exp(transmittance.y), Mathf.Exp(transmittance.z));
     }
   }
 }
 
-private Vector4 computeAverageNightSkyColor(ExpanseSky sky) {
+private Vector4 computeAverageNightSkyColor(Expanse sky) {
   /* TODO: make more efficient. */
   if (sky.nightSkyTexture.value != null) {
     Vector4 averageColor = new Vector4(0, 0, 0, 0);
@@ -407,7 +407,7 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
     m_TTableCPUNeedsUpdate = false;
   }
 
-  var sky = builtinParams.skySettings as ExpanseSky;
+  var sky = builtinParams.skySettings as Expanse;
 
   /* Allocate the tables and update info about atmosphere layers that are
    * active. This will not reallocate if the table sizes have remained the
@@ -661,7 +661,7 @@ private void setSkyRWTextures() {
 
 private void setGlobalCBuffer(BuiltinSkyParameters builtinParams) {
   /* Get sky object. */
-  var sky = builtinParams.skySettings as ExpanseSky;
+  var sky = builtinParams.skySettings as Expanse;
 
   /* Precomputed Tables. */
   setGlobalCBufferAtmosphereTables(builtinParams.commandBuffer, sky);
@@ -676,7 +676,7 @@ private void setGlobalCBuffer(BuiltinSkyParameters builtinParams) {
   setGlobalCBufferQuality(builtinParams.commandBuffer, sky);
 }
 
-private void setGlobalCBufferPlanet(CommandBuffer cmd, ExpanseSky sky) {
+private void setGlobalCBufferPlanet(CommandBuffer cmd, Expanse sky) {
   cmd.SetGlobalFloat("_atmosphereRadius", sky.planetRadius.value + sky.atmosphereThickness.value);
   cmd.SetGlobalFloat("_planetRadius", sky.planetRadius.value);
   cmd.SetGlobalVector("_groundTint", sky.groundTint.value);
@@ -701,7 +701,7 @@ private void setGlobalCBufferPlanet(CommandBuffer cmd, ExpanseSky sky) {
   }
 }
 
-private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, ExpanseSky sky) {
+private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, Expanse sky) {
 
   int n = (int) ExpanseCommon.kMaxAtmosphereLayers;
 
@@ -760,7 +760,7 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, ExpanseSky sky)
   cmd.SetGlobalVectorArray("_layerTint", layerTint);
 }
 
-private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, ExpanseSky sky) {
+private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, Expanse sky) {
   if (m_numAtmosphereLayersEnabled > 0) {
     cmd.SetGlobalTexture("_GI", m_GITableArray);
     cmd.SetGlobalInt("_resGI", m_skyTextureResolution.GI);
@@ -779,7 +779,7 @@ private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, ExpanseSky sky)
   }
 }
 
-private void setGlobalCBufferQuality(CommandBuffer cmd, ExpanseSky sky) {
+private void setGlobalCBufferQuality(CommandBuffer cmd, Expanse sky) {
   cmd.SetGlobalInt("_numTSamples", sky.numberOfTransmittanceSamples.value);
   cmd.SetGlobalInt("_numLPSamples", sky.numberOfLightPollutionSamples.value);
   cmd.SetGlobalInt("_numSSSamples", sky.numberOfSingleScatteringSamples.value);
@@ -801,7 +801,7 @@ private void setGlobalCBufferQuality(CommandBuffer cmd, ExpanseSky sky) {
 
 private void setMaterialPropertyBlock(BuiltinSkyParameters builtinParams) {
   /* Get sky object. */
-  var sky = builtinParams.skySettings as ExpanseSky;
+  var sky = builtinParams.skySettings as Expanse;
 
   /* Atmosphere Layers. */
   setMaterialPropertyBlockAtmosphereLayers(sky);
@@ -819,7 +819,7 @@ private void setMaterialPropertyBlock(BuiltinSkyParameters builtinParams) {
   m_PropertyBlock.SetMatrix(_PixelCoordToViewDirWS, builtinParams.pixelCoordToViewDirMatrix);
 }
 
-private void setMaterialPropertyBlockAtmosphereLayers(ExpanseSky sky) {
+private void setMaterialPropertyBlockAtmosphereLayers(Expanse sky) {
 
   int n = (int) ExpanseCommon.kMaxCelestialBodies;
 
@@ -839,7 +839,7 @@ private void setMaterialPropertyBlockAtmosphereLayers(ExpanseSky sky) {
   m_PropertyBlock.SetFloatArray("_layerMultipleScatteringMultiplier", layerMultipleScatteringMultiplier);
 }
 
-private void setMaterialPropertyBlockCelestialBodies(ExpanseSky sky) {
+private void setMaterialPropertyBlockCelestialBodies(Expanse sky) {
 
   int n = (int) ExpanseCommon.kMaxCelestialBodies;
 
@@ -948,7 +948,7 @@ private void setMaterialPropertyBlockCelestialBodies(ExpanseSky sky) {
   m_PropertyBlock.SetFloatArray("_bodyEmissionTextureEnabled", bodyEmissionTextureEnabled);
 }
 
-private void setMaterialPropertyBlockNightSky(ExpanseSky sky) {
+private void setMaterialPropertyBlockNightSky(Expanse sky) {
   m_PropertyBlock.SetVector("_lightPollutionTint", sky.lightPollutionTint.value
     * sky.lightPollutionIntensity.value);
   m_PropertyBlock.SetFloat("_hasNightSkyTexture", (sky.nightSkyTexture.value == null) ? 0 : 1);
@@ -975,7 +975,7 @@ private void setMaterialPropertyBlockNightSky(ExpanseSky sky) {
   m_PropertyBlock.SetFloat("_twinkleAmplitude", sky.twinkleAmplitude.value);
 }
 
-private void setMaterialPropertyBlockQuality(ExpanseSky sky) {
+private void setMaterialPropertyBlockQuality(Expanse sky) {
   m_PropertyBlock.SetFloat("_useAntiAliasing", sky.useAntiAliasing.value ? 1 : 0);
   m_PropertyBlock.SetFloat("_ditherAmount", sky.ditherAmount.value);
 }

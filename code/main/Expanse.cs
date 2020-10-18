@@ -2,12 +2,12 @@ using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
-using Expanse;
+using ExpanseCommonNamespace;
 
-[VolumeComponentMenu("Sky/Expanse Sky")]
+[VolumeComponentMenu("Sky/Expanse")]
 [SkyUniqueID(EXPANSE_SKY_UNIQUE_ID)]
 [Serializable]
-public class ExpanseSky : SkySettings {
+public class Expanse : SkySettings {
 
 const int EXPANSE_SKY_UNIQUE_ID = 95837281;
 
@@ -211,7 +211,7 @@ public ClampedFloatParameter ditherAmount = new ClampedFloatParameter(0.05f, 0.0
 
 
 /* Constructor to initialize defaults for array parameters. */
-public ExpanseSky() {
+public Expanse() {
   /* TODO: how can we initialize layers to be earthlike by default and still
    * have the code compact? Perhaps abstract initializiation into function. */
   /* Atmosphere layer initialization. */
@@ -258,7 +258,7 @@ public ExpanseSky() {
 }
 
 public override Type GetSkyRendererType() {
-  return typeof(ExpanseSkyRenderer);
+  return typeof(ExpanseRenderer);
 }
 
 public override int GetHashCode() {

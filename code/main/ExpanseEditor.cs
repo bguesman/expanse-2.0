@@ -6,11 +6,11 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using UnityEditor.Rendering.HighDefinition;
 using UnityEditor.AnimatedValues;
-using Expanse;
+using ExpanseCommonNamespace;
 
 // [CanEditMultipleObjects]
-[VolumeComponentEditor(typeof(ExpanseSky))]
-class ExpanseSkyEditor : SkySettingsEditor
+[VolumeComponentEditor(typeof(Expanse))]
+class ExpanseEditor : SkySettingsEditor
 {
 
 /******************************************************************************/
@@ -195,9 +195,9 @@ public override void OnEnable()
     m_showCelestialBody[i].valueChanged.AddListener(Repaint);
   }
 
-  /* Get the serialized properties from the ExpanseSky class to
+  /* Get the serialized properties from the Expanse class to
    * attach to the editor. */
-  var o = new PropertyFetcher<ExpanseSky>(serializedObject);
+  var o = new PropertyFetcher<Expanse>(serializedObject);
 
   /* Unpack all the serialized properties into our variables. */
   unpackSerializedProperties(o);
@@ -474,7 +474,7 @@ private void cloudSampling(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle
 /********************************** HELPERS ***********************************/
 /******************************************************************************/
 
-private void unpackSerializedProperties(PropertyFetcher<ExpanseSky> o) {
+private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   /***********************/
   /********* Sky *********/
   /***********************/

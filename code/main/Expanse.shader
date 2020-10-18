@@ -1,4 +1,4 @@
-Shader "Hidden/HDRP/Sky/ExpanseSky"
+Shader "Hidden/HDRP/Sky/Expanse"
 {
 
 /******************************************************************************/
@@ -20,9 +20,9 @@ HLSLINCLUDE
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Sky/SkyUtils.hlsl"
 #include "Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/LightLoop/CookieSampling.hlsl"
 
-#include "ExpanseSkyCommon.hlsl"
-#include "ExpanseRandom.hlsl"
-#include "ExpanseSkyMapping.hlsl"
+#include "../common/shaders/ExpanseSkyCommon.hlsl"
+#include "../common/shaders/ExpanseRandom.hlsl"
+#include "../sky/ExpanseSkyMapping.hlsl"
 
 /******************************************************************************/
 /******************************** END INCLUDES ********************************/
@@ -231,7 +231,7 @@ float3 sampleBodyAlbedoTexture(float3 uv, int i) {
 
 /* Given uv coodinate representing direction, computes sky transmittance. */
 float3 computeSkyTransmittance(float2 uv) {
-  return SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler, uv, 0).xyz;
+  return exp(SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler, uv, 0).xyz);
 }
 
 float3 shadeGround(float3 endPoint) {
@@ -571,7 +571,7 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
 
   /* Attenuate sky color and compute blend transmittance if we hit
    * something and are rendering fullscreen. For the cubemap, we just
-   * want the sky, no geo. */
+   * want the sky, no geo. TODO: artifacts come from ground scattering!! */
   float3 blendTransmittance = float3(0, 0, 0);
   if (geoHit && !cubemap) {
     float3 depthSamplePoint = startPoint + d * depth;

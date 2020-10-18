@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Expanse;
+using ExpanseCommonNamespace;
 
 [ExecuteInEditMode]
 public class ExpanseLightControl : MonoBehaviour
@@ -9,24 +9,25 @@ public class ExpanseLightControl : MonoBehaviour
 
   GameObject skyFogVolume;
   UnityEngine.Rendering.Volume volume;
-  ExpanseSky sky;
+  Expanse sky;
   UnityEngine.Light light;
   float t;
 
   // Start is called before the first frame update
   void Start() {
+    Debug.Log("Starting light control.");
     /* Get the light. */
     light = gameObject.GetComponent(typeof(UnityEngine.Light)) as UnityEngine.Light;
 
     /* Get the sky. */
     skyFogVolume = GameObject.FindWithTag("ExpanseSkyAndFogVolume");
     volume = skyFogVolume.GetComponent<UnityEngine.Rendering.Volume>();
-    ExpanseSky tmp;
-    if( volume.profile.TryGet<ExpanseSky>( out tmp ) ) {
+    Expanse tmp;
+    if( volume.profile.TryGet<Expanse>( out tmp ) ) {
       sky = tmp;
       Debug.Log("success");
     } else {
-      Debug.Log("failed");
+      Debug.Log("failed"); // lal
     }
 
     t = 0;
@@ -34,6 +35,11 @@ public class ExpanseLightControl : MonoBehaviour
 
   // Update is called once per fram
   void Update() {
+  /* For editor. */
+  if (sky == null) {
+    Start();
+  }
+
     gameObject.transform.eulerAngles = new Vector3(sky.bodyDirection0.value.x, sky.bodyDirection0.value.y, 0);
 
     /* Compute and set light color. */
