@@ -101,13 +101,13 @@ void LP(uint3 id : SV_DispatchThreadID) {
     float sampleT = 0.0;
     float ds = 0.0;
     if (_useImportanceSampling) {
-      float2 t_ds = t_hit * generateCubicSampleFromIndex(i, _numLPSamples);
-      sampleT = t_ds.x;
+      float2 t_ds = generateCubicSampleFromIndex(i, _numLPSamples);
+      sampleT = t_hit * t_ds.x;
       ds = t_ds.y;
     } else {
       /* Distribute linearly. */
-      float2 t_ds = t_hit * generateLinearSampleFromIndex(i, _numLPSamples);
-      sampleT = t_ds.x;
+      float2 t_ds = generateLinearSampleFromIndex(i, _numLPSamples);
+      sampleT = t_hit * t_ds.x;
       ds = t_ds.y;
     }
 
@@ -206,13 +206,13 @@ void SS(uint3 id : SV_DispatchThreadID) {
     float sampleT = 0.0;
     float ds = 0.0;
     if (_useImportanceSampling) {
-      float2 t_ds = t_hit * generateCubicSampleFromIndex(i, _numSSSamples);
-      sampleT = t_ds.x;
+      float2 t_ds = generateCubicSampleFromIndex(i, _numSSSamples);
+      sampleT = t_ds.x * t_hit;
       ds = t_ds.y;
     } else {
       /* Distribute linearly. */
-      float2 t_ds = t_hit * generateLinearSampleFromIndex(i, _numSSSamples);
-      sampleT = t_ds.x;
+      float2 t_ds = generateLinearSampleFromIndex(i, _numSSSamples);
+      sampleT = t_ds.x * t_hit;
       ds = t_ds.y;
     }
 
@@ -314,7 +314,7 @@ void GI(uint3 id : SV_DispatchThreadID) {
       float dot_L_d = dot(L, d);
       for (int j = 0; j < _numActiveLayers; j++) {
         /* Compute single scattering contribution using phase function. */
-        float3 ss = sampleSSTexture(ssCoord, j);
+        float3 ss = t_hit * sampleSSTexture(ssCoord, j);
         float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
         gi[j] += ss * phase;
       }
@@ -386,7 +386,7 @@ void MS(uint3 id : SV_DispatchThreadID) {
       _atmosphereRadius, _planetRadius, t_hit, intersection.groundHit,
       _resSS.x, _resSS.y, _resSS.z, _resSS.w);
     for (int j = 0; j < _numActiveLayers; j++) {
-      float3 ss = sampleSSTexture(ssCoord, j);
+      float3 ss = t_hit * sampleSSTexture(ssCoord, j);
       secondOrder += (_layerCoefficientsS[j].xyz * 2 * _layerTint[j].xyz * ss)
         / (4.0 * PI);
       float3 ssNoShadow = sampleSSNoShadowTexture(ssCoord, j);
@@ -446,13 +446,13 @@ void MSAcc(uint3 id : SV_DispatchThreadID) {
     float sampleT = 0.0;
     float ds = 0.0;
     if (_useImportanceSampling) {
-      float2 t_ds = t_hit * generateCubicSampleFromIndex(i, _numMSAccumulationSamples);
-      sampleT = t_ds.x;
+      float2 t_ds = generateCubicSampleFromIndex(i, _numMSAccumulationSamples);
+      sampleT = t_hit * t_ds.x;
       ds = t_ds.y;
     } else {
       /* Distribute linearly. */
-      float2 t_ds = t_hit * generateLinearSampleFromIndex(i, _numMSAccumulationSamples);
-      sampleT = t_ds.x;
+      float2 t_ds = generateLinearSampleFromIndex(i, _numMSAccumulationSamples);
+      sampleT = t_hit * t_ds.x;
       ds = t_ds.y;
     }
 
@@ -464,7 +464,7 @@ void MSAcc(uint3 id : SV_DispatchThreadID) {
       _atmosphereRadius, _planetRadius);
     float3 msContrib = SAMPLE_TEXTURE2D_LOD(_MS, s_linear_clamp_sampler, msUV, 0).xyz;
 
-    /* Compute the scaled density of the layer at the sample point. */
+    /* Compute the scaled density of the layer at the sample point. test */
     for (int j = 0; j < _numActiveLayers; j++) {
       float scaledDensity = ds * computeDensity(_layerDensityDistribution[j],
         samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],

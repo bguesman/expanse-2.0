@@ -234,6 +234,11 @@ float3 computeSkyTransmittance(float2 uv) {
   return exp(SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler, uv, 0).xyz);
 }
 
+/* Given uv coodinate representing direction, computes sky transmittance. */
+float3 computeSkyTransmittanceRaw(float2 uv) {
+  return SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler, uv, 0).xyz;
+}
+
 float3 shadeGround(float3 endPoint) {
   float3 color = float3(0, 0, 0);
   float3 endPointNormalized = normalize(endPoint);
@@ -419,8 +424,18 @@ float3 shadeNightSky(float3 d) {
   return twinkle * nightSkyColor * starColor;
 }
 
-float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
+struct SkyColor_t {
+  float3 ss;
+  float3 ms;
+};
+
+SkyColor_t computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
   float t_hit, bool groundHit, bool geoHit) {
+  /* Final reuslt. */
+  SkyColor_t result;
+  result.ss = float3(0, 0, 0);
+  result.ms = float3(0, 0, 0);
+
   /* Get the body's direction. */
   float3 L = _bodyDirection[i];
   float3 lightColor = _bodyLightColor[i].xyz;
@@ -451,7 +466,6 @@ float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
     _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
 
   /* Loop through layers and accumulate contributions for this body. */
-  float3 color = float3(0, 0, 0);
   for (int j = 0; j < _numActiveLayers; j++) {
     /* Single scattering. */
     float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
@@ -461,32 +475,41 @@ float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
     float3 ms = sampleMSAccTexture(uvMSAcc, j);
 
     /* Final color. */
-    color +=  _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
-      * (ss * phase + ms * _layerMultipleScatteringMultiplier[j]);
+    result.ss += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
+      * (ss * phase);
+    result.ms += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
+      * (ms * _layerMultipleScatteringMultiplier[j]);
   }
-
-  return color * occlusionMultiplier * lightColor;
+  result.ss *= t_hit * occlusionMultiplier * lightColor;
+  result.ms *= t_hit * occlusionMultiplier * lightColor;
+  return result;
 }
 
 /* Given uv coordinate representing direction, computes sky color. */
-float3 computeSkyColor(float2 r_mu_uv, float3 start, float3 d, float t_hit,
+SkyColor_t computeSkyColor(float2 r_mu_uv, float3 start, float3 d, float t_hit,
   bool groundHit, bool geoHit) {
+  SkyColor_t result;
+  result.ss = float3(0, 0, 0);
+  result.ms = float3(0, 0, 0);
   /* Loop through all the celestial bodies. */
   float3 color = float3(0, 0, 0);
   for (int i = 0; i < _numActiveBodies; i++) {
-    color += computeSkyColorBody(r_mu_uv, i, start, d, t_hit, groundHit, geoHit);
+    SkyColor_t bodyResult = computeSkyColorBody(r_mu_uv, i, start, d, t_hit,
+      groundHit, geoHit);
+    result.ss += bodyResult.ss;
+    result.ms += bodyResult.ms;
   }
-  return color;
+  return result;
 }
 
-float3 computeLightPollutionColor(float2 uv) {
+float3 computeLightPollutionColor(float2 uv, float t_hit) {
   float3 color = float3(0, 0, 0);
   for (int i = 0; i < _numActiveLayers; i++) {
     float3 lp = sampleLPTexture(uv, i);
     color += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz) * lp;
   }
   color *= _lightPollutionTint; // TODO: light pollution intensity and tint controls
-  return color;
+  return t_hit * color;
 }
 
 float3 computeStarScatteringColor(float2 r_mu_uv, float mu, float3 directLight,
@@ -505,11 +528,11 @@ float3 computeStarScatteringColor(float2 r_mu_uv, float mu, float3 directLight,
      * has no directionality. */
     float3 ss = sampleSSTexture(uvSS, j) * isotropicPhase();
 
-    /* Multiple scattering. */
+    /* Multiple scattering. eyo */
     float3 ms = sampleMSAccTexture(uvMSAcc, j);
 
     /* Final color. */
-    color +=  _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
+    color +=  t_hit * _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
       * (ss + ms * _layerMultipleScatteringMultiplier[j]);
   }
 
@@ -563,10 +586,11 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     t_hit, intersection.groundHit);
 
   /* Compute transmittance. */
-  float3 transmittance = computeSkyTransmittance(coord2D);
+  float3 transmittanceRaw = computeSkyTransmittanceRaw(coord2D);
+  float3 transmittance = exp(transmittanceRaw);
 
   /* Compute sky color. */
-  float3 skyColor = computeSkyColor(coord2D, startPoint, d, t_hit,
+  SkyColor_t skyColor = computeSkyColor(coord2D, startPoint, d, t_hit,
     intersection.groundHit, geoHit);
 
   /* Attenuate sky color and compute blend transmittance if we hit
@@ -579,19 +603,20 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     float depthMu = dot(normalize(depthSamplePoint), d);
     float2 depthCoord2D = mapSky2DCoord(depthR, depthMu, _atmosphereRadius,
       _planetRadius, t_hit-depth, intersection.groundHit);
-    float3 aerialPerspectiveTransmittance = computeSkyTransmittance(depthCoord2D);
-    float3 attenuatedSkyColor = computeSkyColor(depthCoord2D, depthSamplePoint, d, t_hit-depth,
+    float3 aerialPerspectiveTransmittanceRaw = computeSkyTransmittanceRaw(depthCoord2D);
+    SkyColor_t attenuatedSkyColor = computeSkyColor(depthCoord2D, depthSamplePoint, d, t_hit-depth,
       intersection.groundHit, geoHit);
-    blendTransmittance = max(FLT_EPSILON, transmittance/aerialPerspectiveTransmittance);
-    skyColor -= blendTransmittance * min(skyColor, attenuatedSkyColor);
-    skyColor = max(0, skyColor);
+    blendTransmittance = exp(transmittanceRaw - aerialPerspectiveTransmittanceRaw);
+    skyColor.ss -= blendTransmittance * min(skyColor.ss, attenuatedSkyColor.ss); // TODO: ms fucks this up, just don't use, return struct from compute sky color
+    skyColor.ss = max(0, skyColor.ss);
+    skyColor.ms = float3(0, 0, 0); // Don't use MS if we hit geo.
   }
 
   /* Compute light pollution. TODO: attenuate for aerial perspective!!! or
    * maybe just don't render. */
   float3 lightPollution = float3(0, 0, 0);
   if (!geoHit || cubemap) {
-    lightPollution = computeLightPollutionColor(coord2D);
+    lightPollution = computeLightPollutionColor(coord2D, t_hit);
   }
 
   /* Compute star scattering. TODO: attenuate for aerial perspective!!! or
@@ -603,7 +628,7 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   }
 
   /* Final result. */
-  return float4(directLight * transmittance + skyColor + lightPollution
+  return float4(directLight * transmittance + skyColor.ss + skyColor.ms + lightPollution
     + starScattering, dot(blendTransmittance, blendTransmittance)/3.0);
 }
 

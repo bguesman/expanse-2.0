@@ -247,7 +247,7 @@ public Expanse() {
     this.GetType().GetField("bodyEmissive" + i).SetValue(this, new BoolParameter(true));
     this.GetType().GetField("bodyUseTemperature" + i).SetValue(this, new BoolParameter(false));
     this.GetType().GetField("bodyLightIntensity" + i).SetValue(this, new MinFloatParameter(120000, 0));
-    this.GetType().GetField("bodyLightColor" + i).SetValue(this, new ColorParameter(Color.grey, hdr: false, showAlpha: false, showEyeDropper: true));
+    this.GetType().GetField("bodyLightColor" + i).SetValue(this, new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true));
     this.GetType().GetField("bodyLightTemperature" + i).SetValue(this, new ClampedFloatParameter(5778, 1000, 20000));
     this.GetType().GetField("bodyLimbDarkening" + i).SetValue(this, new MinFloatParameter(1, 0));
     this.GetType().GetField("bodyEmissionTexture" + i).SetValue(this, new CubemapParameter(null));

@@ -68,6 +68,7 @@ TEXTURE2D(_MS);
 /* Multiple scattering accumulation. */
 float4 _resMSAcc; /* Table resolution. */
 TEXTURE2D_ARRAY(_MSAcc);
+#define MSAccPrecisionHack 100000000
 
 /* Ground Irradiance. */
 int _resGI; /* Table resolution. */
