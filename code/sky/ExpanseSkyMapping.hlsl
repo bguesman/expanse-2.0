@@ -73,12 +73,12 @@ float map_mu(float r, float mu, float atmosphereRadius, float planetRadius,
     float d_min = r - planetRadius;
     float d_max = rho;
     /* Use lower half of [0, 1] range. */
-    u_mu = 0.49 - 0.49 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
+    u_mu = 0.4 - 0.4 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
   } else {
     float d_min = atmosphereRadius - r;
     float d_max = rho + H;
     /* Use upper half of [0, 1] range. */
-    u_mu = 0.51 + 0.49 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
+    u_mu = 0.6 + 0.4 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
   }
 
   return u_mu;
@@ -95,22 +95,22 @@ float unmap_mu(float u_r, float u_mu, float atmosphereRadius,
   float r = safeSqrt(rho * rho + planetRadiusSq);
 
   /* Clamp u_mu to valid range. */
-  if (floatLT(u_mu, 0.51) && floatGT(u_mu, 0.5)) {
-    u_mu = 0.51;
-  } else if (floatGT(u_mu, 0.49) && floatLT(u_mu, 0.5)) {
-    u_mu = 0.49;
+  if (floatLT(u_mu, 0.6) && floatGT(u_mu, 0.5)) {
+    u_mu = 0.6;
+  } else if (floatGT(u_mu, 0.4) && floatLT(u_mu, 0.5)) {
+    u_mu = 0.4;
   }
 
   float mu = 0.0;
   if (floatLT(u_mu, 0.5)) {
     float d_min = r - planetRadius;
     float d_max = rho;
-    float d = d_min + (((0.49 - u_mu) / 0.49) * (d_max - d_min));
+    float d = d_min + (((0.4 - u_mu) / 0.4) * (d_max - d_min));
     mu = (d == 0.0) ? -1.0 : clampCosine(-(rho * rho + d * d) / (2 * r * d));
   } else {
     float d_min = atmosphereRadius - r;
     float d_max = rho + H;
-    float d = d_min + (((u_mu - 0.51) / 0.49) * (d_max - d_min));
+    float d = d_min + (((u_mu - 0.6) / 0.4) * (d_max - d_min));
     mu = (d == 0.0) ? 1.0 : clampCosine((H * H - rho * rho - d * d) / (2 * r * d));
   }
 
@@ -133,12 +133,12 @@ float2 map_r_mu(float r, float mu, float atmosphereRadius, float planetRadius,
     float d_min = r - planetRadius;
     float d_max = rho;
     /* Use lower half of [0, 1] range. */
-    u_mu = 0.49 - 0.49 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
+    u_mu = 0.4 - 0.4 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
   } else {
     float d_min = atmosphereRadius - r;
     float d_max = rho + H;
     /* Use upper half of [0, 1] range. */
-    u_mu = 0.51 + 0.49 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
+    u_mu = 0.6 + 0.4 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
   }
 
   float u_r = rho / H;
@@ -156,22 +156,22 @@ float2 unmap_r_mu(float u_r, float u_mu, float atmosphereRadius,
   float r = safeSqrt(rho * rho + planetRadiusSq);
 
   /* Clamp u_mu to valid range. */
-  if (floatLT(u_mu, 0.51) && floatGT(u_mu, 0.5)) {
-    u_mu = 0.51;
-  } else if (floatGT(u_mu, 0.49) && floatLT(u_mu, 0.5)) {
-    u_mu = 0.49;
+  if (floatLT(u_mu, 0.6) && floatGT(u_mu, 0.5)) {
+    u_mu = 0.6;
+  } else if (floatGT(u_mu, 0.4) && floatLT(u_mu, 0.5)) {
+    u_mu = 0.4;
   }
 
   float mu = 0.0;
   if (floatLT(u_mu, 0.5)) {
     float d_min = r - planetRadius;
     float d_max = rho;
-    float d = d_min + (((0.49 - u_mu) / 0.49) * (d_max - d_min));
+    float d = d_min + (((0.4 - u_mu) / 0.4) * (d_max - d_min));
     mu = (d == 0.0) ? -1.0 : clampCosine(-(rho * rho + d * d) / (2 * r * d));
   } else {
     float d_min = atmosphereRadius - r;
     float d_max = rho + H;
-    float d = d_min + (((u_mu - 0.51) / 0.49) * (d_max - d_min));
+    float d = d_min + (((u_mu - 0.6) / 0.4) * (d_max - d_min));
     mu = (d == 0.0) ? 1.0 : clampCosine((H * H - rho * rho - d * d) / (2 * r * d));
   }
 

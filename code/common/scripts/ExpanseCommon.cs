@@ -117,7 +117,7 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
       return new SkyTextureResolution() {
         quality = quality,
         T = new Vector2(64, 128),
-        SS = new Vector4(64, 64, 64, 16),
+        SS = new Vector4(64, 128, 64, 16),
         MS = new Vector2(32, 32),
         MSAccumulation = new Vector4(32, 64, 32, 16),
         LP = new Vector2(64, 64),
@@ -183,12 +183,12 @@ public static Vector2 map_r_mu(float r, float mu, float atmosphereRadius,
     float d_min = r - planetRadius;
     float d_max = rho;
     /* Use lower half of [0, 1] range. */
-    u_mu = 0.49f - 0.49f * (d_max == d_min ? 0.0f : (d - d_min) / (d_max - d_min));
+    u_mu = 0.4f - 0.4f * (d_max == d_min ? 0.0f : (d - d_min) / (d_max - d_min));
   } else {
     float d_min = atmosphereRadius - r;
     float d_max = rho + H;
     /* Use upper half of [0, 1] range. */
-    u_mu = 0.51f + 0.49f * (d_max == d_min ? 0.0f : (d - d_min) / (d_max - d_min));
+    u_mu = 0.6f + 0.4f * (d_max == d_min ? 0.0f : (d - d_min) / (d_max - d_min));
   }
 
   float u_r = rho / H;

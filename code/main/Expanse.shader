@@ -607,9 +607,13 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     SkyColor_t attenuatedSkyColor = computeSkyColor(depthCoord2D, depthSamplePoint, d, t_hit-depth,
       intersection.groundHit, geoHit);
     blendTransmittance = exp(transmittanceRaw - aerialPerspectiveTransmittanceRaw);
-    skyColor.ss -= blendTransmittance * min(skyColor.ss, attenuatedSkyColor.ss); // TODO: ms fucks this up, just don't use, return struct from compute sky color
+    // skyColor.ss -= min(skyColor.ss, blendTransmittance*attenuatedSkyColor.ss); // TODO: ms fucks this up, just don't use, return struct from compute sky color
     skyColor.ss = max(0, skyColor.ss);
     skyColor.ms = float3(0, 0, 0); // Don't use MS if we hit geo.
+
+    // HACK: hacking around
+    skyColor.ss = skyColor.ss-(transmittance/exp(aerialPerspectiveTransmittanceRaw))*attenuatedSkyColor.ss;
+    blendTransmittance = float3(0,0,0);
   }
 
   /* Compute light pollution. TODO: attenuate for aerial perspective!!! or
