@@ -3,6 +3,7 @@
 #pragma kernel T main=T
 #pragma kernel LP main=LP
 #pragma kernel SS main=SS
+#pragma kernel SSAerialPerspective main=SSAerialPerspective
 #pragma kernel GI main=GI
 #pragma kernel MS main=MS
 #pragma kernel MSAcc main=MSAcc
@@ -21,6 +22,7 @@ RW_TEXTURE2D_ARRAY(float3, _LP_RW);
 /* Single scattering, with and without shadows. */
 RW_TEXTURE2D_ARRAY(float3, _SS_RW);
 RW_TEXTURE2D_ARRAY(float3, _SSNoShadow_RW);
+RW_TEXTURE2D_ARRAY(float3, _SSAerialPerspective_RW);
 
 /* Multiple scattering. */
 RW_TEXTURE2D(float3, _MS_RW);
@@ -272,6 +274,120 @@ void SS(uint3 id : SV_DispatchThreadID) {
   for (int i = 0; i < _numActiveLayers; i++) {
     _SS_RW[uint3(id.xy, (uint) i)] = inScattering[i];
     _SSNoShadow_RW[uint3(id.xy, (uint) i)] = inScatteringNoShadows[i];
+  }
+}
+
+[numthreads(8,8,1)]
+void SSAerialPerspective(uint3 id : SV_DispatchThreadID) {
+  /* Get the uv for this id and unwrap it to a viewing angle, a
+   * height, and the sun zenith and azimuth angles. */
+  float2 u_r_mu = deepTexIndexToUV(id.x, _resSS.x, _resSS.y);
+  /* Height. */
+  float u_r = u_r_mu.x;
+  /* Viewing angle. */
+  float u_mu = u_r_mu.y;
+
+  float2 u_mu_l_u_nu = deepTexIndexToUV(id.y, _resSS.z, _resSS.w);
+  /* Sun zenith angle. */
+  float u_mu_l = u_mu_l_u_nu.x;
+  /* Sun azimuth angle. */
+  float u_nu = u_mu_l_u_nu.y;
+
+  float4 ssCoord = unmapSky4DCoord(u_r, u_mu, u_mu_l, u_nu, _atmosphereRadius,
+    _planetRadius);
+
+  float r = ssCoord.x;
+  float mu = ssCoord.y;
+  float mu_l = ssCoord.z;
+  float nu = ssCoord.w;
+
+  float3 O = float3(0, r, 0);
+  float3 d = float3(safeSqrt(1 - mu * mu), mu, 0);
+  float3 L = float3(nu*safeSqrt(1 - mu_l*mu_l), mu_l,
+    safeSqrt(1 - nu * nu)*safeSqrt(1 - mu_l*mu_l));
+
+  /* Trace a ray to see what we hit. */
+  SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
+    _atmosphereRadius);
+
+  float3 endPoint = O + d * min(AERIAL_PERSPECTIVE_TABLE_DISTANCE, intersection.endT);
+  float t_hit = min(AERIAL_PERSPECTIVE_TABLE_DISTANCE, intersection.endT);
+
+  float2 oToSample = mapSky2DCoord(length(O),
+    mu, _atmosphereRadius, _planetRadius, intersection.endT, intersection.groundHit);
+
+  float3 inScattering[MAX_LAYERS];
+  float scaledDensity[MAX_LAYERS];
+  for (int j = 0; j < _numActiveLayers; j++) {
+    inScattering[j] = float3(0, 0, 0);
+    scaledDensity[j] = 0;
+  }
+
+  for (int i = 0; i < _numSSSamples; i++) {
+    float sampleT = 0.0;
+    float ds = 0.0;
+    if (_useImportanceSampling) {
+      float2 t_ds = generateCubicSampleFromIndex(i, _numSSSamples);
+      sampleT = t_ds.x * t_hit;
+      ds = t_ds.y;
+    } else {
+      /* Distribute linearly. */
+      float2 t_ds = generateLinearSampleFromIndex(i, _numSSSamples);
+      sampleT = t_ds.x * t_hit;
+      ds = t_ds.y;
+    }
+
+    float3 samplePoint = O + d * sampleT;
+    float3 normalizedSamplePoint = normalize(samplePoint);
+
+    /* Compute the scaled density of the layer at the sample point. */
+    for (int j = 0; j < _numActiveLayers; j++) {
+      scaledDensity[j] = ds * computeDensity(_layerDensityDistribution[j],
+        samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
+        _layerUseDensityAttenuation[j], sampleT, _layerAttenuationBias[j],
+        _layerAttenuationDistance[j]);
+    }
+
+    /* Compute transmittance from O to sample point, and then from sample
+     * point through to the light hit. */
+    float3 T_oToSample = SAMPLE_TEXTURE2D_LOD(_T,
+      s_linear_clamp_sampler, oToSample, 0).rgb;
+
+    /* Our transmittance value for O to the sample point is too large---we
+     * need to divide out the transmittance from the sample point to the
+     * atmosphere, or ground, depending on what we hit. */
+    float2 sampleOut = mapSky2DCoord(length(samplePoint),
+      clampCosine(dot(normalizedSamplePoint, d)), _atmosphereRadius,
+      _planetRadius, intersection.endT - sampleT, intersection.groundHit);
+    float3 T_sampleOut = SAMPLE_TEXTURE2D_LOD(_T,
+      s_linear_clamp_sampler, sampleOut, 0).rgb;
+    T_oToSample -= T_sampleOut;
+
+    /* Trace a ray from the sample point to the light to check visibility. */
+    SkyIntersectionData lightIntersection = traceSkyVolume(samplePoint,
+      L, _planetRadius, _atmosphereRadius);
+
+    if (!lightIntersection.groundHit) {
+      float3 lightEndPoint = samplePoint + L * lightIntersection.endT;
+      float t_light_hit = lightIntersection.endT;
+
+      /* Compute the light transmittance to the sample point. */
+      float2 sampleToL = mapSky2DCoord(length(samplePoint),
+        clampCosine(dot(normalizedSamplePoint, L)), _atmosphereRadius,
+        _planetRadius, t_light_hit, lightIntersection.groundHit);
+      /* Compute transmittance through sample to light hit point. */
+      float3 T_sampleToL = SAMPLE_TEXTURE2D_LOD(_T,
+        s_linear_clamp_sampler, sampleToL, 0).rgb;
+
+      float3 T = saturate(exp(T_oToSample + T_sampleToL));
+      for (int j = 0; j < _numActiveLayers; j++) {
+        inScattering[j] += scaledDensity[j] * T;
+      }
+    }
+  }
+
+  for (int i = 0; i < _numActiveLayers; i++) {
+    _SSAerialPerspective_RW[uint3(id.xy, (uint) i)] = inScattering[i];
   }
 }
 

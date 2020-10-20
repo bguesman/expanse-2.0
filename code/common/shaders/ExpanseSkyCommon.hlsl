@@ -60,6 +60,8 @@ TEXTURE2D_ARRAY(_LP);
 float4 _resSS; /* Table resolution. */
 TEXTURE2D_ARRAY(_SS);
 TEXTURE2D_ARRAY(_SSNoShadow);
+TEXTURE2D_ARRAY(_SSAerialPerspective);
+#define AERIAL_PERSPECTIVE_TABLE_DISTANCE 5000 // TODO: tweakable?
 
 /* Multiple scattering. */
 float4 _resMS; /* Table resolution. */
@@ -412,6 +414,20 @@ float3 sampleSSNoShadowTexture(TexCoord4D uv, int i) {
   float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw01, i, 0).xyz;
   float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw10, i, 0).xyz;
   float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw11, i, 0).xyz;
+  float3 result0 = expLerp(contrib00, contrib01, uv.b);
+  float3 result1 = expLerp(contrib10, contrib11, uv.b);
+  return expLerp(result0, result1, uv.a);
+}
+
+float3 sampleSSAerialPerspectiveTexture(TexCoord4D uv, int i) {
+  float2 uvw00 = float2(uv.x, uv.z);
+  float2 uvw01 = float2(uv.x, uv.w);
+  float2 uvw10 = float2(uv.y, uv.z);
+  float2 uvw11 = float2(uv.y, uv.w);
+  float3 contrib00 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspective, s_linear_clamp_sampler, uvw00, i, 0).xyz;
+  float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspective, s_linear_clamp_sampler, uvw01, i, 0).xyz;
+  float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspective, s_linear_clamp_sampler, uvw10, i, 0).xyz;
+  float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspective, s_linear_clamp_sampler, uvw11, i, 0).xyz;
   float3 result0 = expLerp(contrib00, contrib01, uv.b);
   float3 result1 = expLerp(contrib10, contrib11, uv.b);
   return expLerp(result0, result1, uv.a);
