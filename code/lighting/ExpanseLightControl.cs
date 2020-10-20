@@ -40,7 +40,7 @@ public class ExpanseLightControl : MonoBehaviour
     Start();
   }
 
-    gameObject.transform.eulerAngles = new Vector3(sky.bodyDirection0.value.x, sky.bodyDirection0.value.y, 0);
+    gameObject.transform.eulerAngles = new Vector3(sky.bodyDirection0.value.x, sky.bodyDirection0.value.y, sky.bodyDirection0.value.z);
 
     /* Compute and set light color. */
     bool useTemperature = sky.bodyUseTemperature0.value;

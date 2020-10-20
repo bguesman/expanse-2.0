@@ -147,7 +147,7 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
   }
 }
 
-public static Vector2 degreesToRadians(Vector2 angles) {
+public static Vector3 degreesToRadians(Vector3 angles) {
   return (angles / 180.0f) * Mathf.PI;
 }
 

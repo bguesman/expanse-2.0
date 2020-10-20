@@ -371,15 +371,15 @@ void MS(uint3 id : SV_DispatchThreadID) {
     /* Add ground albedo times the transmittance to the second order
      * reflections if we hit the ground. HACK: screws up aerial perspective,
      * commenting out. */
-    // if (intersection.groundHit) {
-    //   float2 groundUV = mapSky2DCoord(r, mu, _atmosphereRadius,
-    //     _planetRadius, t_hit, true);
-    //   float3 groundTransmittance = exp(SAMPLE_TEXTURE2D_LOD(_T,
-    //     s_linear_clamp_sampler, groundUV, 0).xyz);
-    //   float3 groundAlbedo = 2 * _groundTint.xyz / PI;
-    //   secondOrder += groundTransmittance * groundAlbedo
-    //     * saturate(dot(L, normalize(hitPoint))); // THIS PRODUCES ARTIFACTS?
-    // }
+    if (intersection.groundHit) {
+      float2 groundUV = mapSky2DCoord(r, mu, _atmosphereRadius,
+        _planetRadius, t_hit, true);
+      float3 groundTransmittance = exp(SAMPLE_TEXTURE2D_LOD(_T,
+        s_linear_clamp_sampler, groundUV, 0).xyz);
+      float3 groundAlbedo = 2 * _groundTint.xyz / PI;
+      secondOrder += groundTransmittance * groundAlbedo
+        * saturate(dot(L, normalize(hitPoint))); // THIS PRODUCES ARTIFACTS?
+    }
 
     /* Sample the single scattering tables. */
     TexCoord4D ssCoord = mapSky4DCoord(r, mu, mu_l, nu,

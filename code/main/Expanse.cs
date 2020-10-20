@@ -83,8 +83,8 @@ public MinFloatParameter layerMultipleScatteringMultiplier0, layerMultipleScatte
 [Tooltip("Whether or not this celestial body is enabled.")]
 public BoolParameter bodyEnabled0, bodyEnabled1, bodyEnabled2,
   bodyEnabled3, bodyEnabled4, bodyEnabled5, bodyEnabled6, bodyEnabled7;
-[Tooltip("Celestial body's direction, as azimuth and zenith angles in degrees.")]
-public Vector2Parameter bodyDirection0, bodyDirection1, bodyDirection2,
+[Tooltip("Celestial body's direction.")]
+public Vector3Parameter bodyDirection0, bodyDirection1, bodyDirection2,
   bodyDirection3, bodyDirection4, bodyDirection5, bodyDirection6, bodyDirection7;
 [Tooltip("Celestial body's angular radius in the sky, specified in degrees.")]
 public ClampedFloatParameter bodyAngularRadius0, bodyAngularRadius1, bodyAngularRadius2,
@@ -184,7 +184,7 @@ public ClampedIntParameter numberOfMultipleScatteringSamples = new ClampedIntPar
 [Tooltip("The number of samples to use when computing the actual accumulated estimate of multiple scattering from the isotropic estimate. The number of samples to use when computing the initial isotropic estimate of multiple scattering. With importance sample, 8 samples gives a near-perfect result. However, multiple scattering is a fairly subtle effect, so as low as 3 samples gives a decent result. Without importance sampling, a value of 32 or higher is necessary for near perfect results, but a value of 4 is sufficient for most needs.")]
 public ClampedIntParameter numberOfMultipleScatteringAccumulationSamples = new ClampedIntParameter(10, 1, 256);
 [Tooltip("Whether or not to use importance sampling. Importance sampling is a sample distribution strategy that increases fidelity given a limited budget of samples. It is recommended to turn it on, as it doesn't decrease fidelity, but does allow for fewer samples to be taken, boosting performance. However, for outer-space perspectives, it can sometimes introduce inaccuracies, so it can be useful to increase sample counts and turn off importance sampling in those cases.")]
-public BoolParameter useImportanceSampling = new BoolParameter(true);
+public BoolParameter useImportanceSampling = new BoolParameter(false);
 [Tooltip("Whether or not to use MSAA 8x anti-aliasing. This does negatively affect performance.")]
 public BoolParameter useAntiAliasing = new BoolParameter(false);
 [Tooltip("Amount of dithering used to reduce color banding. If this is too high, noise will be visible.")]
@@ -237,7 +237,7 @@ public Expanse() {
   for (int i = 0; i < ExpanseCommon.kMaxCelestialBodies; i++) {
     /* Enable only the first celestial body by default. */
     this.GetType().GetField("bodyEnabled" + i).SetValue(this, new BoolParameter(i==0));
-    this.GetType().GetField("bodyDirection" + i).SetValue(this, new Vector2Parameter(new Vector2(0, 90)));
+    this.GetType().GetField("bodyDirection" + i).SetValue(this, new Vector3Parameter(new Vector3(0, 0, 0)));
     this.GetType().GetField("bodyAngularRadius" + i).SetValue(this, new ClampedFloatParameter(0.5f, 0.001f, 90));
     this.GetType().GetField("bodyDistance" + i).SetValue(this, new MinFloatParameter(1.5e8f, 0));
     this.GetType().GetField("bodyReceivesLight" + i).SetValue(this, new BoolParameter(false));
@@ -297,7 +297,7 @@ public override int GetHashCode() {
     /* Celestial bodies. */
     for (int i = 0; i < ExpanseCommon.kMaxCelestialBodies; i++) {
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyEnabled" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("bodyDirection" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("bodyDirection" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("bodyAngularRadius" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyDistance" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyReceivesLight" + i).GetValue(this)).value.GetHashCode();

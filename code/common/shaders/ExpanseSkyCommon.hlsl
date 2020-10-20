@@ -68,7 +68,6 @@ TEXTURE2D(_MS);
 /* Multiple scattering accumulation. */
 float4 _resMSAcc; /* Table resolution. */
 TEXTURE2D_ARRAY(_MSAcc);
-#define MSAccPrecisionHack 100000000
 
 /* Ground Irradiance. */
 int _resGI; /* Table resolution. */
@@ -125,7 +124,7 @@ bool floatLT(float a, float b) {
   return a < b + FLT_EPSILON;
 }
 
-#define EXP_LERP_A 1
+#define EXP_LERP_A 5
 #define EXP_LERP_B 1 / (exp(EXP_LERP_A) - 1)
 float3 expLerp(float3 v0, float3 vf, float t) {
   t = exp(EXP_LERP_A * t) * EXP_LERP_B - EXP_LERP_B;

@@ -78,7 +78,7 @@ void allocateSkyPrecomputationTables(Expanse sky) {
     m_skyTextureResolution = res;
 
     /* Resize CPU copy of transmittance table. */
-    m_TTableCPU = new Texture2D((int) res.T.x, (int) res.T.y, TextureFormat.RGB24, false);
+    m_TTableCPU = new Texture2D((int) res.T.x, (int) res.T.y, TextureFormat.RGBAFloat, false);
   }
 }
 
@@ -400,6 +400,7 @@ private Vector4 computeAverageNightSkyColor(Expanse sky) {
 protected override bool Update(BuiltinSkyParameters builtinParams)
 {
   if (m_TTableCPUNeedsUpdate) {
+    Debug.Log("Updating T Table");
     RenderTexture.active = m_TTable;
     m_TTableCPU.ReadPixels(new Rect(0, 0, m_TTable.rt.width, m_TTable.rt.height), 0, 0);
     m_TTableCPU.Apply();
@@ -866,11 +867,9 @@ private void setMaterialPropertyBlockCelestialBodies(Expanse sky) {
       /* Only set up remaining properties if this body is enabled. */
 
       /* TODO: this mapping could use work. */
-      Vector2 angles = ((Vector2Parameter) sky.GetType().GetField("bodyDirection" + i).GetValue(sky)).value;
-      angles.x += 90;
-      angles.y += 90;
-
-      Vector3 direction = ExpanseCommon.anglesToDirectionVector(ExpanseCommon.degreesToRadians(angles));
+      Vector3 angles = ((Vector3Parameter) sky.GetType().GetField("bodyDirection" + i).GetValue(sky)).value;
+      Quaternion bodyLightRotation = Quaternion.Euler(angles.x, angles.y, angles.z);
+      Vector3 direction = bodyLightRotation * (new Vector3(0, 1, 0));
       bodyDirection[numActiveBodies] = new Vector4(direction.x, direction.y, direction.z, 0);
 
       bodyAngularRadius[numActiveBodies] = Mathf.PI * (((ClampedFloatParameter) sky.GetType().GetField("bodyAngularRadius" + i).GetValue(sky)).value / 180);
