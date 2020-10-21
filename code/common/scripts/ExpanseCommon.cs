@@ -75,74 +75,77 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
   switch (quality) {
     case SkyTextureQuality.Potato:
       return new SkyTextureResolution() {
+        /* Each atmosphere layer of the entire sky fits in a 512x512 texture.
+         * I don't think you can get more optimized than this without looking
+         * so bad it would be impossible to put in the game. */
         quality = quality,
-        T = new Vector2(8, 32),
-        SS = new Vector4(8, 64, 16, 8),
+        T = new Vector2(16, 128),
+        SS = new Vector4(8, 64, 64, 4),
         MS = new Vector2(8, 8),
         MSAccumulation = new Vector4(4, 8, 16, 4),
-        LP = new Vector2(8, 64),
-        GI = 8
+        LP = new Vector2(8, 8),
+        GI = 32
       };
     case SkyTextureQuality.Low:
       return new SkyTextureResolution() {
         quality = quality,
-        T = new Vector2(16, 32),
-        SS = new Vector4(16, 64, 16, 8),
-        MS = new Vector2(8, 16),
-        MSAccumulation = new Vector4(8, 16, 16, 8),
-        LP = new Vector2(16, 64),
-        GI = 16
+        T = new Vector2(32, 256),
+        SS = new Vector4(8, 64, 128, 8),
+        MS = new Vector2(16, 16),
+        MSAccumulation = new Vector4(8, 8, 32, 4),
+        LP = new Vector2(8, 16),
+        GI = 64
       };
     case SkyTextureQuality.Medium:
       return new SkyTextureResolution() {
         quality = quality,
-        T = new Vector2(16, 64),
-        SS = new Vector4(16, 64, 16, 16),
-        MS = new Vector2(16, 16),
-        MSAccumulation = new Vector4(16, 32, 16, 16),
-        LP = new Vector2(16, 64),
-        GI = 32
+        T = new Vector2(32, 256),
+        SS = new Vector4(16, 64, 128, 8),
+        MS = new Vector2(32, 32),
+        MSAccumulation = new Vector4(16, 16, 64, 8),
+        LP = new Vector2(16, 32),
+        GI = 128
       };
     case SkyTextureQuality.High:
       return new SkyTextureResolution() {
         quality = quality,
-        T = new Vector2(64, 64),
-        SS = new Vector4(32, 64, 16, 16),
-        MS = new Vector2(16, 32),
-        MSAccumulation = new Vector4(16, 64, 16, 16),
-        LP = new Vector2(32, 64),
-        GI = 64
+        T = new Vector2(64, 512),
+        SS = new Vector4(32, 64, 256, 8),
+        MS = new Vector2(32, 32),
+        MSAccumulation = new Vector4(16, 16, 64, 8),
+        LP = new Vector2(16, 64),
+        GI = 256
       };
     case SkyTextureQuality.Ultra:
       return new SkyTextureResolution() {
         quality = quality,
-        T = new Vector2(64, 128),
-        SS = new Vector4(64, 128, 64, 16),
+        T = new Vector2(64, 512),
+        SS = new Vector4(64, 64, 256, 16),
         MS = new Vector2(32, 32),
-        MSAccumulation = new Vector4(32, 64, 32, 16),
-        LP = new Vector2(64, 64),
-        GI = 128
+        MSAccumulation = new Vector4(32, 32, 128, 8),
+        LP = new Vector2(32, 128),
+        GI = 256
       };
     case SkyTextureQuality.RippingThroughTheMetaverse:
       return new SkyTextureResolution() {
         quality = quality,
-        T = new Vector2(128, 256),
-        SS = new Vector4(64, 256, 64, 64),
-        MS = new Vector2(32, 32),
-        MSAccumulation = new Vector4(32, 128, 32, 32),
+        T = new Vector2(128, 1024),
+        SS = new Vector4(64, 64, 256, 16),
+        MS = new Vector2(64, 64),
+        MSAccumulation = new Vector4(32, 64, 128, 16),
         LP = new Vector2(64, 256),
-        GI = 512
+        GI = 1024
       };
     default:
       /* To be safe, default case. Returns potato quality. */
       return new SkyTextureResolution() {
         quality = quality,
-        T = new Vector2(8, 32),
-        SS = new Vector4(8, 64, 16, 8),
-        MS = new Vector2(4, 4),
+        T = new Vector2(16, 128),
+        SS = new Vector4(8, 64, 64, 4),
+        MS = new Vector2(8, 8),
         MSAccumulation = new Vector4(4, 8, 16, 4),
-        LP = new Vector2(8, 32),
-        GI = 8
+        LP = new Vector2(8, 8),
+        GI = 32
       };
   }
 }

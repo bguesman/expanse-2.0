@@ -795,7 +795,6 @@ private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, Expanse sky) {
     cmd.SetGlobalTexture("_SSNoShadow", m_SSNoShadowTableArray);
     cmd.SetGlobalTexture("_SSAerialPerspectiveLOD0", m_SSAerialPerspectiveTableLOD0Array);
     cmd.SetGlobalTexture("_SSAerialPerspectiveLOD1", m_SSAerialPerspectiveTableLOD1Array);
-    cmd.SetGlobalVector("_resLP", m_skyTextureResolution.SS);
     cmd.SetGlobalTexture("_MSAcc", m_MSAccumulationTableArray);
     cmd.SetGlobalVector("_resMSAcc", m_skyTextureResolution.MSAccumulation);
   }

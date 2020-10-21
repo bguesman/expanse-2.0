@@ -443,13 +443,13 @@ int computeAerialPerspectiveLOD(float depth) {
 float computeAerialPerspectiveLODBlend(int LOD, float depth) {
   switch (LOD) {
     case AERIAL_PERPSECTIVE_LOD0:
-      /* Lerp for last 20 percent of interval. */
-      return 1-saturate((_aerialPerspectiveTableDistanceLOD0 - depth) / (0.2 * _aerialPerspectiveTableDistanceLOD0));
+      /* Lerp for last 25 percent of interval. */
+      return 1-saturate((_aerialPerspectiveTableDistanceLOD0 - depth) / (0.25 * _aerialPerspectiveTableDistanceLOD0));
     case AERIAL_PERPSECTIVE_LOD1:
-      /* Lerp for last 20 percent of interval. */
-      return 1-saturate((_aerialPerspectiveTableDistanceLOD1 - depth) / (0.2 * _aerialPerspectiveTableDistanceLOD1));
+      /* Lerp for last 25 percent of interval. */
+      return 1-saturate((_aerialPerspectiveTableDistanceLOD1 - depth) / (0.25 * _aerialPerspectiveTableDistanceLOD1));
     case AERIAL_PERPSECTIVE_LOD2:
-      return 1;
+      return 0;
     default:
       return 0;
   }
@@ -718,40 +718,6 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     skyColor -= min(skyColor, blendTransmittance*attenuatedSkyColor);
     skyColor = max(0, skyColor);
   }
-
-  /* Attenuate sky color and compute blend transmittance if we hit
-   * something and are rendering fullscreen. For the cubemap, we just
-   * want the sky, no geo. TODO: artifacts come from ground scattering!! */
-  // float3 blendTransmittance = float3(0, 0, 0);
-  // if (geoHit && !cubemap) {
-  //   float3 depthSamplePoint = startPoint + d * depth;
-  //   float depthR = length(depthSamplePoint);
-  //   float depthMu = dot(normalize(depthSamplePoint), d);
-  //   float2 depthCoord2D = mapSky2DCoord(depthR, depthMu, _atmosphereRadius,
-  //     _planetRadius, t_hit-depth, intersection.groundHit); // TODO: maybe map with aerial perspective distance if we use that?
-  //   float3 aerialPerspectiveTransmittanceRaw = computeSkyTransmittanceRaw(depthCoord2D);
-  //   blendTransmittance = exp(transmittanceRaw - aerialPerspectiveTransmittanceRaw);
-  //   bool useAerialPerspective = (depth < _aerialPerspectiveTableDistanceLOD0);
-  //
-  //   if (useAerialPerspective) {
-  //     /* Recompute sky color: TODO not good. can decide earlier and compute once. */
-  //     float aerialPerspectiveDistance = min(t_hit, _aerialPerspectiveTableDistanceLOD0);
-  //     skyColor = computeSkyColor(coord2D, startPoint, d, t_hit,
-  //       intersection.groundHit, geoHit, aerialPerspectiveDistance, true);
-  //     SkyColor_t attenuatedSkyColor = computeSkyColor(depthCoord2D, depthSamplePoint, d, t_hit-depth,
-  //       intersection.groundHit, geoHit, aerialPerspectiveDistance-depth, true);
-  //     skyColor.ss -= min(skyColor.ss, blendTransmittance*attenuatedSkyColor.ss);
-  //     skyColor.ss = max(0, skyColor.ss);
-  //     skyColor.ms = float3(0, 0, 0);
-  //   } else {
-  //     SkyColor_t attenuatedSkyColor = computeSkyColor(depthCoord2D, depthSamplePoint, d, t_hit-depth,
-  //       intersection.groundHit, geoHit, t_hit-depth, false);
-  //     skyColor.ss -= min(skyColor.ss, blendTransmittance*attenuatedSkyColor.ss);
-  //     skyColor.ss = max(0, skyColor.ss);
-  //     skyColor.ms = float3(0, 0, 0); // Don't use MS if we hit geo.
-  //   }
-  //
-  // }
 
   /* Compute light pollution. TODO: attenuate for aerial perspective!!! or
    * maybe just don't render. */

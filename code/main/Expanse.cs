@@ -140,9 +140,9 @@ public MinFloatParameter bodyEmissionMultiplier0, bodyEmissionMultiplier1, bodyE
 
 /* Night Sky. */
 [Tooltip("Color of light coming from the ground used for modeling light pollution.")]
-public ColorParameter lightPollutionTint = new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true);
+public ColorParameter lightPollutionTint = new ColorParameter(new Color(255, 140, 66), hdr: false, showAlpha: false, showEyeDropper: true);
 [Tooltip("Intensity of light scattered up from the ground used for modeling light pollution. Specified in lux.")]
-public MinFloatParameter lightPollutionIntensity = new MinFloatParameter(100, 0);
+public MinFloatParameter lightPollutionIntensity = new MinFloatParameter(10, 0);
 [Tooltip("The night sky as a cubemap texture. If no texture is specified, the night sky tint color will be used.")]
 public CubemapParameter nightSkyTexture = new CubemapParameter(null);
 [Tooltip("The rotation of the night sky texture as euler angles.")]
@@ -169,32 +169,32 @@ public MinFloatParameter twinkleAmplitude = new MinFloatParameter(1, 0);
 
 /* Aerial Perspective. */
 [Tooltip("Expanse computes aerial perspective at 3 different LOD levels to reduce artifacts. This parameter controls the max distance used for each of the two closer LODs---the furthest LOD is unbounded. Typically a value of 1000-5000 is good for the closets LOD, and 10000-50000 for the furthest.")]
-public FloatRangeParameter aerialPerspectiveTableDistances = new FloatRangeParameter(new Vector2(8000, 18000), 0, 100000);
+public FloatRangeParameter aerialPerspectiveTableDistances = new FloatRangeParameter(new Vector2(8000, 15000), 0, 100000);
 [Tooltip("Controls TODO.")]
-public MinFloatParameter aerialPerspectiveOcclusionPowerUniform = new MinFloatParameter(1, 0);
+public MinFloatParameter aerialPerspectiveOcclusionPowerUniform = new MinFloatParameter(0.5f, 0);
 [Tooltip("Controls TODO.")]
-public MinFloatParameter aerialPerspectiveOcclusionBiasUniform = new MinFloatParameter(1, 0);
+public MinFloatParameter aerialPerspectiveOcclusionBiasUniform = new MinFloatParameter(0.25f, 0);
 [Tooltip("Controls TODO.")]
 public MinFloatParameter aerialPerspectiveOcclusionPowerDirectional = new MinFloatParameter(1, 0);
 [Tooltip("Controls TODO.")]
-public MinFloatParameter aerialPerspectiveOcclusionBiasDirectional = new MinFloatParameter(1, 0);
+public MinFloatParameter aerialPerspectiveOcclusionBiasDirectional = new MinFloatParameter(0.02f, 0);
 
 /* Quality. */
 [Tooltip("Quality of sky texture.")]
 // public ClampedIntParameter skyTextureQuality = new ClampedIntParameter((int) ExpanseCommon.SkyTextureQuality.Medium, (int) ExpanseCommon.SkyTextureQuality.Potato, (int) ExpanseCommon.kMaxSkyTextureQuality - 1);
 public EnumParameter<ExpanseCommon.SkyTextureQuality> skyTextureQuality = new EnumParameter<ExpanseCommon.SkyTextureQuality>(ExpanseCommon.SkyTextureQuality.Medium);
 [Tooltip("The number of samples used when computing transmittance lookup tables. With importance sampling turned on, a value of as low as 10 gives near-perfect results on the ground. A value as low as 4 is ok if some visible inaccuracy is tolerable. Without importantance sampling, a value of 32 or higher is recommended.")]
-public ClampedIntParameter numberOfTransmittanceSamples = new ClampedIntParameter(10, 1, 256);
+public ClampedIntParameter numberOfTransmittanceSamples = new ClampedIntParameter(12, 1, 256);
 [Tooltip("The number of samples used when computing light pollution. With importance sampling turned on, a value of as low as 10 gives near-perfect results on the ground. A value as low as 8 is ok if some visible inaccuracy is tolerable. Without importantance sampling, a value of 64 or higher is recommended.")]
-public ClampedIntParameter numberOfLightPollutionSamples = new ClampedIntParameter(10, 1, 256);
+public ClampedIntParameter numberOfLightPollutionSamples = new ClampedIntParameter(12, 1, 256);
 [Tooltip("The number of samples used when computing single scattering. With importance sampling turned on, a value of as low as 10 gives near-perfect results on the ground. A value as low as 5 is ok if some visible inaccuracy is tolerable. Without importantance sampling, a value of 32 or higher is recommended.")]
-public ClampedIntParameter numberOfSingleScatteringSamples = new ClampedIntParameter(10, 1, 256);
+public ClampedIntParameter numberOfSingleScatteringSamples = new ClampedIntParameter(32, 1, 256);
 [Tooltip("The number of samples used when sampling the ground irradiance. Importance sampling does not apply here. To get a near-perfect result, around 10 samples is necessary. But it is a fairly subtle effect, so as low as 6 samples gives a decent result.")]
-public ClampedIntParameter numberOfGroundIrradianceSamples = new ClampedIntParameter(10, 1, 256);
+public ClampedIntParameter numberOfGroundIrradianceSamples = new ClampedIntParameter(12, 1, 256);
 [Tooltip("The number of samples to use when computing the initial isotropic estimate of multiple scattering. Importance sampling does not apply here. To get a near-perfect result, around 15 samples is necessary. But it is a fairly subtle effect, so as low as 6 samples gives a decent result.")]
-public ClampedIntParameter numberOfMultipleScatteringSamples = new ClampedIntParameter(10, 1, 256);
+public ClampedIntParameter numberOfMultipleScatteringSamples = new ClampedIntParameter(32, 1, 256);
 [Tooltip("The number of samples to use when computing the actual accumulated estimate of multiple scattering from the isotropic estimate. The number of samples to use when computing the initial isotropic estimate of multiple scattering. With importance sample, 8 samples gives a near-perfect result. However, multiple scattering is a fairly subtle effect, so as low as 3 samples gives a decent result. Without importance sampling, a value of 32 or higher is necessary for near perfect results, but a value of 4 is sufficient for most needs.")]
-public ClampedIntParameter numberOfMultipleScatteringAccumulationSamples = new ClampedIntParameter(10, 1, 256);
+public ClampedIntParameter numberOfMultipleScatteringAccumulationSamples = new ClampedIntParameter(12, 1, 256);
 [Tooltip("Whether or not to use importance sampling. Importance sampling is a sample distribution strategy that increases fidelity given a limited budget of samples. It is recommended to turn it on, as it doesn't decrease fidelity, but does allow for fewer samples to be taken, boosting performance. However, for outer-space perspectives, it can sometimes introduce inaccuracies, so it can be useful to increase sample counts and turn off importance sampling in those cases.")]
 public BoolParameter useImportanceSampling = new BoolParameter(false);
 [Tooltip("Whether or not to use MSAA 8x anti-aliasing. This does negatively affect performance.")]
@@ -223,7 +223,7 @@ public ClampedFloatParameter ditherAmount = new ClampedFloatParameter(0.05f, 0.0
 
 
 /* Constructor to initialize defaults for array parameters. */
-public Expanse() {
+public Expanse() : base() {
   /* TODO: how can we initialize layers to be earthlike by default and still
    * have the code compact? Perhaps abstract initializiation into function. */
   /* Atmosphere layer initialization. */
@@ -233,8 +233,8 @@ public Expanse() {
     this.GetType().GetField("layerCoefficientsA" + i).SetValue(this, new Vector3Parameter(new Vector3(0.0000058f, 0.0000135f, 0.0000331f)));
     this.GetType().GetField("layerCoefficientsS" + i).SetValue(this, new Vector3Parameter(new Vector3(0.0000058f, 0.0000135f, 0.0000331f)));
     this.GetType().GetField("layerDensityDistribution" + i).SetValue(this, new EnumParameter<ExpanseCommon.DensityDistribution>(ExpanseCommon.DensityDistribution.Exponential));
-    this.GetType().GetField("layerHeight" + i).SetValue(this, new MinFloatParameter(8000, 1));
-    this.GetType().GetField("layerThickness" + i).SetValue(this, new MinFloatParameter(30000, 1));
+    this.GetType().GetField("layerHeight" + i).SetValue(this, new MinFloatParameter(25000, 1));
+    this.GetType().GetField("layerThickness" + i).SetValue(this, new MinFloatParameter(8000, 1));
     this.GetType().GetField("layerPhaseFunction" + i).SetValue(this, new EnumParameter<ExpanseCommon.PhaseFunction>(ExpanseCommon.PhaseFunction.Rayleigh));
     this.GetType().GetField("layerAnisotropy" + i).SetValue(this, new ClampedFloatParameter(0.7f, -1.0f, 1.0f));
     this.GetType().GetField("layerDensity" + i).SetValue(this, new MinFloatParameter(1, 0));
@@ -258,7 +258,7 @@ public Expanse() {
     this.GetType().GetField("bodyAlbedoTint" + i).SetValue(this, new ColorParameter(Color.grey, hdr: false, showAlpha: false, showEyeDropper: true));
     this.GetType().GetField("bodyEmissive" + i).SetValue(this, new BoolParameter(true));
     this.GetType().GetField("bodyUseTemperature" + i).SetValue(this, new BoolParameter(false));
-    this.GetType().GetField("bodyLightIntensity" + i).SetValue(this, new MinFloatParameter(120000, 0));
+    this.GetType().GetField("bodyLightIntensity" + i).SetValue(this, new MinFloatParameter(150000, 0));
     this.GetType().GetField("bodyLightColor" + i).SetValue(this, new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true));
     this.GetType().GetField("bodyLightTemperature" + i).SetValue(this, new ClampedFloatParameter(5778, 1000, 20000));
     this.GetType().GetField("bodyLimbDarkening" + i).SetValue(this, new MinFloatParameter(1, 0));
