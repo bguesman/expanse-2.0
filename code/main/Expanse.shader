@@ -440,6 +440,21 @@ int computeAerialPerspectiveLOD(float depth) {
   }
 }
 
+float computeAerialPerspectiveLODBlend(int LOD, float depth) {
+  switch (LOD) {
+    case AERIAL_PERPSECTIVE_LOD0:
+      /* Lerp for last 20 percent of interval. */
+      return 1-saturate((_aerialPerspectiveTableDistanceLOD0 - depth) / (0.2 * _aerialPerspectiveTableDistanceLOD0));
+    case AERIAL_PERPSECTIVE_LOD1:
+      /* Lerp for last 20 percent of interval. */
+      return 1-saturate((_aerialPerspectiveTableDistanceLOD1 - depth) / (0.2 * _aerialPerspectiveTableDistanceLOD1));
+    case AERIAL_PERPSECTIVE_LOD2:
+      return 1;
+    default:
+      return 0;
+  }
+}
+
 float computeAerialPerspectiveLODDistance(int LOD, float t_hit) {
   switch (LOD) {
     case AERIAL_PERPSECTIVE_LOD0:
@@ -510,7 +525,8 @@ float3 computeSkyColor(float2 r_mu_uv, float3 start, float3 d, float t_hit,
 }
 
 float3 computeAerialPerspectiveColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
-  float t_hit, bool groundHit, float interval_length, int LOD) {
+  float t_hit, bool groundHit, float interval_length_0, float interval_length_1,
+  int LOD_0, int LOD_1, float LODBlend) {
   /* Final result. */
   float3 result = float3(0, 0, 0);
 
@@ -557,25 +573,28 @@ float3 computeAerialPerspectiveColorBody(float2 r_mu_uv, int i, float3 start, fl
   for (int j = 0; j < _numActiveLayers; j++) {
     /* Single scattering. */
     float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
-    float3 ss = sampleAerialPerspectiveTexture(uvSS, j, LOD);
+    float3 ssLOD0 = interval_length_0 * sampleAerialPerspectiveTexture(uvSS, j, LOD_0);
+    float3 ssLOD1 = interval_length_1 * sampleAerialPerspectiveTexture(uvSS, j, LOD_1);
+    float3 ss = lerp(ssLOD0, ssLOD1, LODBlend);
 
     /* Final color. */
     result += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
       * ss * phase * ((_layerPhaseFunction[j] == 2) ? occlusionMultiplierDirectional
       : occlusionMultiplierUniform);
   }
-  return result * interval_length * lightColor;
+  return result * lightColor;
 }
 
 /* Given uv coordinate representing direction, computes aerial perspective color. */
 float3 computeAerialPerspectiveColor(float2 r_mu_uv, float3 start, float3 d, float t_hit,
-  bool groundHit, float interval_length, int LOD) {
+  bool groundHit, float interval_length_0, float interval_length_1,
+  int LOD_0, int LOD_1, float LODBlend) {
   float3 result = float3(0, 0, 0);
   /* Loop through all the celestial bodies. */
   float3 color = float3(0, 0, 0);
   for (int i = 0; i < _numActiveBodies; i++) {
     result += computeAerialPerspectiveColorBody(r_mu_uv, i, start, d, t_hit,
-      groundHit, interval_length, LOD);
+      groundHit, interval_length_0, interval_length_1, LOD_0, LOD_1, LODBlend);
   }
   return result;
 }
@@ -687,12 +706,15 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
 
     /* Now, compute sky color at correct LOD. */
     int LOD = computeAerialPerspectiveLOD(depth);
+    int LOD_up = min(LOD + 1, AERIAL_PERPSECTIVE_LOD2);
+    float LODBlend = computeAerialPerspectiveLODBlend(LOD, depth);
     float aerialPerspectiveDistance = computeAerialPerspectiveLODDistance(LOD, t_hit);
+    float aerialPerspectiveDistance_up = computeAerialPerspectiveLODDistance(LOD_up, t_hit);
     skyColor = computeAerialPerspectiveColor(coord2D, startPoint, d, t_hit,
-      intersection.groundHit, aerialPerspectiveDistance, LOD);
+      intersection.groundHit, aerialPerspectiveDistance, aerialPerspectiveDistance_up, LOD, LOD_up, LODBlend);
     float3 attenuatedSkyColor = computeAerialPerspectiveColor(depthCoord2D,
       depthSamplePoint, d, t_hit-depth, intersection.groundHit,
-      aerialPerspectiveDistance-depth, LOD);
+      aerialPerspectiveDistance-depth, aerialPerspectiveDistance_up-depth, LOD, LOD_up, LODBlend);
     skyColor -= min(skyColor, blendTransmittance*attenuatedSkyColor);
     skyColor = max(0, skyColor);
   }

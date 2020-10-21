@@ -432,10 +432,12 @@ float3 sampleAerialPerspectiveLOD1Texture(TexCoord4D uv, int i) {
 
 float3 sampleAerialPerspectiveTexture(TexCoord4D uv, int i, int LOD) {
   switch (LOD) {
-    case AERIAL_PERPSECTIVE_LOD0:
+    case AERIAL_PERPSECTIVE_LOD0: {
       return sampleAerialPerspectiveLOD0Texture(uv, i);
-    case AERIAL_PERPSECTIVE_LOD1:
+    }
+    case AERIAL_PERPSECTIVE_LOD1: {
       return sampleAerialPerspectiveLOD1Texture(uv, i);
+    }
     case AERIAL_PERPSECTIVE_LOD2:
       return sampleSSTexture(uv, i);
     default:
