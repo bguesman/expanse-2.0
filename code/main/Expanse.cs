@@ -167,6 +167,18 @@ public FloatParameter twinkleBias = new FloatParameter(0);
 [Tooltip("Intensity of twinkle effect.")]
 public MinFloatParameter twinkleAmplitude = new MinFloatParameter(1, 0);
 
+/* Aerial Perspective. */
+[Tooltip("Expanse computes aerial perspective at 3 different LOD levels to reduce artifacts. This parameter controls the max distance used for each of the two closer LODs---the furthest LOD is unbounded. Typically a value of 1000-5000 is good for the closets LOD, and 10000-50000 for the furthest.")]
+public FloatRangeParameter aerialPerspectiveTableDistances = new FloatRangeParameter(new Vector2(8000, 18000), 0, 100000);
+[Tooltip("Controls TODO.")]
+public MinFloatParameter aerialPerspectiveOcclusionPowerUniform = new MinFloatParameter(1, 0);
+[Tooltip("Controls TODO.")]
+public MinFloatParameter aerialPerspectiveOcclusionBiasUniform = new MinFloatParameter(1, 0);
+[Tooltip("Controls TODO.")]
+public MinFloatParameter aerialPerspectiveOcclusionPowerDirectional = new MinFloatParameter(1, 0);
+[Tooltip("Controls TODO.")]
+public MinFloatParameter aerialPerspectiveOcclusionBiasDirectional = new MinFloatParameter(1, 0);
+
 /* Quality. */
 [Tooltip("Quality of sky texture.")]
 // public ClampedIntParameter skyTextureQuality = new ClampedIntParameter((int) ExpanseCommon.SkyTextureQuality.Medium, (int) ExpanseCommon.SkyTextureQuality.Potato, (int) ExpanseCommon.kMaxSkyTextureQuality - 1);
@@ -328,6 +340,13 @@ public override int GetHashCode() {
     hash = hash * 23 + nightSkyScatterTint.value.GetHashCode();
     hash = hash * 23 + nightSkyScatterIntensity.value.GetHashCode();
 
+    /* Aerial Perspective. */
+    hash = hash * 23 + aerialPerspectiveTableDistances.value.GetHashCode();
+    hash = hash * 23 + aerialPerspectiveOcclusionPowerUniform.value.GetHashCode();
+    hash = hash * 23 + aerialPerspectiveOcclusionBiasUniform.value.GetHashCode();
+    hash = hash * 23 + aerialPerspectiveOcclusionPowerDirectional.value.GetHashCode();
+    hash = hash * 23 + aerialPerspectiveOcclusionBiasDirectional.value.GetHashCode();
+
     /* Quality. */
     hash = hash * 23 + skyTextureQuality.value.GetHashCode();
     hash = hash * 23 + numberOfTransmittanceSamples.value.GetHashCode();
@@ -377,6 +396,9 @@ public int GetSkyHashCode() {
     }
 
     /* Night Sky. TODO */
+
+    /* Aerial Perspective. */
+    hash = hash * 23 + aerialPerspectiveTableDistances.value.GetHashCode();
 
     /* Quality. */
     hash = hash * 23 + skyTextureQuality.value.GetHashCode();

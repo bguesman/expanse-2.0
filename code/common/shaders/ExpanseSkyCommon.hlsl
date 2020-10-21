@@ -60,8 +60,13 @@ TEXTURE2D_ARRAY(_LP);
 float4 _resSS; /* Table resolution. */
 TEXTURE2D_ARRAY(_SS);
 TEXTURE2D_ARRAY(_SSNoShadow);
-TEXTURE2D_ARRAY(_SSAerialPerspective);
-#define AERIAL_PERSPECTIVE_TABLE_DISTANCE 5000 // TODO: tweakable?
+TEXTURE2D_ARRAY(_SSAerialPerspectiveLOD0);
+TEXTURE2D_ARRAY(_SSAerialPerspectiveLOD1);
+float _aerialPerspectiveTableDistanceLOD0;
+float _aerialPerspectiveTableDistanceLOD1;
+#define AERIAL_PERPSECTIVE_LOD0 0
+#define AERIAL_PERPSECTIVE_LOD1 1
+#define AERIAL_PERPSECTIVE_LOD2 2
 
 /* Multiple scattering. */
 float4 _resMS; /* Table resolution. */
@@ -124,14 +129,6 @@ bool floatGT(float a, float b) {
  * otherwise. */
 bool floatLT(float a, float b) {
   return a < b + FLT_EPSILON;
-}
-
-#define EXP_LERP_A 1
-#define EXP_LERP_B 1 / (exp(EXP_LERP_A) - 1)
-float3 expLerp(float3 v0, float3 vf, float t) {
-  // TODO: just don't use
-  t = exp(EXP_LERP_A * t) * EXP_LERP_B - EXP_LERP_B;
-  return lerp(v0, vf, t);
 }
 
 /******************************************************************************/
@@ -400,9 +397,50 @@ float3 sampleSSTexture(TexCoord4D uv, int i) {
   float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw01, i, 0).xyz;
   float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw10, i, 0).xyz;
   float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  float3 result0 = expLerp(contrib00, contrib01, uv.b);
-  float3 result1 = expLerp(contrib10, contrib11, uv.b);
-  return expLerp(result0, result1, uv.a);
+  float3 result0 = lerp(contrib00, contrib01, uv.b);
+  float3 result1 = lerp(contrib10, contrib11, uv.b);
+  return lerp(result0, result1, uv.a);
+}
+
+float3 sampleAerialPerspectiveLOD0Texture(TexCoord4D uv, int i) {
+  float2 uvw00 = float2(uv.x, uv.z);
+  float2 uvw01 = float2(uv.x, uv.w);
+  float2 uvw10 = float2(uv.y, uv.z);
+  float2 uvw11 = float2(uv.y, uv.w);
+  float3 contrib00 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD0, s_linear_clamp_sampler, uvw00, i, 0).xyz;
+  float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD0, s_linear_clamp_sampler, uvw01, i, 0).xyz;
+  float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD0, s_linear_clamp_sampler, uvw10, i, 0).xyz;
+  float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD0, s_linear_clamp_sampler, uvw11, i, 0).xyz;
+  float3 result0 = lerp(contrib00, contrib01, uv.b);
+  float3 result1 = lerp(contrib10, contrib11, uv.b);
+  return lerp(result0, result1, uv.a);
+}
+
+float3 sampleAerialPerspectiveLOD1Texture(TexCoord4D uv, int i) {
+  float2 uvw00 = float2(uv.x, uv.z);
+  float2 uvw01 = float2(uv.x, uv.w);
+  float2 uvw10 = float2(uv.y, uv.z);
+  float2 uvw11 = float2(uv.y, uv.w);
+  float3 contrib00 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD1, s_linear_clamp_sampler, uvw00, i, 0).xyz;
+  float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD1, s_linear_clamp_sampler, uvw01, i, 0).xyz;
+  float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD1, s_linear_clamp_sampler, uvw10, i, 0).xyz;
+  float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD1, s_linear_clamp_sampler, uvw11, i, 0).xyz;
+  float3 result0 = lerp(contrib00, contrib01, uv.b);
+  float3 result1 = lerp(contrib10, contrib11, uv.b);
+  return lerp(result0, result1, uv.a);
+}
+
+float3 sampleAerialPerspectiveTexture(TexCoord4D uv, int i, int LOD) {
+  switch (LOD) {
+    case AERIAL_PERPSECTIVE_LOD0:
+      return sampleAerialPerspectiveLOD0Texture(uv, i);
+    case AERIAL_PERPSECTIVE_LOD1:
+      return sampleAerialPerspectiveLOD1Texture(uv, i);
+    case AERIAL_PERPSECTIVE_LOD2:
+      return sampleSSTexture(uv, i);
+    default:
+      return float3(0, 0, 0);
+  }
 }
 
 float3 sampleSSNoShadowTexture(TexCoord4D uv, int i) {
@@ -414,23 +452,9 @@ float3 sampleSSNoShadowTexture(TexCoord4D uv, int i) {
   float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw01, i, 0).xyz;
   float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw10, i, 0).xyz;
   float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  float3 result0 = expLerp(contrib00, contrib01, uv.b);
-  float3 result1 = expLerp(contrib10, contrib11, uv.b);
-  return expLerp(result0, result1, uv.a);
-}
-
-float3 sampleSSAerialPerspectiveTexture(TexCoord4D uv, int i) {
-  float2 uvw00 = float2(uv.x, uv.z);
-  float2 uvw01 = float2(uv.x, uv.w);
-  float2 uvw10 = float2(uv.y, uv.z);
-  float2 uvw11 = float2(uv.y, uv.w);
-  float3 contrib00 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspective, s_linear_clamp_sampler, uvw00, i, 0).xyz;
-  float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspective, s_linear_clamp_sampler, uvw01, i, 0).xyz;
-  float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspective, s_linear_clamp_sampler, uvw10, i, 0).xyz;
-  float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspective, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  float3 result0 = expLerp(contrib00, contrib01, uv.b);
-  float3 result1 = expLerp(contrib10, contrib11, uv.b);
-  return expLerp(result0, result1, uv.a);
+  float3 result0 = lerp(contrib00, contrib01, uv.b);
+  float3 result1 = lerp(contrib10, contrib11, uv.b);
+  return lerp(result0, result1, uv.a);
 }
 
 float3 sampleMSAccTexture(TexCoord4D uv, int i) {
@@ -442,9 +466,9 @@ float3 sampleMSAccTexture(TexCoord4D uv, int i) {
   float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw01, i, 0).xyz;
   float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw10, i, 0).xyz;
   float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  float3 result0 = expLerp(contrib00, contrib01, uv.b);
-  float3 result1 = expLerp(contrib10, contrib11, uv.b);
-  return expLerp(result0, result1, uv.a);
+  float3 result0 = lerp(contrib00, contrib01, uv.b);
+  float3 result1 = lerp(contrib10, contrib11, uv.b);
+  return lerp(result0, result1, uv.a);
 }
 
 float3 sampleGITexture(float2 uv, int i) {

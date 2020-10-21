@@ -124,7 +124,6 @@ SerializedDataParameter[] bodyEmissionTint
 SerializedDataParameter[] bodyEmissionMultiplier
   = new SerializedDataParameter[ExpanseCommon.kMaxCelestialBodies];
 
-
 /* Night Sky. TODO */
 SerializedDataParameter lightPollutionTint;
 SerializedDataParameter lightPollutionIntensity;
@@ -139,6 +138,13 @@ SerializedDataParameter twinkleThreshold;
 SerializedDataParameter twinkleFrequencyRange;
 SerializedDataParameter twinkleBias;
 SerializedDataParameter twinkleAmplitude;
+
+/* Aerial Perspective. */
+SerializedDataParameter aerialPerspectiveTableDistances;
+SerializedDataParameter aerialPerspectiveOcclusionPowerUniform;
+SerializedDataParameter aerialPerspectiveOcclusionBiasUniform;
+SerializedDataParameter aerialPerspectiveOcclusionPowerDirectional;
+SerializedDataParameter aerialPerspectiveOcclusionBiasDirectional;
 
 /* Quality parameters. */
 SerializedDataParameter skyTextureQuality;
@@ -241,6 +247,11 @@ public override void OnInspectorGUI()
   /* Night Sky. */
   EditorGUILayout.Space();
   nightSky(titleStyle, subtitleStyle);
+  EditorGUILayout.Space();
+
+  /* Night Sky. */
+  EditorGUILayout.Space();
+  aerialPerspective(titleStyle, subtitleStyle);
   EditorGUILayout.Space();
 
   /* Quality. */
@@ -429,6 +440,16 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
   }
 }
 
+private void aerialPerspective(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
+  EditorGUILayout.LabelField("Aerial Perspective", titleStyle);
+  PropertyField(aerialPerspectiveTableDistances, new UnityEngine.GUIContent("LOD Distances"));
+  PropertyField(aerialPerspectiveOcclusionPowerUniform, new UnityEngine.GUIContent("Power Uniform TODO NAME"));
+  PropertyField(aerialPerspectiveOcclusionBiasUniform, new UnityEngine.GUIContent("Bias Uniform TODO NAME"));
+  PropertyField(aerialPerspectiveOcclusionPowerDirectional, new UnityEngine.GUIContent("Power Directional TODO NAME"));
+  PropertyField(aerialPerspectiveOcclusionBiasDirectional, new UnityEngine.GUIContent("Bias Directional TODO NAME"));
+}
+
+
 private void quality(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
   EditorGUILayout.LabelField("Quality", titleStyle);
   /* Texture quality selection dropdown. */
@@ -541,6 +562,13 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   twinkleFrequencyRange = Unpack(o.Find(x => x.twinkleFrequencyRange));
   twinkleBias = Unpack(o.Find(x => x.twinkleBias));
   twinkleAmplitude = Unpack(o.Find(x => x.twinkleAmplitude));
+
+  /* Aerial perspective. */
+  aerialPerspectiveTableDistances = Unpack(o.Find(x => x.aerialPerspectiveTableDistances));
+  aerialPerspectiveOcclusionPowerUniform = Unpack(o.Find(x => x.aerialPerspectiveOcclusionPowerUniform));
+  aerialPerspectiveOcclusionBiasUniform = Unpack(o.Find(x => x.aerialPerspectiveOcclusionBiasUniform));
+  aerialPerspectiveOcclusionPowerDirectional = Unpack(o.Find(x => x.aerialPerspectiveOcclusionPowerDirectional));
+  aerialPerspectiveOcclusionBiasDirectional = Unpack(o.Find(x => x.aerialPerspectiveOcclusionBiasDirectional));
 
   /* Quality. */
   skyTextureQuality = Unpack(o.Find(x => x.skyTextureQuality));

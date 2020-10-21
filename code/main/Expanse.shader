@@ -90,6 +90,12 @@ float _twinkleFrequencyMax;
 float _twinkleBias;
 float _twinkleAmplitude;
 
+/* Aerial Perspective. */
+float _aerialPerspectiveOcclusionBiasUniform;
+float _aerialPerspectiveOcclusionPowerUniform;
+float _aerialPerspectiveOcclusionBiasDirectional;
+float _aerialPerspectiveOcclusionPowerDirectional;
+
 /* Quality. */
 bool _useAntiAliasing;
 float _ditherAmount;
@@ -424,33 +430,38 @@ float3 shadeNightSky(float3 d) {
   return twinkle * nightSkyColor * starColor;
 }
 
-struct SkyColor_t {
-  float3 ss;
-  float3 ms;
-};
+int computeAerialPerspectiveLOD(float depth) {
+  if (depth < _aerialPerspectiveTableDistanceLOD0) {
+    return AERIAL_PERPSECTIVE_LOD0;
+  } else if (depth < _aerialPerspectiveTableDistanceLOD1) {
+    return AERIAL_PERPSECTIVE_LOD1;
+  } else {
+    return AERIAL_PERPSECTIVE_LOD2;
+  }
+}
 
-SkyColor_t computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
-  float t_hit, bool groundHit, bool geoHit, float interval_length, bool useAerialPerspective) {
-  /* Final reuslt. */
-  SkyColor_t result;
-  result.ss = float3(0, 0, 0);
-  result.ms = float3(0, 0, 0);
+float computeAerialPerspectiveLODDistance(int LOD, float t_hit) {
+  switch (LOD) {
+    case AERIAL_PERPSECTIVE_LOD0:
+      return min(t_hit, _aerialPerspectiveTableDistanceLOD0);
+    case AERIAL_PERPSECTIVE_LOD1:
+      return min(t_hit, _aerialPerspectiveTableDistanceLOD1);
+    case AERIAL_PERPSECTIVE_LOD2:
+      return t_hit;
+    default:
+      return 0;
+  }
+}
+
+float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
+  float t_hit, bool groundHit, float interval_length) {
+  /* Final result. */
+  float3 result = float3(0, 0, 0);
 
   /* Get the body's direction. */
   float3 L = _bodyDirection[i];
   float3 lightColor = _bodyLightColor[i].xyz;
   float dot_L_d = clampCosine(dot(L, d));
-
-  /* Now, technically, this is a hack. But it's a good hack for far
-   * away geo. We basically see how "behind" the geo the light is by
-   * checking how parallel the view and light vectors are. If they're
-   * really parallel, that means the light is totally behind the geo.
-   * If they're less parallel, then the light is less behind the geo.
-   * TODO: affect mie layer more than others.
-   * TODO: Aerial perspective section in UI with:
-   *    -aerial perspective table distance (is there a better solution here?)
-   *    -occlusion multiplier parameters, including special case for mie layers */
-  float occlusionMultiplier = (geoHit) ? 0.002 + 0.998 * pow(1-saturate(dot_L_d), 2) : 1.0;
 
   /* TODO: how to figure out if body is occluded? Could use global bool array.
    * But need to do better. Need to figure out HOW occluded and attenuate
@@ -473,40 +484,98 @@ SkyColor_t computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
   for (int j = 0; j < _numActiveLayers; j++) {
     /* Single scattering. */
     float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
-    float3 ss = float3(0, 0, 0);
-    if (useAerialPerspective) {
-      ss = sampleSSAerialPerspectiveTexture(uvSS, j);
-    } else {
-      ss = sampleSSTexture(uvSS, j);
-    }
+    float3 ss = sampleSSTexture(uvSS, j);
 
     /* Multiple scattering. */
     float3 ms = sampleMSAccTexture(uvMSAcc, j);
 
     /* Final color. */
-    result.ss += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
-      * (ss * phase);
-    result.ms += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
-      * (ms * _layerMultipleScatteringMultiplier[j]);
+    result += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
+      * (ss * phase + ms * _layerMultipleScatteringMultiplier[j]);
   }
-  result.ss *= interval_length * occlusionMultiplier * lightColor;
-  result.ms *= interval_length * occlusionMultiplier * lightColor;
-  return result;
+  return result * interval_length * lightColor;
 }
 
 /* Given uv coordinate representing direction, computes sky color. */
-SkyColor_t computeSkyColor(float2 r_mu_uv, float3 start, float3 d, float t_hit,
-  bool groundHit, bool geoHit, float interval_length, bool useAerialPerspective) {
-  SkyColor_t result;
-  result.ss = float3(0, 0, 0);
-  result.ms = float3(0, 0, 0);
+float3 computeSkyColor(float2 r_mu_uv, float3 start, float3 d, float t_hit,
+  bool groundHit, float interval_length) {
+  float3 result = float3(0, 0, 0);
   /* Loop through all the celestial bodies. */
   float3 color = float3(0, 0, 0);
   for (int i = 0; i < _numActiveBodies; i++) {
-    SkyColor_t bodyResult = computeSkyColorBody(r_mu_uv, i, start, d, t_hit,
-      groundHit, geoHit, interval_length, useAerialPerspective);
-    result.ss += bodyResult.ss;
-    result.ms += bodyResult.ms;
+    result += computeSkyColorBody(r_mu_uv, i, start, d, t_hit,
+      groundHit, interval_length);
+  }
+  return result;
+}
+
+float3 computeAerialPerspectiveColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
+  float t_hit, bool groundHit, float interval_length, int LOD) {
+  /* Final result. */
+  float3 result = float3(0, 0, 0);
+
+  /* Get the body's direction. */
+  float3 L = _bodyDirection[i];
+  float3 lightColor = _bodyLightColor[i].xyz;
+  float dot_L_d = clampCosine(dot(L, d));
+
+  /* Now, technically, this is a hack. But it's a good hack for far
+   * away geo. We basically see how "behind" the geo the light is by
+   * checking how parallel the view and light vectors are. If they're
+   * really parallel, that means the light is totally behind the geo.
+   * If they're less parallel, then the light is less behind the geo.
+   * TODO: affect mie layer more than others.
+   * TODO: Aerial perspective section in UI with:
+   *    -occlusion multiplier parameters, including special case for mie layers
+   *    -side note: perhaps should have separate quality setting for aerial perspective table?
+   *    could introduce artifacts, but could also allow us to store 2-3 depths instead, at a low cost
+   *    though at this point it starts to get into something like hillaire's solution... still, variable
+   *    res would be good. */
+  float occlusionMultiplierUniform = _aerialPerspectiveOcclusionBiasUniform
+    + (1-_aerialPerspectiveOcclusionBiasUniform) * pow(1-saturate(dot_L_d), _aerialPerspectiveOcclusionPowerUniform);
+  float occlusionMultiplierDirectional = _aerialPerspectiveOcclusionBiasDirectional
+    + (1-_aerialPerspectiveOcclusionBiasDirectional) * pow(1-saturate(dot_L_d), _aerialPerspectiveOcclusionPowerDirectional);
+
+  /* TODO: how to figure out if body is occluded? Could use global bool array.
+   * But need to do better. Need to figure out HOW occluded and attenuate
+   * light accordingly. May need to do this with horizon too. */
+
+  /* Compute 4D tex coords. */
+  float3 startNormalized = normalize(start);
+  float mu_l = clampCosine(dot(startNormalized, L));
+  float3 proj_L = normalize(L - startNormalized * mu_l);
+  float3 proj_d = normalize(d - startNormalized * dot(startNormalized, d));
+  float nu = clampCosine(dot(proj_L, proj_d));
+  TexCoord4D uvSS = mapSky4DCoord(r_mu_uv, mu_l, nu,
+    _atmosphereRadius, _planetRadius, t_hit, groundHit,
+    _resSS.x, _resSS.y, _resSS.z, _resSS.w);
+  TexCoord4D uvMSAcc = mapSky4DCoord(r_mu_uv, mu_l, nu,
+    _atmosphereRadius, _planetRadius, t_hit, groundHit,
+    _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
+
+  /* Loop through layers and accumulate contributions for this body. */
+  for (int j = 0; j < _numActiveLayers; j++) {
+    /* Single scattering. */
+    float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
+    float3 ss = sampleAerialPerspectiveTexture(uvSS, j, LOD);
+
+    /* Final color. */
+    result += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
+      * ss * phase * ((_layerPhaseFunction[j] == 2) ? occlusionMultiplierDirectional
+      : occlusionMultiplierUniform);
+  }
+  return result * interval_length * lightColor;
+}
+
+/* Given uv coordinate representing direction, computes aerial perspective color. */
+float3 computeAerialPerspectiveColor(float2 r_mu_uv, float3 start, float3 d, float t_hit,
+  bool groundHit, float interval_length, int LOD) {
+  float3 result = float3(0, 0, 0);
+  /* Loop through all the celestial bodies. */
+  float3 color = float3(0, 0, 0);
+  for (int i = 0; i < _numActiveBodies; i++) {
+    result += computeAerialPerspectiveColorBody(r_mu_uv, i, start, d, t_hit,
+      groundHit, interval_length, LOD);
   }
   return result;
 }
@@ -541,11 +610,11 @@ float3 computeStarScatteringColor(float2 r_mu_uv, float mu, float3 directLight,
     float3 ms = sampleMSAccTexture(uvMSAcc, j);
 
     /* Final color. */
-    color +=  t_hit * _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
+    color += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
       * (ss + ms * _layerMultipleScatteringMultiplier[j]);
   }
 
-  return color * _nightSkyScatterTint * _averageNightSkyColor;
+  return color * t_hit * _nightSkyScatterTint * _averageNightSkyColor;
 }
 
 float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
@@ -598,15 +667,16 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   float3 transmittanceRaw = computeSkyTransmittanceRaw(coord2D);
   float3 transmittance = exp(transmittanceRaw);
 
-  /* Compute sky color. */
-  SkyColor_t skyColor = computeSkyColor(coord2D, startPoint, d, t_hit,
-    intersection.groundHit, geoHit, t_hit, false);
-
-  /* Attenuate sky color and compute blend transmittance if we hit
-   * something and are rendering fullscreen. For the cubemap, we just
-   * want the sky, no geo. TODO: artifacts come from ground scattering!! */
+  /* Compute sky color and blend transmittance for aerial perspective. */
+  float3 skyColor = float3(0, 0, 0);
   float3 blendTransmittance = float3(0, 0, 0);
-  if (geoHit && !cubemap) {
+  if (!geoHit || cubemap) {
+    /* Just render the sky normally. */
+    skyColor = computeSkyColor(coord2D, startPoint, d, t_hit,
+      intersection.groundHit, t_hit);
+  } else {
+    /* We have to compute aerial perspective. */
+    /* First, compute blend transmittance. */
     float3 depthSamplePoint = startPoint + d * depth;
     float depthR = length(depthSamplePoint);
     float depthMu = dot(normalize(depthSamplePoint), d);
@@ -614,27 +684,52 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
       _planetRadius, t_hit-depth, intersection.groundHit); // TODO: maybe map with aerial perspective distance if we use that?
     float3 aerialPerspectiveTransmittanceRaw = computeSkyTransmittanceRaw(depthCoord2D);
     blendTransmittance = exp(transmittanceRaw - aerialPerspectiveTransmittanceRaw);
-    bool useAerialPerspective = (depth < AERIAL_PERSPECTIVE_TABLE_DISTANCE);
 
-    if (useAerialPerspective) {
-      /* Recompute sky color: TODO not good. can decide earlier and compute once. */
-      float aerialPerspectiveDistance = min(t_hit, AERIAL_PERSPECTIVE_TABLE_DISTANCE);
-      skyColor = computeSkyColor(coord2D, startPoint, d, t_hit,
-        intersection.groundHit, geoHit, aerialPerspectiveDistance, true);
-      SkyColor_t attenuatedSkyColor = computeSkyColor(depthCoord2D, depthSamplePoint, d, t_hit-depth,
-        intersection.groundHit, geoHit, aerialPerspectiveDistance-depth, true);
-      skyColor.ss -= min(skyColor.ss, blendTransmittance*attenuatedSkyColor.ss);
-      skyColor.ss = max(0, skyColor.ss);
-      skyColor.ms = float3(0, 0, 0);
-    } else {
-      SkyColor_t attenuatedSkyColor = computeSkyColor(depthCoord2D, depthSamplePoint, d, t_hit-depth,
-        intersection.groundHit, geoHit, t_hit-depth, false);
-      skyColor.ss -= min(skyColor.ss, blendTransmittance*attenuatedSkyColor.ss);
-      skyColor.ss = max(0, skyColor.ss);
-      skyColor.ms = float3(0, 0, 0); // Don't use MS if we hit geo.
-    }
-
+    /* Now, compute sky color at correct LOD. */
+    int LOD = computeAerialPerspectiveLOD(depth);
+    float aerialPerspectiveDistance = computeAerialPerspectiveLODDistance(LOD, t_hit);
+    skyColor = computeAerialPerspectiveColor(coord2D, startPoint, d, t_hit,
+      intersection.groundHit, aerialPerspectiveDistance, LOD);
+    float3 attenuatedSkyColor = computeAerialPerspectiveColor(depthCoord2D,
+      depthSamplePoint, d, t_hit-depth, intersection.groundHit,
+      aerialPerspectiveDistance-depth, LOD);
+    skyColor -= min(skyColor, blendTransmittance*attenuatedSkyColor);
+    skyColor = max(0, skyColor);
   }
+
+  /* Attenuate sky color and compute blend transmittance if we hit
+   * something and are rendering fullscreen. For the cubemap, we just
+   * want the sky, no geo. TODO: artifacts come from ground scattering!! */
+  // float3 blendTransmittance = float3(0, 0, 0);
+  // if (geoHit && !cubemap) {
+  //   float3 depthSamplePoint = startPoint + d * depth;
+  //   float depthR = length(depthSamplePoint);
+  //   float depthMu = dot(normalize(depthSamplePoint), d);
+  //   float2 depthCoord2D = mapSky2DCoord(depthR, depthMu, _atmosphereRadius,
+  //     _planetRadius, t_hit-depth, intersection.groundHit); // TODO: maybe map with aerial perspective distance if we use that?
+  //   float3 aerialPerspectiveTransmittanceRaw = computeSkyTransmittanceRaw(depthCoord2D);
+  //   blendTransmittance = exp(transmittanceRaw - aerialPerspectiveTransmittanceRaw);
+  //   bool useAerialPerspective = (depth < _aerialPerspectiveTableDistanceLOD0);
+  //
+  //   if (useAerialPerspective) {
+  //     /* Recompute sky color: TODO not good. can decide earlier and compute once. */
+  //     float aerialPerspectiveDistance = min(t_hit, _aerialPerspectiveTableDistanceLOD0);
+  //     skyColor = computeSkyColor(coord2D, startPoint, d, t_hit,
+  //       intersection.groundHit, geoHit, aerialPerspectiveDistance, true);
+  //     SkyColor_t attenuatedSkyColor = computeSkyColor(depthCoord2D, depthSamplePoint, d, t_hit-depth,
+  //       intersection.groundHit, geoHit, aerialPerspectiveDistance-depth, true);
+  //     skyColor.ss -= min(skyColor.ss, blendTransmittance*attenuatedSkyColor.ss);
+  //     skyColor.ss = max(0, skyColor.ss);
+  //     skyColor.ms = float3(0, 0, 0);
+  //   } else {
+  //     SkyColor_t attenuatedSkyColor = computeSkyColor(depthCoord2D, depthSamplePoint, d, t_hit-depth,
+  //       intersection.groundHit, geoHit, t_hit-depth, false);
+  //     skyColor.ss -= min(skyColor.ss, blendTransmittance*attenuatedSkyColor.ss);
+  //     skyColor.ss = max(0, skyColor.ss);
+  //     skyColor.ms = float3(0, 0, 0); // Don't use MS if we hit geo.
+  //   }
+  //
+  // }
 
   /* Compute light pollution. TODO: attenuate for aerial perspective!!! or
    * maybe just don't render. */
@@ -652,7 +747,7 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   }
 
   /* Final result. */
-  return float4(directLight * transmittance + skyColor.ss + skyColor.ms + lightPollution
+  return float4(directLight * transmittance + skyColor + lightPollution
     + starScattering, dot(blendTransmittance, blendTransmittance)/3.0);
 }
 

@@ -26,16 +26,17 @@ public static readonly int _PixelCoordToViewDirWS = Shader.PropertyToID("_PixelC
 /************************** SKY PRECOMPUTATION TABLES *************************/
 /******************************************************************************/
 
-private RTHandle m_TTable;                        /* Transmittance. */
+private RTHandle m_TTable;                            /* Transmittance. */
 private Texture2D m_TTableCPU;
 private bool m_TTableCPUNeedsUpdate;
-private RTHandle m_SSTableArray;                  /* Single Scattering. */
-private RTHandle m_SSNoShadowTableArray;          /* Single Scattering. */
-private RTHandle m_SSAerialPerspectiveTableArray; /* Single Scattering. */
-private RTHandle m_MSTable;                       /* Multiple Scattering. */
-private RTHandle m_MSAccumulationTableArray;      /* Multiple Scattering. */
-private RTHandle m_LPTableArray;                  /* Light Pollution. */
-private RTHandle m_GITableArray;                  /* Ground Irradiance. */
+private RTHandle m_SSTableArray;                      /* Single Scattering. */
+private RTHandle m_SSNoShadowTableArray;              /* Single Scattering. */
+private RTHandle m_SSAerialPerspectiveTableLOD0Array; /* AerialPerspective. */
+private RTHandle m_SSAerialPerspectiveTableLOD1Array; /* AerialPerspective. */
+private RTHandle m_MSTable;                           /* Multiple Scattering. */
+private RTHandle m_MSAccumulationTableArray;          /* Multiple Scattering. */
+private RTHandle m_LPTableArray;                      /* Light Pollution. */
+private RTHandle m_GITableArray;                      /* Ground Irradiance. */
 /* For checking if table reallocation is required. */
 private ExpanseCommon.SkyTextureResolution m_skyTextureResolution;
 private int m_numAtmosphereLayersEnabled = 0;
@@ -71,7 +72,8 @@ void allocateSkyPrecomputationTables(Expanse sky) {
 
     m_SSTableArray = allocateSky4DArrayTable(res.SS, numEnabled, "SkySS");
     m_SSNoShadowTableArray = allocateSky4DArrayTable(res.SS, numEnabled, "SkySSNoShadow");
-    m_SSAerialPerspectiveTableArray = allocateSky4DArrayTable(res.SS, numEnabled, "SkySSAerialPerspective");
+    m_SSAerialPerspectiveTableLOD0Array = allocateSky4DArrayTable(res.SS, numEnabled, "SkySSAerialPerspectiveLOD0");
+    m_SSAerialPerspectiveTableLOD1Array = allocateSky4DArrayTable(res.SS, numEnabled, "SkySSAerialPerspectiveLOD1");
     m_MSAccumulationTableArray = allocateSky4DArrayTable(res.MSAccumulation, numEnabled, "SkyMSAcc");
     m_GITableArray = allocateSky1DArrayTable(res.GI, numEnabled, "SkyGI");
     m_LPTableArray = allocateSky2DArrayTable(res.LP, numEnabled, "SkyLP");
@@ -97,8 +99,10 @@ void cleanupSkyTables() {
   m_SSTableArray = null;
   RTHandles.Release(m_SSNoShadowTableArray);
   m_SSNoShadowTableArray = null;
-  RTHandles.Release(m_SSAerialPerspectiveTableArray);
-  m_SSAerialPerspectiveTableArray = null;
+  RTHandles.Release(m_SSAerialPerspectiveTableLOD0Array);
+  m_SSAerialPerspectiveTableLOD0Array = null;
+  RTHandles.Release(m_SSAerialPerspectiveTableLOD1Array);
+  m_SSAerialPerspectiveTableLOD1Array = null;
   RTHandles.Release(m_MSAccumulationTableArray);
   m_MSAccumulationTableArray = null;
 }
@@ -656,7 +660,8 @@ private void setSkyRWTextures() {
     m_skyCS.SetTexture(handle_LP, "_LP_RW", m_LPTableArray);
     m_skyCS.SetTexture(handle_SS, "_SS_RW", m_SSTableArray);
     m_skyCS.SetTexture(handle_SS, "_SSNoShadow_RW", m_SSNoShadowTableArray);
-    m_skyCS.SetTexture(handle_SSAerialPerspective, "_SSAerialPerspective_RW", m_SSAerialPerspectiveTableArray);
+    m_skyCS.SetTexture(handle_SSAerialPerspective, "_SSAerialPerspectiveLOD0_RW", m_SSAerialPerspectiveTableLOD0Array);
+    m_skyCS.SetTexture(handle_SSAerialPerspective, "_SSAerialPerspectiveLOD1_RW", m_SSAerialPerspectiveTableLOD1Array);
     m_skyCS.SetTexture(handle_MSAcc, "_MSAcc_RW", m_MSAccumulationTableArray);
   }
 }
@@ -683,6 +688,9 @@ private void setGlobalCBuffer(BuiltinSkyParameters builtinParams) {
 
   /* Atmosphere. */
   setGlobalCBufferAtmosphereLayers(builtinParams.commandBuffer, sky);
+
+  /* Aerial Perspective. */
+  setGlobalCBufferAerialPerspective(builtinParams.commandBuffer, sky);
 
   /* Quality. */
   setGlobalCBufferQuality(builtinParams.commandBuffer, sky);
@@ -785,11 +793,17 @@ private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, Expanse sky) {
     cmd.SetGlobalTexture("_SS", m_SSTableArray);
     cmd.SetGlobalVector("_resSS", m_skyTextureResolution.SS);
     cmd.SetGlobalTexture("_SSNoShadow", m_SSNoShadowTableArray);
-    cmd.SetGlobalTexture("_SSAerialPerspective", m_SSAerialPerspectiveTableArray);
+    cmd.SetGlobalTexture("_SSAerialPerspectiveLOD0", m_SSAerialPerspectiveTableLOD0Array);
+    cmd.SetGlobalTexture("_SSAerialPerspectiveLOD1", m_SSAerialPerspectiveTableLOD1Array);
     cmd.SetGlobalVector("_resLP", m_skyTextureResolution.SS);
     cmd.SetGlobalTexture("_MSAcc", m_MSAccumulationTableArray);
     cmd.SetGlobalVector("_resMSAcc", m_skyTextureResolution.MSAccumulation);
   }
+}
+
+private void setGlobalCBufferAerialPerspective(CommandBuffer cmd, Expanse sky) {
+  cmd.SetGlobalFloat("_aerialPerspectiveTableDistanceLOD0", sky.aerialPerspectiveTableDistances.value.x);
+  cmd.SetGlobalFloat("_aerialPerspectiveTableDistanceLOD1", sky.aerialPerspectiveTableDistances.value.y);
 }
 
 private void setGlobalCBufferQuality(CommandBuffer cmd, Expanse sky) {
@@ -824,6 +838,9 @@ private void setMaterialPropertyBlock(BuiltinSkyParameters builtinParams) {
 
   /* Night sky. */
   setMaterialPropertyBlockNightSky(sky);
+
+  /* Aerial Perspective. */
+  setMaterialPropertyBlockAerialPerspective(sky);
 
   /* Quality. */
   setMaterialPropertyBlockQuality(sky);
@@ -984,6 +1001,13 @@ private void setMaterialPropertyBlockNightSky(Expanse sky) {
   m_PropertyBlock.SetFloat("_twinkleFrequencyMax", sky.twinkleFrequencyRange.value.y);
   m_PropertyBlock.SetFloat("_twinkleBias", sky.twinkleBias.value);
   m_PropertyBlock.SetFloat("_twinkleAmplitude", sky.twinkleAmplitude.value);
+}
+
+private void setMaterialPropertyBlockAerialPerspective(Expanse sky) {
+  m_PropertyBlock.SetFloat("_aerialPerspectiveOcclusionBiasUniform", sky.aerialPerspectiveOcclusionBiasUniform.value);
+  m_PropertyBlock.SetFloat("_aerialPerspectiveOcclusionPowerUniform", sky.aerialPerspectiveOcclusionPowerUniform.value);
+    m_PropertyBlock.SetFloat("_aerialPerspectiveOcclusionBiasDirectional", sky.aerialPerspectiveOcclusionBiasDirectional.value);
+    m_PropertyBlock.SetFloat("_aerialPerspectiveOcclusionPowerDirectional", sky.aerialPerspectiveOcclusionPowerDirectional.value);
 }
 
 private void setMaterialPropertyBlockQuality(Expanse sky) {
