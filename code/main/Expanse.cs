@@ -139,6 +139,38 @@ public MinFloatParameter bodyEmissionMultiplier0, bodyEmissionMultiplier1, bodyE
   bodyEmissionMultiplier3, bodyEmissionMultiplier4, bodyEmissionMultiplier5, bodyEmissionMultiplier6, bodyEmissionMultiplier7;
 
 /* Night Sky. */
+[Tooltip("When checked, uses procedural sky. When unchecked, uses user-specified texture.")]
+public BoolParameter useProceduralNightSky = new BoolParameter(true);
+/* Procedural parameters.*/
+[Tooltip("Quality of star texture.")]
+public EnumParameter<ExpanseCommon.StarTextureQuality> starTextureQuality = new EnumParameter<ExpanseCommon.StarTextureQuality>(ExpanseCommon.StarTextureQuality.Medium);
+[Tooltip("When checked, shows seed values for procedural star parameters. Tweaking random seeds can help you get the right flavor of randomness you want.")]
+public BoolParameter showStarSeeds = new BoolParameter(false);
+[Tooltip("Activates high density mode, which layers a second detail star texture on top of the primary one. Dense star fields are important for imparting a sense of realism in scenes with minimal light pollution, but can be too much for more stylized skies.")]
+public BoolParameter useHighDensityMode = new BoolParameter(true);
+[Tooltip("Density of stars.")]
+public ClampedFloatParameter starDensity = new ClampedFloatParameter(0.25f, 0, 1);
+[Tooltip("Seed for star density variation.")]
+public Vector3Parameter starDensitySeed = new Vector3Parameter(new Vector3(3.473f, 5.253f, 0.532f));
+[Tooltip("Range of random star sizes.")]
+public FloatRangeParameter starSizeRange = new FloatRangeParameter(new Vector2(0.4f, 0.6f), 0.0001f, 1);
+[Tooltip("Biases star sizes toward one end of the range. 0 is biased toward the minimum size. 1 is biased toward the maximum size.")]
+public ClampedFloatParameter starSizeBias = new ClampedFloatParameter(0.5f, 0.0f, 1);
+[Tooltip("Seed for star size variation.")]
+public Vector3Parameter starSizeSeed = new Vector3Parameter(new Vector3(6.3234f, 1.253f, 0.3209f));
+[Tooltip("Range of random star brightnesses.")]
+public FloatRangeParameter starIntensityRange = new FloatRangeParameter(new Vector2(1, 6), 0.0001f, 100);
+[Tooltip("Biases star intensity toward one end of the range. 0 is biased toward the minimum intensity. 1 is biased toward the maximum intensity.")]
+public ClampedFloatParameter starIntensityBias = new ClampedFloatParameter(0.5f, 0.0f, 1);
+[Tooltip("Seed for star brightness variation.")]
+public Vector3Parameter starIntensitySeed = new Vector3Parameter(new Vector3(9.9532f, 7.7345f, 2.0532f));
+[Tooltip("Range of random star temperatures, in Kelvin. The accuracy of the blackbody model diminishes for temperatures above 20000K, use at your own discretion.")]
+public FloatRangeParameter starTemperatureRange = new FloatRangeParameter(new Vector2(2000, 20000), 1500, 30000);
+[Tooltip("Biases star temperature toward one end of the range. 0 is biased toward the minimum temperature. 1 is biased toward the maximum temperature.")]
+public ClampedFloatParameter starTemperatureBias = new ClampedFloatParameter(0.5f, 0.0f, 1);
+[Tooltip("Seed for star temperature variation.")]
+public Vector3Parameter starTemperatureSeed = new Vector3Parameter(new Vector3(0.2352f, 1.582f, 8.823f));
+/* Regular parameters. */
 [Tooltip("Color of light coming from the ground used for modeling light pollution.")]
 public ColorParameter lightPollutionTint = new ColorParameter(new Color(255, 140, 66), hdr: false, showAlpha: false, showEyeDropper: true);
 [Tooltip("Intensity of light scattered up from the ground used for modeling light pollution. Specified in lux.")]
@@ -164,24 +196,25 @@ public MinFloatParameter twinkleThreshold = new MinFloatParameter(0.001f, 0);
 public FloatRangeParameter twinkleFrequencyRange = new FloatRangeParameter(new Vector2(0.5f, 3), 0, 10);
 [Tooltip("Bias to twinkle effect. Negative values increase the time when the star is not visible.")]
 public FloatParameter twinkleBias = new FloatParameter(0);
-[Tooltip("Intensity of twinkle effect.")]
-public MinFloatParameter twinkleAmplitude = new MinFloatParameter(1, 0);
+[Tooltip("Intensity of more smooth twinkle effect.")]
+public MinFloatParameter twinkleSmoothAmplitude = new MinFloatParameter(1, 0);
+[Tooltip("Intensity of more chaotic twinkle effect.")]
+public MinFloatParameter twinkleChaoticAmplitude = new MinFloatParameter(1, 0);
 
 /* Aerial Perspective. */
-[Tooltip("Expanse computes aerial perspective at 3 different LOD levels to reduce artifacts. This parameter controls the max distance used for each of the two closer LODs---the furthest LOD is unbounded. Typically a value of 1000-5000 is good for the closets LOD, and 10000-50000 for the furthest.")]
+[Tooltip("Expanse computes aerial perspective at 3 different LOD levels to reduce artifacts. This parameter controls the max distance used for each of the two closer LODs---the furthest LOD is unbounded. Typically a value of 1000-5000 is good for the closest LOD, and 10000-50000 for the furthest. If you are using a heavy fog layer and a lower texture quality setting, it may be necessary to tweak these values to avoid artifacts.")]
 public FloatRangeParameter aerialPerspectiveTableDistances = new FloatRangeParameter(new Vector2(8000, 15000), 0, 100000);
-[Tooltip("Controls TODO.")]
+[Tooltip("This parameter controls how aggressively aerial perspective due to Rayleigh and Isotropic (\"uniform\") layers is attenuated as a consequence of approximate volumetric shadowing. To see the effect, put the sun behind a big piece of geometry (like a mountain) and play around with this parameter. Expanse does not accurately model atmospheric volumetric shadows due to the performance cost, and instead uses this approximation to avoid visual artifacts.")]
 public MinFloatParameter aerialPerspectiveOcclusionPowerUniform = new MinFloatParameter(0.5f, 0);
-[Tooltip("Controls TODO.")]
+[Tooltip("This parameter is a way of offsetting the attenuation of aerial perspective as a consequence of approximate volumetric shadowing (for Rayleigh and Isotropic (\"uniform\") layers). To see the effect, put the sun behind a big piece of geometry (like a mountain) and play around with this parameter. Expanse does not accurately model atmospheric volumetric shadows due to the performance cost, and instead uses this approximation to avoid visual artifacts.")]
 public MinFloatParameter aerialPerspectiveOcclusionBiasUniform = new MinFloatParameter(0.25f, 0);
-[Tooltip("Controls TODO.")]
+[Tooltip("This parameter controls how aggressively aerial perspective due to Mie (\"directional\") layers is attenuated as a consequence of approximate volumetric shadowing. To see the effect, put the sun behind a big piece of geometry (like a mountain) and play around with this parameter. Expanse does not accurately model atmospheric volumetric shadows due to the performance cost, and instead uses this approximation to avoid visual artifacts.")]
 public MinFloatParameter aerialPerspectiveOcclusionPowerDirectional = new MinFloatParameter(1, 0);
-[Tooltip("Controls TODO.")]
+[Tooltip("This parameter is a way of offsetting the attenuation of aerial perspective as a consequence of approximate volumetric shadowing (for Mie (\"directional\") layers). To see the effect, put the sun behind a big piece of geometry (like a mountain) and play around with this parameter. Expanse does not accurately model atmospheric volumetric shadows due to the performance cost, and instead uses this approximation to avoid visual artifacts.")]
 public MinFloatParameter aerialPerspectiveOcclusionBiasDirectional = new MinFloatParameter(0.02f, 0);
 
 /* Quality. */
 [Tooltip("Quality of sky texture.")]
-// public ClampedIntParameter skyTextureQuality = new ClampedIntParameter((int) ExpanseCommon.SkyTextureQuality.Medium, (int) ExpanseCommon.SkyTextureQuality.Potato, (int) ExpanseCommon.kMaxSkyTextureQuality - 1);
 public EnumParameter<ExpanseCommon.SkyTextureQuality> skyTextureQuality = new EnumParameter<ExpanseCommon.SkyTextureQuality>(ExpanseCommon.SkyTextureQuality.Medium);
 [Tooltip("The number of samples used when computing transmittance lookup tables. With importance sampling turned on, a value of as low as 10 gives near-perfect results on the ground. A value as low as 4 is ok if some visible inaccuracy is tolerable. Without importantance sampling, a value of 32 or higher is recommended.")]
 public ClampedIntParameter numberOfTransmittanceSamples = new ClampedIntParameter(12, 1, 256);
@@ -225,7 +258,8 @@ public ClampedFloatParameter ditherAmount = new ClampedFloatParameter(0.05f, 0.0
 /* Constructor to initialize defaults for array parameters. */
 public Expanse() : base() {
   /* TODO: how can we initialize layers to be earthlike by default and still
-   * have the code compact? Perhaps abstract initializiation into function. */
+   * have the code compact? The answer is to have a volume profile bundled
+   * in with the download that has all the defaults set up. */
   /* Atmosphere layer initialization. */
   for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
     /* Enable only the first layer by default. */
@@ -331,6 +365,24 @@ public override int GetHashCode() {
     }
 
     /* Night Sky. */
+    /* Procedural. */
+    hash = hash * 23 + useProceduralNightSky.value.GetHashCode();
+    hash = hash * 23 + starTextureQuality.value.GetHashCode();
+    hash = hash * 23 + showStarSeeds.value.GetHashCode();
+    hash = hash * 23 + useHighDensityMode.value.GetHashCode();
+    hash = hash * 23 + starDensity.value.GetHashCode();
+    hash = hash * 23 + starDensitySeed.value.GetHashCode();
+    hash = hash * 23 + starSizeRange.value.GetHashCode();
+    hash = hash * 23 + starSizeBias.value.GetHashCode();
+    hash = hash * 23 + starSizeSeed.value.GetHashCode();
+    hash = hash * 23 + starIntensityRange.value.GetHashCode();
+    hash = hash * 23 + starIntensityBias.value.GetHashCode();
+    hash = hash * 23 + starIntensitySeed.value.GetHashCode();
+    hash = hash * 23 + starTemperatureRange.value.GetHashCode();
+    hash = hash * 23 + starTemperatureBias.value.GetHashCode();
+    hash = hash * 23 +   starTemperatureSeed.value.GetHashCode();
+
+    /* Texture. */
     hash = hash * 23 + lightPollutionTint.value.GetHashCode();
     hash = hash * 23 + lightPollutionIntensity.value.GetHashCode();
     hash = nightSkyTexture.value != null ? hash * 23 + nightSkyTexture.value.GetHashCode() : hash;
@@ -423,11 +475,29 @@ public int GetCloudHashCode() {
 }
 
 public int GetNightSkyHashCode() {
-  /* Used for checking if a recomputation of the average sky color needs
-   * to take place. */
+  /* Used for checking if a recomputation of the night sky texture and
+   * average color needs to take place. */
   /* TODO */
   int hash = base.GetHashCode();
   unchecked {
+    hash = hash * 23 + useProceduralNightSky.value.GetHashCode();
+    if (useProceduralNightSky.value) {
+      /* TODO: procedural params in here. */
+      hash = hash * 23 + starTextureQuality.value.GetHashCode();
+      hash = hash * 23 + showStarSeeds.value.GetHashCode();
+      hash = hash * 23 + useHighDensityMode.value.GetHashCode();
+      hash = hash * 23 + starDensity.value.GetHashCode();
+      hash = hash * 23 + starDensitySeed.value.GetHashCode();
+      hash = hash * 23 + starSizeRange.value.GetHashCode();
+      hash = hash * 23 + starSizeBias.value.GetHashCode();
+      hash = hash * 23 + starSizeSeed.value.GetHashCode();
+      hash = hash * 23 + starIntensityRange.value.GetHashCode();
+      hash = hash * 23 + starIntensityBias.value.GetHashCode();
+      hash = hash * 23 + starIntensitySeed.value.GetHashCode();
+      hash = hash * 23 + starTemperatureRange.value.GetHashCode();
+      hash = hash * 23 + starTemperatureBias.value.GetHashCode();
+      hash = hash * 23 +   starTemperatureSeed.value.GetHashCode();
+    }
     hash = nightSkyTexture.value != null ? hash * 23 + nightSkyTexture.value.GetHashCode() : hash;
   }
   return hash;

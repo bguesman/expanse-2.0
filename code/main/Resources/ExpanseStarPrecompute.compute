@@ -1,0 +1,104 @@
+#pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
+
+#pragma kernel STAR main=STAR
+
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+#include "../../common/shaders/ExpanseNoise.hlsl"
+#include "../../sky/ExpanseStarCommon.hlsl"
+
+/* RW Textures. */
+RW_TEXTURE2D_ARRAY(float4, _Star_RW);
+
+[numthreads(8,8,1)]
+void STAR(uint3 id : SV_DispatchThreadID) {
+  /* Get the uv coordinate. */
+  float2 uv = (id.xy + 0.5) / _resStar.xy;
+  float3 uvw = float3(uv.x, uv.y, id.z);
+
+  /* Transform it to a normalized direction vector. */
+  float3 d = tex2DArrayCubemapUVToDirection(uvw);
+
+  /* Convert the direction vector to a uv coordinate. */
+  float3 textureCoordinate = (d + 1) / 2;
+
+  /* Sample some noise. TODO: should distort with curl noise and make that
+   * tweakable. TODO: allow weight-painted cubemap to control star density.
+   * TODO: allow grid size to be specified for max control? */
+  float bigCells = 512;
+  float smallCells = 1024;
+  NoiseResultAndCoordinate noiseBig = worley3D(textureCoordinate,
+    float3(bigCells, bigCells, bigCells));
+  NoiseResultAndCoordinate noiseSmall = worley3D(textureCoordinate,
+    float3(smallCells, smallCells, smallCells));
+
+  /* Cache our seed value for flickering, from the big cell. */
+  float starSeed = random_3_1(noiseBig.coordinate);
+
+  /*****************************************************/
+  /******* Compute everything for the big stars. *******/
+  /*****************************************************/
+  /* Do we render this star? */
+  float densityRandomBig = random_3_1_seeded(noiseBig.coordinate,
+    _starDensitySeed.xyz);
+  bool renderBig = densityRandomBig > (1 - _starDensity) ? true : false;
+  float3 starBigColor = float3(0, 0, 0);
+  if (renderBig) {
+    /* Transform the worley noise to look more like stars. */
+    float sizeRandom = random_3_1_seeded(noiseBig.coordinate, _starSizeSeed.xyz);
+    /* HACK: zero values screw up our biasing and result in artifacts. */
+    float3 stars = float3(0, 0, 0);
+    if (sizeRandom != 0) {
+      sizeRandom = saturate(bias0To1(saturate(sizeRandom), _starSizeBias, 500));
+      float sizeMinExponent = 5 + pow(1 - _starSizeMax, 1) * 100;
+      float sizeMaxExponent = 5 + pow(1 - _starSizeMin, 1) * 100;
+      stars = pow(noiseBig.result, sizeMinExponent + (sizeMaxExponent - sizeMinExponent) * sizeRandom);
+    }
+
+    /* Random intensity multiplier based on seed. */
+    float intensityRandom = 1-bias0To1(random_3_1_seeded(noiseBig.coordinate, _starIntensitySeed.xyz), _starIntensityBias, 100);
+    float intensity = _starIntensityMin + (_starIntensityMax - _starIntensityMin) * intensityRandom;
+
+    /* Blackbody color based on seed. TODO: tint. */
+    float temperatureRandom = 1-bias0To1(random_3_1_seeded(noiseBig.coordinate, _starTemperatureSeed.xyz), _starTemperatureBias, 100);
+    float randomTemperature = _starTemperatureMin + (_starTemperatureMax - _starTemperatureMin) * temperatureRandom;
+    float3 blackBodyColor = blackbodyTempToColor(randomTemperature);
+
+    starBigColor = intensity * blackBodyColor * stars;
+  }
+
+  /*******************************************************/
+  /******* Compute everything for the small stars. *******/
+  /*******************************************************/
+  float3 starSmallColor = float3(0, 0, 0);
+  if (_useHighDensityMode) {
+    float densityRandomSmall = random_3_1_seeded(noiseSmall.coordinate,
+      _starDensitySeed.xyz);
+    /* Do we render this star? */
+    bool renderSmall = densityRandomSmall > (1 - _starDensity) ? true : false;
+    if (renderSmall) {
+      /* Transform the worley noise to look more like stars. */
+      float sizeRandom = random_3_1_seeded(noiseSmall.coordinate, _starSizeSeed.xyz);
+      /* HACK: zero values screw up our biasing and result in artifacts. */
+      float3 stars = float3(0, 0, 0);
+      if (sizeRandom != 0) {
+        sizeRandom = saturate(bias0To1(saturate(sizeRandom), _starSizeBias, 500));
+        float sizeMinExponent = 5 + pow(1 - _starSizeMax, 1) * 100;
+        float sizeMaxExponent = 5 + pow(1 - _starSizeMin, 1) * 100;
+        stars = pow(noiseSmall.result, sizeMinExponent + (sizeMaxExponent - sizeMinExponent) * sizeRandom);
+      }
+
+      /* Random intensity multiplier based on seed. */
+      float intensityRandom = 1-bias0To1(random_3_1_seeded(noiseSmall.coordinate, _starIntensitySeed.xyz), _starIntensityBias, 100);
+      float intensity = _starIntensityMin + (_starIntensityMax - _starIntensityMin) * intensityRandom;
+
+      /* Blackbody color based on seed. TODO: tint. */
+      float temperatureRandom = 1-bias0To1(random_3_1_seeded(noiseSmall.coordinate, _starTemperatureSeed.xyz), _starTemperatureBias, 100);
+      float randomTemperature = _starTemperatureMin + (_starTemperatureMax - _starTemperatureMin) * temperatureRandom;
+      float3 blackBodyColor = blackbodyTempToColor(randomTemperature);
+
+      starSmallColor = intensity * blackBodyColor * stars;
+    }
+  }
+
+  _Star_RW[id] = float4(starBigColor + starSmallColor, starSeed);
+}

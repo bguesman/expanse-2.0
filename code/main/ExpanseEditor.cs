@@ -125,6 +125,24 @@ SerializedDataParameter[] bodyEmissionMultiplier
   = new SerializedDataParameter[ExpanseCommon.kMaxCelestialBodies];
 
 /* Night Sky. TODO */
+SerializedDataParameter useProceduralNightSky;
+/* Procedural. */
+SerializedDataParameter starTextureQuality;
+SerializedDataParameter showStarSeeds;
+SerializedDataParameter starDensity;
+SerializedDataParameter starDensitySeed;
+SerializedDataParameter starSizeRange;
+SerializedDataParameter starSizeBias;
+SerializedDataParameter starSizeSeed;
+SerializedDataParameter starIntensityRange;
+SerializedDataParameter starIntensityBias;
+SerializedDataParameter starIntensitySeed;
+SerializedDataParameter starTemperatureRange;
+SerializedDataParameter starTemperatureBias;
+SerializedDataParameter starTemperatureSeed;
+SerializedDataParameter useHighDensityMode;
+
+/* Regular. */
 SerializedDataParameter lightPollutionTint;
 SerializedDataParameter lightPollutionIntensity;
 SerializedDataParameter nightSkyTexture;
@@ -137,7 +155,8 @@ SerializedDataParameter useTwinkle;
 SerializedDataParameter twinkleThreshold;
 SerializedDataParameter twinkleFrequencyRange;
 SerializedDataParameter twinkleBias;
-SerializedDataParameter twinkleAmplitude;
+SerializedDataParameter twinkleSmoothAmplitude;
+SerializedDataParameter twinkleChaoticAmplitude;
 
 /* Aerial Perspective. */
 SerializedDataParameter aerialPerspectiveTableDistances;
@@ -421,32 +440,77 @@ private void celestialBody(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle
 
 private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
   EditorGUILayout.LabelField("Night Sky", titleStyle);
+  PropertyField(useProceduralNightSky, new UnityEngine.GUIContent("Procedural Mode"));
   PropertyField(lightPollutionTint);
   PropertyField(lightPollutionIntensity);
-  PropertyField(nightSkyTexture);
-  if (nightSkyTexture.value.objectReferenceValue != null) {
+  if (useProceduralNightSky.value.boolValue) {
+    /* Procedural sky controls. */
+    PropertyField(starTextureQuality);
+    PropertyField(showStarSeeds);
+    if (showStarSeeds.value.boolValue) {
+      PropertyField(useHighDensityMode);
+      PropertyField(starDensity);
+      PropertyField(starDensitySeed);
+      PropertyField(starSizeRange);
+      PropertyField(starSizeBias);
+      PropertyField(starSizeSeed);
+      PropertyField(starIntensityRange);
+      PropertyField(starIntensityBias);
+      PropertyField(starIntensitySeed);
+      PropertyField(starTemperatureRange);
+      PropertyField(starTemperatureBias);
+      PropertyField(starTemperatureSeed);
+    } else {
+      PropertyField(useHighDensityMode);
+      PropertyField(starDensity);
+      PropertyField(starSizeRange);
+      PropertyField(starSizeBias);
+      PropertyField(starIntensityRange);
+      PropertyField(starIntensityBias);
+      PropertyField(starTemperatureRange);
+      PropertyField(starTemperatureBias);
+    }
     PropertyField(nightSkyRotation);
-  }
-  PropertyField(nightSkyIntensity);
-  PropertyField(nightSkyTint);
-  PropertyField(nightSkyScatterIntensity);
-  PropertyField(nightSkyScatterTint);
-  PropertyField(useTwinkle);
-  if (useTwinkle.value.boolValue) {
-    PropertyField(twinkleThreshold);
-    PropertyField(twinkleFrequencyRange);
-    PropertyField(twinkleBias);
-    PropertyField(twinkleAmplitude, new UnityEngine.GUIContent("Twinkle Intensity"));
+    PropertyField(nightSkyIntensity);
+    PropertyField(nightSkyTint);
+    PropertyField(nightSkyScatterIntensity);
+    PropertyField(nightSkyScatterTint);
+    PropertyField(useTwinkle);
+    if (useTwinkle.value.boolValue) {
+      PropertyField(twinkleThreshold);
+      PropertyField(twinkleFrequencyRange);
+      PropertyField(twinkleBias);
+      PropertyField(twinkleSmoothAmplitude, new UnityEngine.GUIContent("Smooth Twinkle Intensity"));
+      PropertyField(twinkleChaoticAmplitude, new UnityEngine.GUIContent("Chaotic Twinkle Intensity"));
+    }
+  } else {
+    /* Texture sky controls. */
+    PropertyField(nightSkyTexture);
+    if (nightSkyTexture.value.objectReferenceValue != null) {
+      PropertyField(nightSkyRotation);
+    }
+    PropertyField(nightSkyIntensity);
+    PropertyField(nightSkyTint);
+    PropertyField(nightSkyScatterIntensity);
+    PropertyField(nightSkyScatterTint);
+    PropertyField(useTwinkle);
+    if (useTwinkle.value.boolValue) {
+      PropertyField(twinkleThreshold);
+      PropertyField(twinkleFrequencyRange);
+      PropertyField(twinkleBias);
+      PropertyField(twinkleSmoothAmplitude, new UnityEngine.GUIContent("Smooth Twinkle Intensity"));
+      PropertyField(twinkleChaoticAmplitude, new UnityEngine.GUIContent("Chaotic Twinkle Intensity"));
+    }
   }
 }
 
 private void aerialPerspective(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
   EditorGUILayout.LabelField("Aerial Perspective", titleStyle);
   PropertyField(aerialPerspectiveTableDistances, new UnityEngine.GUIContent("LOD Distances"));
-  PropertyField(aerialPerspectiveOcclusionPowerUniform, new UnityEngine.GUIContent("Power Uniform TODO NAME"));
-  PropertyField(aerialPerspectiveOcclusionBiasUniform, new UnityEngine.GUIContent("Bias Uniform TODO NAME"));
-  PropertyField(aerialPerspectiveOcclusionPowerDirectional, new UnityEngine.GUIContent("Power Directional TODO NAME"));
-  PropertyField(aerialPerspectiveOcclusionBiasDirectional, new UnityEngine.GUIContent("Bias Directional TODO NAME"));
+  PropertyField(aerialPerspectiveOcclusionPowerUniform, new UnityEngine.GUIContent("Uniform Occlusion Spread"));
+  PropertyField(aerialPerspectiveOcclusionBiasUniform, new UnityEngine.GUIContent("Uniform Occlusion Bias"));
+  PropertyField(aerialPerspectiveOcclusionPowerDirectional, new UnityEngine.GUIContent("Directional Occlusion Spread"));
+  PropertyField(aerialPerspectiveOcclusionBiasDirectional, new UnityEngine.GUIContent("Directional Occlusion Bias"));
 }
 
 
@@ -549,6 +613,24 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   }
 
   /* Night Sky. TODO */
+  useProceduralNightSky = Unpack(o.Find(x => x.useProceduralNightSky));
+  /* Procedural. */
+  starTextureQuality = Unpack(o.Find(x => x.starTextureQuality));
+  showStarSeeds = Unpack(o.Find(x => x.showStarSeeds));
+  useHighDensityMode = Unpack(o.Find(x => x.useHighDensityMode));
+  starDensity = Unpack(o.Find(x => x.starDensity));
+  starDensitySeed = Unpack(o.Find(x => x.starDensitySeed));
+  starSizeRange = Unpack(o.Find(x => x.starSizeRange));
+  starSizeBias = Unpack(o.Find(x => x.starSizeBias));
+  starSizeSeed = Unpack(o.Find(x => x.starSizeSeed));
+  starIntensityRange = Unpack(o.Find(x => x.starIntensityRange));
+  starIntensityBias = Unpack(o.Find(x => x.starIntensityBias));
+  starIntensitySeed = Unpack(o.Find(x => x.starIntensitySeed));
+  starTemperatureRange = Unpack(o.Find(x => x.starTemperatureRange));
+  starTemperatureBias = Unpack(o.Find(x => x.starTemperatureBias));
+  starTemperatureSeed = Unpack(o.Find(x => x.starTemperatureSeed));
+
+  /* Regular. */
   lightPollutionTint = Unpack(o.Find(x => x.lightPollutionTint));
   lightPollutionIntensity = Unpack(o.Find(x => x.lightPollutionIntensity));
   nightSkyTexture = Unpack(o.Find(x => x.nightSkyTexture));
@@ -561,7 +643,8 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   twinkleThreshold = Unpack(o.Find(x => x.twinkleThreshold));
   twinkleFrequencyRange = Unpack(o.Find(x => x.twinkleFrequencyRange));
   twinkleBias = Unpack(o.Find(x => x.twinkleBias));
-  twinkleAmplitude = Unpack(o.Find(x => x.twinkleAmplitude));
+  twinkleSmoothAmplitude = Unpack(o.Find(x => x.twinkleSmoothAmplitude));
+  twinkleChaoticAmplitude = Unpack(o.Find(x => x.twinkleChaoticAmplitude));
 
   /* Aerial perspective. */
   aerialPerspectiveTableDistances = Unpack(o.Find(x => x.aerialPerspectiveTableDistances));

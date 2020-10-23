@@ -200,6 +200,52 @@ RTHandle allocateSky4DArrayTable(Vector4 resolution, int depth, string name) {
 /************************ END SKY PRECOMPUTATION TABLES ***********************/
 /******************************************************************************/
 
+private RTHandle m_proceduralStarTexture;
+private ExpanseCommon.StarTextureResolution m_starTextureResolution;
+
+/* Emulates cubemap with texture 2D array of depth 6. */
+RTHandle allocateProceduralStarTexture(Vector2 resolution, string name) {
+  var table = RTHandles.Alloc((int) resolution.x,
+                              (int) resolution.y,
+                              6,
+                              dimension: TextureDimension.Tex2DArray,
+                              colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
+                              enableRandomWrite: true,
+                              name: name);
+
+  Debug.Assert(table != null);
+
+  return table;
+}
+
+void allocateStarTextures(Expanse sky) {
+  /* Allocate new tables if resolution is different. TODO: make res setting
+   * in quality, probably bundle with other settings. also probably remove
+   * null check once this is done. */
+  if (sky.starTextureQuality.value != m_starTextureResolution.quality) {
+    /* Cleanup existing tables. */
+    cleanupStarTextures();
+    ExpanseCommon.StarTextureResolution starRes = ExpanseCommon.StarQualityToStarTextureResolution(sky.starTextureQuality.value);
+    m_proceduralStarTexture = allocateProceduralStarTexture(starRes.Star, "Star");
+    m_starTextureResolution = starRes;
+  }
+}
+
+void cleanupStarTextures() {
+  RTHandles.Release(m_proceduralStarTexture);
+  m_proceduralStarTexture = null;
+}
+
+/******************************************************************************/
+/****************************** PROCEDURAL STARS ******************************/
+/******************************************************************************/
+
+
+
+/******************************************************************************/
+/**************************** END PROCEDURAL STARS ****************************/
+/******************************************************************************/
+
 
 
 /******************************************************************************/
@@ -304,6 +350,7 @@ private void cleanupCubemapRenderTextures() {
 Material m_skyMaterial;
 MaterialPropertyBlock m_PropertyBlock = new MaterialPropertyBlock();
 ComputeShader m_skyCS;
+ComputeShader m_starCS;
 
 /* Hash values for determining update behavior. */
 int m_LastSkyHash;
@@ -328,6 +375,7 @@ public override void Build() {
 
   /* Get handles to compute shaders. */
   m_skyCS = GetExpanseSkyPrecomputeShader();
+  m_starCS = GetExpanseStarPrecomputeShader();
 
   /* Set up default texture quality. */
   m_skyTextureResolution = ExpanseCommon.skyQualityToSkyTextureResolution(ExpanseCommon.SkyTextureQuality.Medium);
@@ -349,13 +397,19 @@ ComputeShader GetExpanseSkyPrecomputeShader() {
     return Resources.Load<ComputeShader>("ExpanseSkyPrecompute");
 }
 
+/* Returns reference to expanse sky precompute shader. */
+ComputeShader GetExpanseStarPrecomputeShader() {
+    return Resources.Load<ComputeShader>("ExpanseStarPrecompute");
+}
+
 public override void Cleanup()
 {
   CoreUtils.Destroy(m_skyMaterial);
 
-  cleanupSkyTables();
   cleanupFullscreenRenderTextures();
   cleanupCubemapRenderTextures();
+  cleanupSkyTables();
+  cleanupStarTextures();
 }
 
 private void setLightingData(Vector4 cameraPos, float planetRadius, float atmosphereRadius) {
@@ -387,7 +441,14 @@ private void setLightingData(Vector4 cameraPos, float planetRadius, float atmosp
 
 private Vector4 computeAverageNightSkyColor(Expanse sky) {
   /* TODO: make more efficient. */
-  if (sky.nightSkyTexture.value != null) {
+  if (sky.useProceduralNightSky.value) {
+    /* Use an analytical hack to allow for realtime editing. */
+    return sky.nightSkyIntensity.value * sky.nightSkyTint.value;
+  } else if (sky.nightSkyTexture.value != null) {
+    /* Actually compute the average. TODO: make more efficient. It's tough
+     * because star textures are sparse, so there's no guarantee that
+     * using a uniform sphere sample with a reasonable amount of samples
+     * would give a good estimate. */
     Vector4 averageColor = new Vector4(0, 0, 0, 0);
     for (int i = 0; i < 6; i++) {
       Vector4 faceColor = new Vector4(0, 0, 0, 0);
@@ -423,6 +484,9 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
    * same and no atmosphere layers have been added or removed. */
   allocateSkyPrecomputationTables(sky);
 
+  /* Allocate star textures if necessary. */
+  allocateStarTextures(sky);
+
   /* Set everything in the material property block. */
   setMaterialPropertyBlock(builtinParams);
 
@@ -452,9 +516,14 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
     m_LastCloudHash = currentCloudHash;
   }
 
-  /* Check if we need to recompute the average night sky color. */
+  /* Check if we need to recompute the average night sky color and night
+   * sky texture. */
   int currentNightSkyHash = sky.GetNightSkyHashCode();
   if (currentNightSkyHash != m_LastNightSkyHash) {
+    if (sky.useProceduralNightSky.value) {
+      setStarRWTextures();
+      DispatchStarCompute(builtinParams.commandBuffer);
+    }
     m_averageNightSkyColor = computeAverageNightSkyColor(sky);
     m_LastNightSkyHash = currentNightSkyHash;
   }
@@ -635,6 +704,16 @@ private void DispatchSkyCompute(CommandBuffer cmd) {
   }
 }
 
+private void DispatchStarCompute(CommandBuffer cmd) {
+  using (new ProfilingSample(cmd, "Precompute Expanse Star Texture")) {
+    int handle_Star = m_starCS.FindKernel("STAR");
+
+    cmd.DispatchCompute(m_starCS, handle_Star,
+      (int) m_starTextureResolution.Star.x / 8,
+      (int) m_starTextureResolution.Star.y / 8, 6);
+  }
+}
+
 /******************************************************************************/
 /************************ END COMPUTE SHADER FUNCTIONS ************************/
 /******************************************************************************/
@@ -666,6 +745,11 @@ private void setSkyRWTextures() {
   }
 }
 
+private void setStarRWTextures() {
+  int handle_Star = m_starCS.FindKernel("STAR");
+  m_starCS.SetTexture(handle_Star, "_Star_RW", m_proceduralStarTexture);
+}
+
 /******************************************************************************/
 /**************************** END RW TEXTURE SETTERS **************************/
 /******************************************************************************/
@@ -688,6 +772,9 @@ private void setGlobalCBuffer(BuiltinSkyParameters builtinParams) {
 
   /* Atmosphere. */
   setGlobalCBufferAtmosphereLayers(builtinParams.commandBuffer, sky);
+
+  /* Night Sky. */
+  setGlobalCBufferNightSky(builtinParams.commandBuffer, sky);
 
   /* Aerial Perspective. */
   setGlobalCBufferAerialPerspective(builtinParams.commandBuffer, sky);
@@ -800,6 +887,28 @@ private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, Expanse sky) {
   }
 }
 
+private void setGlobalCBufferNightSky(CommandBuffer cmd, Expanse sky) {
+  if (sky.useProceduralNightSky.value) {
+    cmd.SetGlobalVector("_resStar", m_starTextureResolution.Star);
+    cmd.SetGlobalVector("_resStar", m_starTextureResolution.Star);
+    cmd.SetGlobalFloat("_useHighDensityMode", sky.useHighDensityMode.value ? 1 : 0);
+    cmd.SetGlobalFloat("_starDensity", sky.starDensity.value);
+    cmd.SetGlobalVector("_starDensitySeed", sky.starDensitySeed.value);
+    cmd.SetGlobalFloat("_starSizeMin", sky.starSizeRange.value.x);
+    cmd.SetGlobalFloat("_starSizeMax", sky.starSizeRange.value.y);
+    cmd.SetGlobalFloat("_starSizeBias", sky.starSizeBias.value);
+    cmd.SetGlobalVector("_starSizeSeed", sky.starSizeSeed.value);
+    cmd.SetGlobalFloat("_starIntensityMin", sky.starIntensityRange.value.x);
+    cmd.SetGlobalFloat("_starIntensityMax", sky.starIntensityRange.value.y);
+    cmd.SetGlobalFloat("_starIntensityBias", sky.starIntensityBias.value);
+    cmd.SetGlobalVector("_starIntensitySeed", sky.starIntensitySeed.value);
+    cmd.SetGlobalFloat("_starTemperatureMin", sky.starTemperatureRange.value.x);
+    cmd.SetGlobalFloat("_starTemperatureMax", sky.starTemperatureRange.value.y);
+    cmd.SetGlobalFloat("_starTemperatureBias", sky.starTemperatureBias.value);
+    cmd.SetGlobalVector("_starTemperatureSeed", sky.starTemperatureSeed.value);
+  }
+}
+
 private void setGlobalCBufferAerialPerspective(CommandBuffer cmd, Expanse sky) {
   cmd.SetGlobalFloat("_aerialPerspectiveTableDistanceLOD0", sky.aerialPerspectiveTableDistances.value.x);
   cmd.SetGlobalFloat("_aerialPerspectiveTableDistanceLOD1", sky.aerialPerspectiveTableDistances.value.y);
@@ -812,7 +921,7 @@ private void setGlobalCBufferQuality(CommandBuffer cmd, Expanse sky) {
   cmd.SetGlobalInt("_numGISamples", sky.numberOfGroundIrradianceSamples.value);
   cmd.SetGlobalInt("_numMSSamples", sky.numberOfMultipleScatteringSamples.value);
   cmd.SetGlobalInt("_numMSAccumulationSamples", sky.numberOfMultipleScatteringAccumulationSamples.value);
-  cmd.SetGlobalFloat("_useImportanceSampling", sky.useImportanceSampling.value ? 0 : 1);
+  cmd.SetGlobalFloat("_useImportanceSampling", sky.useImportanceSampling.value ? 1 : 0);
 }
 
 /******************************************************************************/
@@ -976,6 +1085,11 @@ private void setMaterialPropertyBlockCelestialBodies(Expanse sky) {
 }
 
 private void setMaterialPropertyBlockNightSky(Expanse sky) {
+  m_PropertyBlock.SetFloat("_useProceduralNightSky", (sky.useProceduralNightSky.value) ? 1 : 0);
+  if (sky.useProceduralNightSky.value) {
+    m_PropertyBlock.SetTexture("_Star", m_proceduralStarTexture);
+  }
+
   m_PropertyBlock.SetVector("_lightPollutionTint", sky.lightPollutionTint.value
     * sky.lightPollutionIntensity.value);
   m_PropertyBlock.SetFloat("_hasNightSkyTexture", (sky.nightSkyTexture.value == null) ? 0 : 1);
@@ -999,7 +1113,8 @@ private void setMaterialPropertyBlockNightSky(Expanse sky) {
   m_PropertyBlock.SetFloat("_twinkleFrequencyMin", sky.twinkleFrequencyRange.value.x);
   m_PropertyBlock.SetFloat("_twinkleFrequencyMax", sky.twinkleFrequencyRange.value.y);
   m_PropertyBlock.SetFloat("_twinkleBias", sky.twinkleBias.value);
-  m_PropertyBlock.SetFloat("_twinkleAmplitude", sky.twinkleAmplitude.value);
+  m_PropertyBlock.SetFloat("_twinkleSmoothAmplitude", sky.twinkleSmoothAmplitude.value);
+  m_PropertyBlock.SetFloat("_twinkleChaoticAmplitude", sky.twinkleChaoticAmplitude.value);
 }
 
 private void setMaterialPropertyBlockAerialPerspective(Expanse sky) {

@@ -150,6 +150,59 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
   }
 }
 
+/* Enum for texture quality of stored star tables. */
+public enum StarTextureQuality {
+  Low = 0,
+  Medium,
+  High,
+  Ultra,
+  RippingThroughTheMetaverse
+}
+public const uint kMaxStarTextureQuality = 6;
+
+/* Struct specifying texture resolutions for star tables. */
+public struct StarTextureResolution {
+  public StarTextureQuality quality;
+  public Vector2 Star;
+}
+
+/* Given a sky texture quality, returns the corresonding resolution. */
+public static StarTextureResolution StarQualityToStarTextureResolution(StarTextureQuality quality) {
+  switch (quality) {
+    case StarTextureQuality.Low:
+      return new StarTextureResolution() {
+        quality = quality,
+        Star = new Vector2(512, 512)
+      };
+    case StarTextureQuality.Medium:
+      return new StarTextureResolution() {
+        quality = quality,
+        Star = new Vector2(1024, 1024)
+      };
+    case StarTextureQuality.High:
+      return new StarTextureResolution() {
+        quality = quality,
+        Star = new Vector2(2048, 2048)
+      };
+    case StarTextureQuality.Ultra:
+      return new StarTextureResolution() {
+        quality = quality,
+        Star = new Vector2(4096, 4096)
+      };
+    case StarTextureQuality.RippingThroughTheMetaverse:
+      return new StarTextureResolution() {
+        quality = quality,
+        Star = new Vector2(8192, 8192)
+      };
+    default:
+      /* To be safe, default case. Returns potato quality. */
+      return new StarTextureResolution() {
+        quality = quality,
+        Star = new Vector2(64, 64)
+      };
+  }
+}
+
 public static Vector3 degreesToRadians(Vector3 angles) {
   return (angles / 180.0f) * Mathf.PI;
 }

@@ -23,6 +23,7 @@ HLSLINCLUDE
 #include "../common/shaders/ExpanseSkyCommon.hlsl"
 #include "../common/shaders/ExpanseRandom.hlsl"
 #include "../sky/ExpanseSkyMapping.hlsl"
+#include "../sky/ExpanseStarCommon.hlsl"
 
 /******************************************************************************/
 /******************************** END INCLUDES ********************************/
@@ -75,7 +76,9 @@ TEXTURECUBE(_bodyEmissionTexture5);
 TEXTURECUBE(_bodyEmissionTexture6);
 TEXTURECUBE(_bodyEmissionTexture7);
 
-/* Night Sky. TODO */
+/* Night Sky. */
+bool _useProceduralNightSky;
+TEXTURE2D_ARRAY(_Star);
 float4 _lightPollutionTint;   /* Tint and intensity. */
 bool _hasNightSkyTexture;
 TEXTURECUBE(_nightSkyTexture);
@@ -88,7 +91,8 @@ float _twinkleThreshold;
 float _twinkleFrequencyMin;
 float _twinkleFrequencyMax;
 float _twinkleBias;
-float _twinkleAmplitude;
+float _twinkleSmoothAmplitude;
+float _twinkleChaoticAmplitude;
 
 /* Aerial Perspective. */
 float _aerialPerspectiveOcclusionBiasUniform;
@@ -407,27 +411,52 @@ float3 shadeClosestCelestialBody(float3 d) {
 
 /* Given direction to sample in, shades direct light from night sky. */
 float3 shadeNightSky(float3 d) {
-  /* Sample the sky texture. */
-  float3 nightSkyColor = _nightSkyTint.xyz;
-  float3 starColor = float3(0, 0, 0);
   float3 textureCoordinate = mul(d, (float3x3)_nightSkyRotation);
-  if (_hasNightSkyTexture) {
-    starColor = SAMPLE_TEXTURECUBE_LOD(_nightSkyTexture,
-      s_linear_clamp_sampler, textureCoordinate, 0).xyz;
-  }
-
-  /* Calculate the twinkling effect. */
-  float twinkle = 1;
-  if (_useTwinkle) {
-    float magnitude = dot(starColor, starColor) / 3.0;
-    if (magnitude > _twinkleThreshold) {
-      float phase = 2 * PI * random_3_1(textureCoordinate);
-      float frequency = _twinkleFrequencyMin +
-        (_twinkleFrequencyMax - _twinkleFrequencyMin) * random_3_1(textureCoordinate * 1.37);
-      twinkle = max(0, _twinkleAmplitude * pow(sin(frequency * _Time.y + phase), 2) + _twinkleBias);
+  /* Special case things out for procedural and texture options. */
+  if (_useProceduralNightSky) {
+    float3 proceduralTextureCoordinate = directionToTex2DArrayCubemapUV(textureCoordinate);
+    float4 colorAndSeed = SAMPLE_TEXTURE2D_ARRAY_LOD(_Star, s_linear_clamp_sampler,
+      proceduralTextureCoordinate.xy, proceduralTextureCoordinate.z, 0);
+    float3 starColor = colorAndSeed.xyz;
+    float starSeed = colorAndSeed.w;
+    float3 directionSeed = random_3_1(textureCoordinate);
+    float twinkleCoarse = 1;
+    float twinkleFine = 1;
+    if (_useTwinkle) {
+      float magnitude = dot(starColor, starColor) / 3.0;
+      if (magnitude > _twinkleThreshold) {
+        /* Coarse-grained twinkle. */
+        float phase = 2 * PI * starSeed;
+        float frequency = _twinkleFrequencyMin +
+          (_twinkleFrequencyMax - _twinkleFrequencyMin) * random_1_1(starSeed * 1.37);
+        twinkleCoarse = max(0, _twinkleSmoothAmplitude * pow(sin(frequency * _Time.y + phase), 2) + _twinkleBias);
+        /* Fine-grained twinkle. */
+        phase = 2 * PI * directionSeed;
+        frequency = _twinkleFrequencyMin +
+          (_twinkleFrequencyMax - _twinkleFrequencyMin) * random_1_1(directionSeed * 1.37);
+        twinkleFine = max(0, _twinkleChaoticAmplitude * pow(sin(frequency * _Time.y + phase), 2) + _twinkleBias);
+      }
     }
+    return (twinkleCoarse + twinkleFine) * _nightSkyTint.xyz * starColor;
+  } else {
+    if (!_hasNightSkyTexture) {
+      return _nightSkyTint.xyz;
+    }
+    float3 starColor = SAMPLE_TEXTURECUBE_LOD(_nightSkyTexture,
+      s_linear_clamp_sampler, textureCoordinate, 0).xyz;
+    float3 directionSeed = random_3_1(textureCoordinate);
+    float twinkle = 1;
+    if (_useTwinkle) {
+      float magnitude = dot(starColor, starColor) / 3.0;
+      if (magnitude > _twinkleThreshold) {
+        float phase = 2 * PI * directionSeed;
+        float frequency = _twinkleFrequencyMin +
+          (_twinkleFrequencyMax - _twinkleFrequencyMin) * random_1_1(directionSeed * 1.37);
+        twinkle = max(0, _twinkleSmoothAmplitude * pow(sin(frequency * _Time.y + phase), 2) + _twinkleBias);
+      }
+    }
+    return twinkle * _nightSkyTint.xyz * starColor;
   }
-  return twinkle * nightSkyColor * starColor;
 }
 
 int computeAerialPerspectiveLOD(float depth) {
@@ -540,13 +569,8 @@ float3 computeAerialPerspectiveColorBody(float2 r_mu_uv, int i, float3 start, fl
    * checking how parallel the view and light vectors are. If they're
    * really parallel, that means the light is totally behind the geo.
    * If they're less parallel, then the light is less behind the geo.
-   * TODO: affect mie layer more than others.
-   * TODO: Aerial perspective section in UI with:
-   *    -occlusion multiplier parameters, including special case for mie layers
-   *    -side note: perhaps should have separate quality setting for aerial perspective table?
-   *    could introduce artifacts, but could also allow us to store 2-3 depths instead, at a low cost
-   *    though at this point it starts to get into something like hillaire's solution... still, variable
-   *    res would be good. */
+   * Then, we allow the user to tweak parameters until they're happy
+   * with the result. */
   float occlusionMultiplierUniform = _aerialPerspectiveOcclusionBiasUniform
     + (1-_aerialPerspectiveOcclusionBiasUniform) * pow(1-saturate(dot_L_d), _aerialPerspectiveOcclusionPowerUniform);
   float occlusionMultiplierDirectional = _aerialPerspectiveOcclusionBiasDirectional
@@ -577,7 +601,8 @@ float3 computeAerialPerspectiveColorBody(float2 r_mu_uv, int i, float3 start, fl
     float3 ssLOD1 = interval_length_1 * sampleAerialPerspectiveTexture(uvSS, j, LOD_1);
     float3 ss = lerp(ssLOD0, ssLOD1, LODBlend);
 
-    /* Final color. */
+    /* Final color. HACK: == 2 here is for Mie phase. If this changes,
+     * we will need to change it. */
     result += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
       * ss * phase * ((_layerPhaseFunction[j] == 2) ? occlusionMultiplierDirectional
       : occlusionMultiplierUniform);
@@ -605,7 +630,7 @@ float3 computeLightPollutionColor(float2 uv, float t_hit) {
     float3 lp = sampleLPTexture(uv, i);
     color += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz) * lp;
   }
-  color *= _lightPollutionTint; // TODO: light pollution intensity and tint controls
+  color *= _lightPollutionTint;
   return t_hit * color;
 }
 
@@ -694,13 +719,12 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     skyColor = computeSkyColor(coord2D, startPoint, d, t_hit,
       intersection.groundHit, t_hit);
   } else {
-    /* We have to compute aerial perspective. */
-    /* First, compute blend transmittance. */
+    /* We have to compute aerial perspective. First, compute blend
+     * transmittance. */
     float3 depthSamplePoint = startPoint + d * depth;
-    float depthR = length(depthSamplePoint);
-    float depthMu = dot(normalize(depthSamplePoint), d);
-    float2 depthCoord2D = mapSky2DCoord(depthR, depthMu, _atmosphereRadius,
-      _planetRadius, t_hit-depth, intersection.groundHit); // TODO: maybe map with aerial perspective distance if we use that?
+    float2 depthCoord2D = mapSky2DCoord(length(depthSamplePoint),
+      dot(normalize(depthSamplePoint), d), _atmosphereRadius, _planetRadius,
+      t_hit-depth, intersection.groundHit);
     float3 aerialPerspectiveTransmittanceRaw = computeSkyTransmittanceRaw(depthCoord2D);
     blendTransmittance = exp(transmittanceRaw - aerialPerspectiveTransmittanceRaw);
 
@@ -711,23 +735,22 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     float aerialPerspectiveDistance = computeAerialPerspectiveLODDistance(LOD, t_hit);
     float aerialPerspectiveDistance_up = computeAerialPerspectiveLODDistance(LOD_up, t_hit);
     skyColor = computeAerialPerspectiveColor(coord2D, startPoint, d, t_hit,
-      intersection.groundHit, aerialPerspectiveDistance, aerialPerspectiveDistance_up, LOD, LOD_up, LODBlend);
+      intersection.groundHit, aerialPerspectiveDistance,
+      aerialPerspectiveDistance_up, LOD, LOD_up, LODBlend);
     float3 attenuatedSkyColor = computeAerialPerspectiveColor(depthCoord2D,
       depthSamplePoint, d, t_hit-depth, intersection.groundHit,
-      aerialPerspectiveDistance-depth, aerialPerspectiveDistance_up-depth, LOD, LOD_up, LODBlend);
-    skyColor -= min(skyColor, blendTransmittance*attenuatedSkyColor);
-    skyColor = max(0, skyColor);
+      aerialPerspectiveDistance-depth, aerialPerspectiveDistance_up-depth,
+      LOD, LOD_up, LODBlend);
+    skyColor = max(0, skyColor - blendTransmittance*attenuatedSkyColor);
   }
 
-  /* Compute light pollution. TODO: attenuate for aerial perspective!!! or
-   * maybe just don't render. */
+  /* Compute light pollution. */
   float3 lightPollution = float3(0, 0, 0);
   if (!geoHit || cubemap) {
     lightPollution = computeLightPollutionColor(coord2D, t_hit);
   }
 
-  /* Compute star scattering. TODO: attenuate for aerial perspective!!! or
-   * maybe just don't render. */
+  /* Compute star scattering. */
   float3 starScattering = float3(0, 0, 0);
   if (!geoHit || cubemap) {
     starScattering = computeStarScatteringColor(coord2D, mu,

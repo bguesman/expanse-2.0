@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using ExpanseCommonNamespace;
 
 [ExecuteInEditMode]
@@ -11,7 +12,7 @@ public class ExpanseLightControl : MonoBehaviour
   UnityEngine.Rendering.Volume volume;
   Expanse sky;
   UnityEngine.Light light;
-  float t;
+  public int bodyIndex;
 
   // Start is called before the first frame update
   void Start() {
@@ -29,25 +30,25 @@ public class ExpanseLightControl : MonoBehaviour
     } else {
       Debug.Log("failed"); // lal
     }
-
-    t = 0;
   }
 
   // Update is called once per fram
   void Update() {
-  /* For editor. */
-  if (sky == null) {
-    Start();
-  }
+    /* For editor. */
+    if (sky == null) {
+      Start();
+    }
 
-    gameObject.transform.eulerAngles = new Vector3(sky.bodyDirection0.value.x, sky.bodyDirection0.value.y, sky.bodyDirection0.value.z);
+    int i = bodyIndex;
+    Vector3 bodyDirection = ((Vector3Parameter) sky.GetType().GetField("bodyDirection" + i).GetValue(sky)).value;
+    gameObject.transform.eulerAngles = new Vector3(bodyDirection.x, bodyDirection.y, bodyDirection.z);
 
     /* Compute and set light color. */
-    bool useTemperature = sky.bodyUseTemperature0.value;
-    float lightIntensity = sky.bodyLightIntensity0.value;
-    Vector4 lightColor = sky.bodyLightColor0.value;
+    bool useTemperature = ((BoolParameter) sky.GetType().GetField("bodyUseTemperature" + i).GetValue(sky)).value;
+    float lightIntensity = ((FloatParameter) sky.GetType().GetField("bodyLightIntensity" + i).GetValue(sky)).value;
+    Vector4 lightColor = ((ColorParameter) sky.GetType().GetField("bodyLightColor" + i).GetValue(sky)).value;
     if (useTemperature) {
-      float temperature = sky.bodyLightTemperature0.value;
+      float temperature = ((FloatParameter) sky.GetType().GetField("bodyLightTemperature" + i).GetValue(sky)).value;
       Vector4 temperatureColor = ExpanseCommon.blackbodyTempToColor(temperature);
       light.color = (new Vector4(temperatureColor.x * lightColor.x,
         temperatureColor.y * lightColor.y,
@@ -57,12 +58,10 @@ public class ExpanseLightControl : MonoBehaviour
       light.color = lightColor;
     }
 
-    Vector3 transmittance = ExpanseCommon.bodyTransmittances[0];
+    Vector3 transmittance = ExpanseCommon.bodyTransmittances[bodyIndex];
     Vector4 transmittanceV4 = new Vector4(transmittance.x, transmittance.y, transmittance.z, 1);
     light.color = light.color * transmittanceV4;
 
     light.intensity = lightIntensity;
-
-    t += 0.1f;
   }
 }
