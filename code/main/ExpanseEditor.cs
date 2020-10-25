@@ -144,6 +144,61 @@ SerializedDataParameter useHighDensityMode;
 /* Nebulae. */
 SerializedDataParameter useProceduralNebulae;
 SerializedDataParameter nebulaeTextureQuality;
+/* Procedural nebulae. */
+SerializedDataParameter nebulaOverallDefinition;
+SerializedDataParameter nebulaOverallIntensity;
+SerializedDataParameter nebulaCoverageScale;
+
+SerializedDataParameter nebulaHazeBrightness;
+SerializedDataParameter nebulaHazeColor;
+SerializedDataParameter nebulaHazeScale;
+SerializedDataParameter nebulaHazeScaleFactor;
+SerializedDataParameter nebulaHazeDetailBalance;
+SerializedDataParameter nebulaHazeOctaves;
+SerializedDataParameter nebulaHazeBias;
+SerializedDataParameter nebulaHazeSpread;
+SerializedDataParameter nebulaHazeCoverage;
+SerializedDataParameter nebulaHazeStrength;
+
+SerializedDataParameter nebulaCloudBrightness;
+SerializedDataParameter nebulaCloudColor;
+SerializedDataParameter nebulaCloudScale;
+SerializedDataParameter nebulaCloudScaleFactor;
+SerializedDataParameter nebulaCloudDetailBalance;
+SerializedDataParameter nebulaCloudOctaves;
+SerializedDataParameter nebulaCloudBias;
+SerializedDataParameter nebulaCloudSpread;
+SerializedDataParameter nebulaCloudCoverage;
+SerializedDataParameter nebulaCloudStrength;
+
+SerializedDataParameter nebulaCoarseStrandBrightness;
+SerializedDataParameter nebulaCoarseStrandColor;
+SerializedDataParameter nebulaCoarseStrandScale;
+SerializedDataParameter nebulaCoarseStrandScaleFactor;
+SerializedDataParameter nebulaCoarseStrandDetailBalance;
+SerializedDataParameter nebulaCoarseStrandOctaves;
+SerializedDataParameter nebulaCoarseStrandBias;
+SerializedDataParameter nebulaCoarseStrandDefinition;
+SerializedDataParameter nebulaCoarseStrandSpread;
+SerializedDataParameter nebulaCoarseStrandCoverage;
+SerializedDataParameter nebulaCoarseStrandStrength;
+
+SerializedDataParameter nebulaFineStrandBrightness;
+SerializedDataParameter nebulaFineStrandColor;
+SerializedDataParameter nebulaFineStrandScale;
+SerializedDataParameter nebulaFineStrandScaleFactor;
+SerializedDataParameter nebulaFineStrandDetailBalance;
+SerializedDataParameter nebulaFineStrandOctaves;
+SerializedDataParameter nebulaFineStrandBias;
+SerializedDataParameter nebulaFineStrandDefinition;
+SerializedDataParameter nebulaFineStrandSpread;
+SerializedDataParameter nebulaFineStrandCoverage;
+SerializedDataParameter nebulaFineStrandStrength;
+
+SerializedDataParameter nebulaTransmittanceRange;
+SerializedDataParameter nebulaTransmittanceScale;
+
+/* Regular nebulae. */
 SerializedDataParameter nebulaeTexture;
 
 /* Regular. */
@@ -501,6 +556,59 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
     if (useProceduralNebulae.value.boolValue) {
       /* Nebulae are procedural. */
       PropertyField(nebulaeTextureQuality);
+
+      PropertyField(nebulaOverallDefinition);
+      PropertyField(nebulaOverallIntensity);
+      PropertyField(nebulaCoverageScale);
+
+      PropertyField(nebulaHazeBrightness);
+      PropertyField(nebulaHazeColor);
+      PropertyField(nebulaHazeScale);
+      PropertyField(nebulaHazeScaleFactor);
+      PropertyField(nebulaHazeDetailBalance);
+      PropertyField(nebulaHazeOctaves);
+      PropertyField(nebulaHazeBias);
+      PropertyField(nebulaHazeSpread);
+      PropertyField(nebulaHazeCoverage);
+      PropertyField(nebulaHazeStrength);
+
+      PropertyField(nebulaCloudBrightness);
+      PropertyField(nebulaCloudColor);
+      PropertyField(nebulaCloudScale);
+      PropertyField(nebulaCloudScaleFactor);
+      PropertyField(nebulaCloudDetailBalance);
+      PropertyField(nebulaCloudOctaves);
+      PropertyField(nebulaCloudBias);
+      PropertyField(nebulaCloudSpread);
+      PropertyField(nebulaCloudCoverage);
+      PropertyField(nebulaCloudStrength);
+
+      PropertyField(nebulaCoarseStrandBrightness);
+      PropertyField(nebulaCoarseStrandColor);
+      PropertyField(nebulaCoarseStrandScale);
+      PropertyField(nebulaCoarseStrandScaleFactor);
+      PropertyField(nebulaCoarseStrandDetailBalance);
+      PropertyField(nebulaCoarseStrandOctaves);
+      PropertyField(nebulaCoarseStrandBias);
+      PropertyField(nebulaCoarseStrandDefinition);
+      PropertyField(nebulaCoarseStrandSpread);
+      PropertyField(nebulaCoarseStrandCoverage);
+      PropertyField(nebulaCoarseStrandStrength);
+
+      PropertyField(nebulaFineStrandBrightness);
+      PropertyField(nebulaFineStrandColor);
+      PropertyField(nebulaFineStrandScale);
+      PropertyField(nebulaFineStrandScaleFactor);
+      PropertyField(nebulaFineStrandDetailBalance);
+      PropertyField(nebulaFineStrandOctaves);
+      PropertyField(nebulaFineStrandBias);
+      PropertyField(nebulaFineStrandDefinition);
+      PropertyField(nebulaFineStrandSpread);
+      PropertyField(nebulaFineStrandCoverage);
+      PropertyField(nebulaFineStrandStrength);
+
+      PropertyField(nebulaTransmittanceRange);
+      PropertyField(nebulaTransmittanceScale);
     } else {
       /* Nebulae is a texture. */
       PropertyField(nebulaeTexture);
@@ -666,6 +774,55 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   /* Nebulae. */
   useProceduralNebulae = Unpack(o.Find(x => x.useProceduralNebulae));
   nebulaeTextureQuality = Unpack(o.Find(x => x.nebulaeTextureQuality));
+  /* Procedural nebulae. */
+  nebulaOverallDefinition = Unpack(o.Find(x => x.nebulaOverallDefinition));
+  nebulaOverallIntensity = Unpack(o.Find(x => x.nebulaOverallIntensity));
+  nebulaCoverageScale = Unpack(o.Find(x => x.nebulaCoverageScale));
+  nebulaHazeBrightness = Unpack(o.Find(x => x.nebulaHazeBrightness));
+  nebulaHazeColor = Unpack(o.Find(x => x.nebulaHazeColor));
+  nebulaHazeScale = Unpack(o.Find(x => x.nebulaHazeScale));
+  nebulaHazeScaleFactor = Unpack(o.Find(x => x.nebulaHazeScaleFactor));
+  nebulaHazeDetailBalance = Unpack(o.Find(x => x.nebulaHazeDetailBalance));
+  nebulaHazeOctaves = Unpack(o.Find(x => x.nebulaHazeOctaves));
+  nebulaHazeBias = Unpack(o.Find(x => x.nebulaHazeBias));
+  nebulaHazeSpread = Unpack(o.Find(x => x.nebulaHazeSpread));
+  nebulaHazeCoverage = Unpack(o.Find(x => x.nebulaHazeCoverage));
+  nebulaHazeStrength = Unpack(o.Find(x => x.nebulaHazeStrength));
+  nebulaCloudBrightness = Unpack(o.Find(x => x.nebulaCloudBrightness));
+  nebulaCloudColor = Unpack(o.Find(x => x.nebulaCloudColor));
+  nebulaCloudScale = Unpack(o.Find(x => x.nebulaCloudScale));
+  nebulaCloudScaleFactor = Unpack(o.Find(x => x.nebulaCloudScaleFactor));
+  nebulaCloudDetailBalance = Unpack(o.Find(x => x.nebulaCloudDetailBalance));
+  nebulaCloudOctaves = Unpack(o.Find(x => x.nebulaCloudOctaves));
+  nebulaCloudBias = Unpack(o.Find(x => x.nebulaCloudBias));
+  nebulaCloudSpread = Unpack(o.Find(x => x.nebulaCloudSpread));
+  nebulaCloudCoverage = Unpack(o.Find(x => x.nebulaCloudCoverage));
+  nebulaCloudStrength = Unpack(o.Find(x => x.nebulaCloudStrength));
+  nebulaCoarseStrandBrightness = Unpack(o.Find(x => x.nebulaCoarseStrandBrightness));
+  nebulaCoarseStrandColor = Unpack(o.Find(x => x.nebulaCoarseStrandColor));
+  nebulaCoarseStrandScale = Unpack(o.Find(x => x.nebulaCoarseStrandScale));
+  nebulaCoarseStrandScaleFactor = Unpack(o.Find(x => x.nebulaCoarseStrandScaleFactor));
+  nebulaCoarseStrandDetailBalance = Unpack(o.Find(x => x.nebulaCoarseStrandDetailBalance));
+  nebulaCoarseStrandOctaves = Unpack(o.Find(x => x.nebulaCoarseStrandOctaves));
+  nebulaCoarseStrandBias = Unpack(o.Find(x => x.nebulaCoarseStrandBias));
+  nebulaCoarseStrandDefinition = Unpack(o.Find(x => x.nebulaCoarseStrandDefinition));
+  nebulaCoarseStrandSpread = Unpack(o.Find(x => x.nebulaCoarseStrandSpread));
+  nebulaCoarseStrandCoverage = Unpack(o.Find(x => x.nebulaCoarseStrandCoverage));
+  nebulaCoarseStrandStrength = Unpack(o.Find(x => x.nebulaCoarseStrandStrength));
+  nebulaFineStrandBrightness = Unpack(o.Find(x => x.nebulaFineStrandBrightness));
+  nebulaFineStrandColor = Unpack(o.Find(x => x.nebulaFineStrandColor));
+  nebulaFineStrandScale = Unpack(o.Find(x => x.nebulaFineStrandScale));
+  nebulaFineStrandScaleFactor = Unpack(o.Find(x => x.nebulaFineStrandScaleFactor));
+  nebulaFineStrandDetailBalance = Unpack(o.Find(x => x.nebulaFineStrandDetailBalance));
+  nebulaFineStrandOctaves = Unpack(o.Find(x => x.nebulaFineStrandOctaves));
+  nebulaFineStrandBias = Unpack(o.Find(x => x.nebulaFineStrandBias));
+  nebulaFineStrandDefinition = Unpack(o.Find(x => x.nebulaFineStrandDefinition));
+  nebulaFineStrandSpread = Unpack(o.Find(x => x.nebulaFineStrandSpread));
+  nebulaFineStrandCoverage = Unpack(o.Find(x => x.nebulaFineStrandCoverage));
+  nebulaFineStrandStrength = Unpack(o.Find(x => x.nebulaFineStrandStrength));
+  nebulaTransmittanceRange = Unpack(o.Find(x => x.nebulaTransmittanceRange));
+  nebulaTransmittanceScale = Unpack(o.Find(x => x.nebulaTransmittanceScale));
+  /* Regular nebulae. */
   nebulaeTexture = Unpack(o.Find(x => x.nebulaeTexture));
 
   /* Regular. */

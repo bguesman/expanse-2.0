@@ -170,13 +170,72 @@ public FloatRangeParameter starTemperatureRange = new FloatRangeParameter(new Ve
 public ClampedFloatParameter starTemperatureBias = new ClampedFloatParameter(0.5f, 0.0f, 1);
 [Tooltip("Seed for star temperature variation.")]
 public Vector3Parameter starTemperatureSeed = new Vector3Parameter(new Vector3(0.2352f, 1.582f, 8.823f));
+
 /* Nebulae parameters. */
 [Tooltip("Whether to use a procedural nebulae texture, or a static pre-authored one.")]
 public BoolParameter useProceduralNebulae = new BoolParameter(true);
+
+/* Procedural nebulae. TODO: tooltips. */
 [Tooltip("Quality of procedural nebulae texture.")]
 public EnumParameter<ExpanseCommon.StarTextureQuality> nebulaeTextureQuality = new EnumParameter<ExpanseCommon.StarTextureQuality>(ExpanseCommon.StarTextureQuality.Medium);
+public MinFloatParameter nebulaOverallDefinition = new MinFloatParameter(1, 0);
+public MinFloatParameter nebulaOverallIntensity = new MinFloatParameter(1, 0);
+public MinFloatParameter nebulaCoverageScale = new MinFloatParameter(3, 1);
+
+public MinFloatParameter nebulaHazeBrightness = new MinFloatParameter(1, 0);
+public ColorParameter nebulaHazeColor = new ColorParameter(Color.red, hdr: false, showAlpha: false, showEyeDropper: true);
+public MinFloatParameter nebulaHazeScale = new MinFloatParameter(5, 5);
+public ClampedFloatParameter nebulaHazeScaleFactor = new ClampedFloatParameter(2, 0.01f, 4.0f);
+public ClampedFloatParameter nebulaHazeDetailBalance = new ClampedFloatParameter(0.5f, 0.01f, 4.0f);
+public ClampedIntParameter nebulaHazeOctaves = new ClampedIntParameter(5, 1, 8);
+public ClampedFloatParameter nebulaHazeBias = new ClampedFloatParameter(0, -1, 1);
+public MinFloatParameter nebulaHazeSpread = new MinFloatParameter(1, 0);
+public ClampedFloatParameter nebulaHazeCoverage = new ClampedFloatParameter(0.5f, 0, 1);
+public MinFloatParameter nebulaHazeStrength = new MinFloatParameter(1, 0);
+
+public MinFloatParameter nebulaCloudBrightness = new MinFloatParameter(1, 0);
+public ColorParameter nebulaCloudColor = new ColorParameter(Color.green, hdr: false, showAlpha: false, showEyeDropper: true);
+public MinFloatParameter nebulaCloudScale = new MinFloatParameter(5, 5);
+public ClampedFloatParameter nebulaCloudScaleFactor = new ClampedFloatParameter(2, 0.01f, 4.0f);
+public ClampedFloatParameter nebulaCloudDetailBalance = new ClampedFloatParameter(0.5f, 0.01f, 4.0f);
+public ClampedIntParameter nebulaCloudOctaves = new ClampedIntParameter(5, 1, 8);
+public ClampedFloatParameter nebulaCloudBias = new ClampedFloatParameter(0, -1, 1);
+public MinFloatParameter nebulaCloudSpread = new MinFloatParameter(1, 0);
+public ClampedFloatParameter nebulaCloudCoverage = new ClampedFloatParameter(0.5f, 0, 1);
+public MinFloatParameter nebulaCloudStrength = new MinFloatParameter(1, 0);
+
+public MinFloatParameter nebulaCoarseStrandBrightness = new MinFloatParameter(1, 0);
+public ColorParameter nebulaCoarseStrandColor = new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true);
+public MinFloatParameter nebulaCoarseStrandScale = new MinFloatParameter(5, 5);
+public ClampedFloatParameter nebulaCoarseStrandScaleFactor = new ClampedFloatParameter(2, 0.01f, 4.0f);
+public ClampedFloatParameter nebulaCoarseStrandDetailBalance = new ClampedFloatParameter(0.5f, 0.01f, 4.0f);
+public ClampedIntParameter nebulaCoarseStrandOctaves = new ClampedIntParameter(5, 1, 8);
+public ClampedFloatParameter nebulaCoarseStrandBias = new ClampedFloatParameter(0, -1, 1);
+public MinFloatParameter nebulaCoarseStrandDefinition = new MinFloatParameter(1, 0);
+public MinFloatParameter nebulaCoarseStrandSpread = new MinFloatParameter(1, 0);
+public ClampedFloatParameter nebulaCoarseStrandCoverage = new ClampedFloatParameter(0.5f, 0, 1);
+public MinFloatParameter nebulaCoarseStrandStrength = new MinFloatParameter(1, 0);
+
+public MinFloatParameter nebulaFineStrandBrightness = new MinFloatParameter(1, 0);
+public ColorParameter nebulaFineStrandColor = new ColorParameter(Color.blue, hdr: false, showAlpha: false, showEyeDropper: true);
+public MinFloatParameter nebulaFineStrandScale = new MinFloatParameter(5, 5);
+public ClampedFloatParameter nebulaFineStrandScaleFactor = new ClampedFloatParameter(2, 0.01f, 4.0f);
+public ClampedFloatParameter nebulaFineStrandDetailBalance = new ClampedFloatParameter(0.5f, 0.01f, 4.0f);
+public ClampedIntParameter nebulaFineStrandOctaves = new ClampedIntParameter(5, 1, 8);
+public ClampedFloatParameter nebulaFineStrandBias = new ClampedFloatParameter(0, -1, 1);
+public MinFloatParameter nebulaFineStrandDefinition = new MinFloatParameter(1, 0);
+public MinFloatParameter nebulaFineStrandSpread = new MinFloatParameter(1, 0);
+public ClampedFloatParameter nebulaFineStrandCoverage = new ClampedFloatParameter(0.5f, 0, 1);
+public MinFloatParameter nebulaFineStrandStrength = new MinFloatParameter(1, 0);
+
+public FloatRangeParameter nebulaTransmittanceRange = new FloatRangeParameter(new Vector2(0, 1), 0, 1);
+public MinFloatParameter nebulaTransmittanceScale = new MinFloatParameter(5, 5);
+
+
+/* Regular nebulae. */
 [Tooltip("Nebulae texture.")]
 public CubemapParameter nebulaeTexture = new CubemapParameter(null);
+
 /* Regular parameters. */
 [Tooltip("Color of light coming from the ground used for modeling light pollution.")]
 public ColorParameter lightPollutionTint = new ColorParameter(new Color(255, 140, 66), hdr: false, showAlpha: false, showEyeDropper: true);
@@ -194,6 +253,7 @@ public ColorParameter nightSkyTint = new ColorParameter(Color.white, hdr: false,
 public MinFloatParameter nightSkyScatterIntensity = new MinFloatParameter(50, 0);
 [Tooltip("An additional tint applied on top of the night sky tint, but only to the scattering. This is useful as an artistsic override for if the average color of your sky texture doesn't quite get you the scattering behavior you want. For instance, you may want the scattering to be bluer.")]
 public ColorParameter nightSkyScatterTint = new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true);
+
 /* Star twinkle effect. */
 [Tooltip("Whether or not to use star twinkle effect.")]
 public BoolParameter useTwinkle = new BoolParameter(false);

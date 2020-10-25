@@ -130,45 +130,25 @@ void NEBULAE(uint3 id : SV_DispatchThreadID) {
    *  7. A layered perlin noise to modulate the nebula alpha value to give
    *  the impression of varying star transmittance. */
 
-  /* TODO: prefix all params with "nebula" */
+  /* TODO: twekable seeds. */
 
   /* 1. Layered perlin noise for hazey base. */
-  float _nebulaHazeScale = 5;
-  float _nebulaHazeScaleFactor = 2;
-  float _nebulaHazeDetailBalance = 0.5;
-  float _nebulaHazeOctaves = 6;
-  float _nebulaHazeBias = -0.25;
   float haze = saturate(perlin3DLayered(saturate(textureCoordinate),
     float3(_nebulaHazeScale, _nebulaHazeScale, _nebulaHazeScale), _nebulaHazeScaleFactor, _nebulaHazeDetailBalance,
     _nebulaHazeOctaves) + _nebulaHazeBias);
 
   /* 2. Layered worley noise for cloudy look. */
-  float _nebulaCloudScale = 13;
-  float _nebulaCloudScaleFactor = 2;
-  float _nebulaCloudDetailBalance = 0.5;
-  float _nebulaCloudOctaves = 6;
-  float _nebulaCloudBias = 0.0;
   float clouds = saturate(worley3DLayered(saturate(textureCoordinate),
   float3(_nebulaCloudScale, _nebulaCloudScale, _nebulaCloudScale), _nebulaCloudScaleFactor,
   _nebulaCloudDetailBalance, _nebulaCloudOctaves) + _nebulaCloudBias);
 
   /* 3. Layered voronoi noise to create coarse strands. */
-  float _nebulaCoarseStrandScale = 12;
-  float _nebulaCoarseStrandScaleFactor = 2;
-  float _nebulaCoarseStrandDetailBalance = 0.5;
-  float _nebulaCoarseStrandOctaves = 7;
-  float _nebulaCoarseStrandBias = 0.0;
   float coarseStrands = saturate(voronoi3DLayered(saturate(textureCoordinate),
     float3(_nebulaCoarseStrandScale, _nebulaCoarseStrandScale, _nebulaCoarseStrandScale),
     _nebulaCoarseStrandScaleFactor, _nebulaCoarseStrandDetailBalance, _nebulaCoarseStrandOctaves)
     + _nebulaCoarseStrandBias);
 
   /* 4. Layered voronoi noise to create fine strands. */
-  float _nebulaFineStrandScale = 16;
-  float _nebulaFineStrandScaleFactor = 2;
-  float _nebulaFineStrandDetailBalance = 0.5;
-  float _nebulaFineStrandOctaves = 5;
-  float _nebulaFineStrandBias = 0.0;
   float fineStrands = saturate(voronoi3DLayered(saturate(textureCoordinate),
     float3(_nebulaFineStrandScale, _nebulaFineStrandScale, _nebulaFineStrandScale), _nebulaFineStrandScaleFactor,
     _nebulaFineStrandDetailBalance, _nebulaFineStrandOctaves) + _nebulaFineStrandBias);
@@ -176,15 +156,11 @@ void NEBULAE(uint3 id : SV_DispatchThreadID) {
   /* 5. Curl noise to warp strands. TODO */
 
   /* 6. Value noise for coverage. */
-  float _nebulaCoverageScale = 3;
   float coverage = saturate(value3D(saturate(textureCoordinate),
     float3(_nebulaCoverageScale, _nebulaCoverageScale, _nebulaCoverageScale)).result);
 
   /* 7. Layered perlin noise for transmittance. Scaled to be between specified
    * min and max values. */
-  float _nebulaTransmittanceMin = 0.0;
-  float _nebulaTransmittanceMax = 1.0;
-  float _nebulaTransmittanceScale = 8;
   float transmittance = perlin3DLayered(saturate(textureCoordinate),
   float3(_nebulaTransmittanceScale, _nebulaTransmittanceScale, _nebulaTransmittanceScale),
     2, 0.5, 3);
@@ -192,37 +168,12 @@ void NEBULAE(uint3 id : SV_DispatchThreadID) {
     + (_nebulaTransmittanceMax - _nebulaTransmittanceMin) * transmittance;
 
   /* The model uses 4 colors---one for each component. TODO: 8 colors then sample gradient range? */
-  float3 _nebulaHazeBrightness = 2;
-  float3 _nebulaHazeColor = float3(0.0, 0.1, 1) * _nebulaHazeBrightness;
-  float3 _nebulaCloudBrightness = 2;
-  float3 _nebulaCloudColor = float3(0.9, 0.5, 1) * _nebulaCloudBrightness;
-  float3 _nebulaCoarseStrandBrightness = 2;
-  float3 _nebulaCoarseStrandColor = float3(0.5, 1, 1) * _nebulaCoarseStrandBrightness;
-  float3 _nebulaFineStrandBrightness = 2;
-  float3 _nebulaFineStrandColor = float3(0.9, 0.1, 0.2) * _nebulaFineStrandBrightness;
 
   /* Remap all the base noises using the coverage noise. */
-  float _nebulaHazeSpread = 2;
-  float _nebulaHazeCoverage = 0.2;
-  float _nebulaHazeStrength = 1.25;
   haze = saturate(remap(haze * _nebulaHazeStrength, pow(coverage, _nebulaHazeSpread) * _nebulaHazeCoverage, 1, 0, 1));
-  float _nebulaCloudSpread = 1.2;
-  float _nebulaCloudCoverage = 0.2;
-  float _nebulaCloudStrength = 0.2;
   clouds = saturate(remap(clouds * _nebulaCloudStrength, pow(coverage, _nebulaCloudSpread) * _nebulaCloudCoverage, 1, 0, 1));
-  float _nebulaCoarseStrandDefinition = 1.2;
-  float _nebulaCoarseStrandSpread = 2;
-  float _nebulaCoarseStrandCoverage = 0.2;
-  float _nebulaCoarseStrandStrength = 1.2;
   coarseStrands = saturate(remap(pow(coarseStrands, _nebulaCoarseStrandDefinition) * _nebulaCoarseStrandStrength, pow(coverage, _nebulaCoarseStrandSpread) * _nebulaCoarseStrandCoverage, 1, 0, 1));
-  float _nebulaFineStrandDefinition = 3;
-  float _nebulaFineStrandSpread = 2;
-  float _nebulaFineStrandCoverage = 0.2;
-  float _nebulaFineStrandStrength = 1.25;
   fineStrands = saturate(remap(fineStrands * _nebulaFineStrandStrength, pow(coverage, _nebulaFineStrandSpread) * _nebulaFineStrandCoverage, 1, 0, 1));
-
-  float _nebulaOverallDefinition = 2;
-  float _nebulaOverallIntensity = 40;
 
   float3 finalColor = _nebulaHazeColor * haze + _nebulaCloudColor * clouds
     + _nebulaCoarseStrandColor * coarseStrands + _nebulaFineStrandColor * fineStrands;
