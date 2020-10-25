@@ -8,6 +8,7 @@
 CBUFFER_START(ExpanseStar) // Expanse Star
 
 float4 _resStar;
+float4 _resNebulae;
 bool _useHighDensityMode;
 float _starDensity;
 float4 _starDensitySeed;
@@ -23,6 +24,61 @@ float _starTemperatureMin;
 float _starTemperatureMax;
 float _starTemperatureBias;
 float4 _starTemperatureSeed;
+
+/* Nebula. */
+float _nebulaOverallDefinition;
+float _nebulaOverallIntensity;
+float _nebulaCoverageScale;
+
+float _nebulaHazeBrightness;
+float4 _nebulaHazeColor;
+float _nebulaHazeScale;
+float _nebulaHazeScaleFactor;
+float _nebulaHazeDetailBalance;
+float _nebulaHazeOctaves;
+float _nebulaHazeBias;
+float _nebulaHazeSpread;
+float _nebulaHazeCoverage;
+float _nebulaHazeStrength;
+
+float _nebulaCloudBrightness;
+float4 _nebulaCloudColor;
+float _nebulaCloudScale;
+float _nebulaCloudScaleFactor;
+float _nebulaCloudDetailBalance;
+float _nebulaCloudOctaves;
+float _nebulaCloudBias;
+float _nebulaCloudSpread;
+float _nebulaCloudCoverage;
+float _nebulaCloudStrength;
+
+float _nebulaCoarseStrandBrightness;
+float4 _nebulaCoarseStrandColor;
+float _nebulaCoarseStrandScale;
+float _nebulaCoarseStrandScaleFactor;
+float _nebulaCoarseStrandDetailBalance;
+float _nebulaCoarseStrandOctaves;
+float _nebulaCoarseStrandBias;
+float _nebulaCoarseStrandDefinition;
+float _nebulaCoarseStrandSpread;
+float _nebulaCoarseStrandCoverage;
+float _nebulaCoarseStrandStrength;
+
+float _nebulaFineStrandBrightness;
+float4 _nebulaFineStrandColor;
+float _nebulaFineStrandScale;
+float _nebulaFineStrandScaleFactor;
+float _nebulaFineStrandDetailBalance;
+float _nebulaFineStrandOctaves;
+float _nebulaFineStrandBias;
+float _nebulaFineStrandDefinition;
+float _nebulaFineStrandSpread;
+float _nebulaFineStrandCoverage;
+float _nebulaFineStrandStrength;
+
+float _nebulaTransmittanceMin;
+float _nebulaTransmittanceMax;
+float _nebulaTransmittanceScale;
 
 CBUFFER_END // Expanse Star
 

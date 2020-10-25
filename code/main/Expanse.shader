@@ -93,6 +93,10 @@ float _twinkleFrequencyMax;
 float _twinkleBias;
 float _twinkleSmoothAmplitude;
 float _twinkleChaoticAmplitude;
+bool _useProceduralNebulae;
+bool _hasNebulaeTexture;
+TEXTURECUBE(_nebulaeTexture);
+TEXTURE2D_ARRAY(_proceduralNebulae);
 
 /* Aerial Perspective. */
 float _aerialPerspectiveOcclusionBiasUniform;
@@ -414,6 +418,7 @@ float3 shadeNightSky(float3 d) {
   float3 textureCoordinate = mul(d, (float3x3)_nightSkyRotation);
   /* Special case things out for procedural and texture options. */
   if (_useProceduralNightSky) {
+    /* Stars. */
     float3 proceduralTextureCoordinate = directionToTex2DArrayCubemapUV(textureCoordinate);
     float4 colorAndSeed = SAMPLE_TEXTURE2D_ARRAY_LOD(_Star, s_linear_clamp_sampler,
       proceduralTextureCoordinate.xy, proceduralTextureCoordinate.z, 0);
@@ -437,7 +442,26 @@ float3 shadeNightSky(float3 d) {
         twinkleFine = max(0, _twinkleChaoticAmplitude * pow(sin(frequency * _Time.y + phase), 2) + _twinkleBias);
       }
     }
-    return (twinkleCoarse + twinkleFine) * _nightSkyTint.xyz * starColor;
+
+    /* Nebulae. */
+    float3 nebulaeColor = float3(0, 0, 0);
+    if (_useProceduralNebulae) {
+      // TODO: actually blend or just add on top?
+      float4 nebulaeColorAndAlpha = SAMPLE_TEXTURE2D_ARRAY_LOD(_proceduralNebulae,
+        s_linear_clamp_sampler, proceduralTextureCoordinate.xy, proceduralTextureCoordinate.z, 0);
+      nebulaeColor = nebulaeColorAndAlpha.xyz;
+      float nebulaeAlpha = nebulaeColorAndAlpha.w;
+      nebulaeColor *= nebulaeAlpha;
+      // Blend probabilistically.
+      float starNebulaeBlendAmount = random_1_1(starSeed * 3.92853);
+      starColor *= 1-(starNebulaeBlendAmount * nebulaeAlpha);
+    } else {
+      if (_hasNebulaeTexture) {
+        nebulaeColor = SAMPLE_TEXTURECUBE_LOD(_nebulaeTexture,
+          s_linear_clamp_sampler, textureCoordinate, 0);
+      }
+    }
+    return ((twinkleCoarse + twinkleFine) * starColor + nebulaeColor) * _nightSkyTint.xyz;
   } else {
     if (!_hasNightSkyTexture) {
       return _nightSkyTint.xyz;

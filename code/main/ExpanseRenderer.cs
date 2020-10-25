@@ -201,7 +201,9 @@ RTHandle allocateSky4DArrayTable(Vector4 resolution, int depth, string name) {
 /******************************************************************************/
 
 private RTHandle m_proceduralStarTexture;
+private RTHandle m_proceduralNebulaeTexture;
 private ExpanseCommon.StarTextureResolution m_starTextureResolution;
+private ExpanseCommon.StarTextureResolution m_nebulaeTextureResolution;
 
 /* Emulates cubemap with texture 2D array of depth 6. */
 RTHandle allocateProceduralStarTexture(Vector2 resolution, string name) {
@@ -219,9 +221,6 @@ RTHandle allocateProceduralStarTexture(Vector2 resolution, string name) {
 }
 
 void allocateStarTextures(Expanse sky) {
-  /* Allocate new tables if resolution is different. TODO: make res setting
-   * in quality, probably bundle with other settings. also probably remove
-   * null check once this is done. */
   if (sky.starTextureQuality.value != m_starTextureResolution.quality) {
     /* Cleanup existing tables. */
     cleanupStarTextures();
@@ -229,11 +228,23 @@ void allocateStarTextures(Expanse sky) {
     m_proceduralStarTexture = allocateProceduralStarTexture(starRes.Star, "Star");
     m_starTextureResolution = starRes;
   }
+  if (sky.nebulaeTextureQuality.value != m_nebulaeTextureResolution.quality) {
+    /* Cleanup existing tables. */
+    cleanupNebulaeTextures();
+    ExpanseCommon.StarTextureResolution nebRes = ExpanseCommon.StarQualityToStarTextureResolution(sky.nebulaeTextureQuality.value);
+    m_proceduralNebulaeTexture = allocateProceduralStarTexture(nebRes.Star, "Nebulae");
+    m_nebulaeTextureResolution = nebRes;
+  }
 }
 
 void cleanupStarTextures() {
   RTHandles.Release(m_proceduralStarTexture);
   m_proceduralStarTexture = null;
+}
+
+void cleanupNebulaeTextures() {
+  RTHandles.Release(m_proceduralNebulaeTexture);
+  m_proceduralNebulaeTexture = null;
 }
 
 /******************************************************************************/
@@ -523,6 +534,10 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
     if (sky.useProceduralNightSky.value) {
       setStarRWTextures();
       DispatchStarCompute(builtinParams.commandBuffer);
+      if (sky.useProceduralNebulae.value) {
+        setNebulaeRWTextures();
+        DispatchNebulaeCompute(builtinParams.commandBuffer);
+      }
     }
     m_averageNightSkyColor = computeAverageNightSkyColor(sky);
     m_LastNightSkyHash = currentNightSkyHash;
@@ -714,6 +729,16 @@ private void DispatchStarCompute(CommandBuffer cmd) {
   }
 }
 
+private void DispatchNebulaeCompute(CommandBuffer cmd) {
+  using (new ProfilingSample(cmd, "Precompute Expanse Nebula Texture")) {
+    int handle_Nebulae = m_starCS.FindKernel("NEBULAE");
+
+    cmd.DispatchCompute(m_starCS, handle_Nebulae,
+      (int) m_nebulaeTextureResolution.Star.x / 8,
+      (int) m_nebulaeTextureResolution.Star.y / 8, 6);
+  }
+}
+
 /******************************************************************************/
 /************************ END COMPUTE SHADER FUNCTIONS ************************/
 /******************************************************************************/
@@ -747,7 +772,13 @@ private void setSkyRWTextures() {
 
 private void setStarRWTextures() {
   int handle_Star = m_starCS.FindKernel("STAR");
+  int handle_Nebulae = m_starCS.FindKernel("STAR");
   m_starCS.SetTexture(handle_Star, "_Star_RW", m_proceduralStarTexture);
+}
+
+private void setNebulaeRWTextures() {
+  int handle_Nebulae = m_starCS.FindKernel("NEBULAE");
+  m_starCS.SetTexture(handle_Nebulae, "_Nebulae_RW", m_proceduralNebulaeTexture);
 }
 
 /******************************************************************************/
@@ -890,7 +921,7 @@ private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, Expanse sky) {
 private void setGlobalCBufferNightSky(CommandBuffer cmd, Expanse sky) {
   if (sky.useProceduralNightSky.value) {
     cmd.SetGlobalVector("_resStar", m_starTextureResolution.Star);
-    cmd.SetGlobalVector("_resStar", m_starTextureResolution.Star);
+    cmd.SetGlobalVector("_resNebulae", m_nebulaeTextureResolution.Star);
     cmd.SetGlobalFloat("_useHighDensityMode", sky.useHighDensityMode.value ? 1 : 0);
     cmd.SetGlobalFloat("_starDensity", sky.starDensity.value);
     cmd.SetGlobalVector("_starDensitySeed", sky.starDensitySeed.value);
@@ -1088,14 +1119,25 @@ private void setMaterialPropertyBlockNightSky(Expanse sky) {
   m_PropertyBlock.SetFloat("_useProceduralNightSky", (sky.useProceduralNightSky.value) ? 1 : 0);
   if (sky.useProceduralNightSky.value) {
     m_PropertyBlock.SetTexture("_Star", m_proceduralStarTexture);
+    m_PropertyBlock.SetFloat("_useProceduralNebulae", (sky.useProceduralNebulae.value) ? 1 : 0);
+    if (!sky.useProceduralNebulae.value) {
+      m_PropertyBlock.SetFloat("_hasNebulaeTexture", (sky.nebulaeTexture.value == null) ? 0 : 1);
+      if (sky.nebulaeTexture.value != null) {
+        m_PropertyBlock.SetTexture("_nebulaeTexture", sky.nebulaeTexture.value);
+      }
+    } else {
+      /* Set the procedural nebulae texture. */
+      m_PropertyBlock.SetTexture("_proceduralNebulae", m_proceduralNebulaeTexture);
+    }
+  } else {
+    m_PropertyBlock.SetFloat("_hasNightSkyTexture", (sky.nightSkyTexture.value == null) ? 0 : 1);
+    if (sky.nightSkyTexture.value != null) {
+      m_PropertyBlock.SetTexture("_nightSkyTexture", sky.nightSkyTexture.value);
+    }
   }
 
   m_PropertyBlock.SetVector("_lightPollutionTint", sky.lightPollutionTint.value
     * sky.lightPollutionIntensity.value);
-  m_PropertyBlock.SetFloat("_hasNightSkyTexture", (sky.nightSkyTexture.value == null) ? 0 : 1);
-  if (sky.nightSkyTexture.value != null) {
-    m_PropertyBlock.SetTexture("_nightSkyTexture", sky.nightSkyTexture.value);
-  }
   Vector3 nightSkyRotation = sky.nightSkyRotation.value;
   Quaternion nightSkyRotationMatrix = Quaternion.Euler(nightSkyRotation.x,
                                                 nightSkyRotation.y,

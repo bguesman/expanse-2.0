@@ -170,6 +170,13 @@ public FloatRangeParameter starTemperatureRange = new FloatRangeParameter(new Ve
 public ClampedFloatParameter starTemperatureBias = new ClampedFloatParameter(0.5f, 0.0f, 1);
 [Tooltip("Seed for star temperature variation.")]
 public Vector3Parameter starTemperatureSeed = new Vector3Parameter(new Vector3(0.2352f, 1.582f, 8.823f));
+/* Nebulae parameters. */
+[Tooltip("Whether to use a procedural nebulae texture, or a static pre-authored one.")]
+public BoolParameter useProceduralNebulae = new BoolParameter(true);
+[Tooltip("Quality of procedural nebulae texture.")]
+public EnumParameter<ExpanseCommon.StarTextureQuality> nebulaeTextureQuality = new EnumParameter<ExpanseCommon.StarTextureQuality>(ExpanseCommon.StarTextureQuality.Medium);
+[Tooltip("Nebulae texture.")]
+public CubemapParameter nebulaeTexture = new CubemapParameter(null);
 /* Regular parameters. */
 [Tooltip("Color of light coming from the ground used for modeling light pollution.")]
 public ColorParameter lightPollutionTint = new ColorParameter(new Color(255, 140, 66), hdr: false, showAlpha: false, showEyeDropper: true);
@@ -380,7 +387,9 @@ public override int GetHashCode() {
     hash = hash * 23 + starIntensitySeed.value.GetHashCode();
     hash = hash * 23 + starTemperatureRange.value.GetHashCode();
     hash = hash * 23 + starTemperatureBias.value.GetHashCode();
-    hash = hash * 23 +   starTemperatureSeed.value.GetHashCode();
+    hash = hash * 23 + useProceduralNebulae.value.GetHashCode();
+    hash = hash * 23 + nebulaeTextureQuality.value.GetHashCode();
+    hash = nebulaeTexture.value != null ? hash * 23 + nebulaeTexture.value.GetHashCode() : hash;
 
     /* Texture. */
     hash = hash * 23 + lightPollutionTint.value.GetHashCode();
@@ -496,7 +505,10 @@ public int GetNightSkyHashCode() {
       hash = hash * 23 + starIntensitySeed.value.GetHashCode();
       hash = hash * 23 + starTemperatureRange.value.GetHashCode();
       hash = hash * 23 + starTemperatureBias.value.GetHashCode();
-      hash = hash * 23 +   starTemperatureSeed.value.GetHashCode();
+      hash = hash * 23 + starTemperatureSeed.value.GetHashCode();
+      hash = hash * 23 + useProceduralNebulae.value.GetHashCode();
+      hash = hash * 23 + nebulaeTextureQuality.value.GetHashCode();
+      hash = nebulaeTexture.value != null ? hash * 23 + nebulaeTexture.value.GetHashCode() : hash;
     }
     hash = nightSkyTexture.value != null ? hash * 23 + nightSkyTexture.value.GetHashCode() : hash;
   }

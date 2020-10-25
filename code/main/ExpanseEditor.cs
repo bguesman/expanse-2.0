@@ -126,7 +126,7 @@ SerializedDataParameter[] bodyEmissionMultiplier
 
 /* Night Sky. TODO */
 SerializedDataParameter useProceduralNightSky;
-/* Procedural. */
+/* Stars. */
 SerializedDataParameter starTextureQuality;
 SerializedDataParameter showStarSeeds;
 SerializedDataParameter starDensity;
@@ -141,6 +141,10 @@ SerializedDataParameter starTemperatureRange;
 SerializedDataParameter starTemperatureBias;
 SerializedDataParameter starTemperatureSeed;
 SerializedDataParameter useHighDensityMode;
+/* Nebulae. */
+SerializedDataParameter useProceduralNebulae;
+SerializedDataParameter nebulaeTextureQuality;
+SerializedDataParameter nebulaeTexture;
 
 /* Regular. */
 SerializedDataParameter lightPollutionTint;
@@ -392,7 +396,7 @@ private void atmosphereLayer(UnityEngine.GUIStyle titleStyle,
 
 private void celestialBody(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
   EditorGUILayout.LabelField("Celestial Bodies", titleStyle);
-  m_celestialBodySelect = (ExpanseCommon.CelestialBody) EditorGUILayout.EnumPopup("Body:", m_celestialBodySelect);
+  m_celestialBodySelect = (ExpanseCommon.CelestialBody) EditorGUILayout.EnumPopup("Body", m_celestialBodySelect);
 
   /* Set the celestial body select. */
   int bodySelectIndex = setEnumSelect(m_showCelestialBody, (int) m_celestialBodySelect);
@@ -441,10 +445,19 @@ private void celestialBody(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle
 private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
   EditorGUILayout.LabelField("Night Sky", titleStyle);
   PropertyField(useProceduralNightSky, new UnityEngine.GUIContent("Procedural Mode"));
-  PropertyField(lightPollutionTint);
-  PropertyField(lightPollutionIntensity);
   if (useProceduralNightSky.value.boolValue) {
+
     /* Procedural sky controls. */
+    EditorGUILayout.Space();
+    EditorGUILayout.LabelField("Sky", subtitleStyle);
+    PropertyField(nightSkyRotation);
+    PropertyField(nightSkyIntensity);
+    PropertyField(nightSkyTint);
+    PropertyField(nightSkyScatterIntensity);
+    PropertyField(nightSkyScatterTint);
+
+    EditorGUILayout.Space();
+    EditorGUILayout.LabelField("Stars", subtitleStyle);
     PropertyField(starTextureQuality);
     PropertyField(showStarSeeds);
     if (showStarSeeds.value.boolValue) {
@@ -470,11 +483,9 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
       PropertyField(starTemperatureRange);
       PropertyField(starTemperatureBias);
     }
-    PropertyField(nightSkyRotation);
-    PropertyField(nightSkyIntensity);
-    PropertyField(nightSkyTint);
-    PropertyField(nightSkyScatterIntensity);
-    PropertyField(nightSkyScatterTint);
+
+    EditorGUILayout.Space();
+    EditorGUILayout.LabelField("Twinkle Effect", subtitleStyle);
     PropertyField(useTwinkle);
     if (useTwinkle.value.boolValue) {
       PropertyField(twinkleThreshold);
@@ -483,8 +494,23 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
       PropertyField(twinkleSmoothAmplitude, new UnityEngine.GUIContent("Smooth Twinkle Intensity"));
       PropertyField(twinkleChaoticAmplitude, new UnityEngine.GUIContent("Chaotic Twinkle Intensity"));
     }
+
+    EditorGUILayout.Space();
+    EditorGUILayout.LabelField("Nebulae", subtitleStyle);
+    PropertyField(useProceduralNebulae);
+    if (useProceduralNebulae.value.boolValue) {
+      /* Nebulae are procedural. */
+      PropertyField(nebulaeTextureQuality);
+    } else {
+      /* Nebulae is a texture. */
+      PropertyField(nebulaeTexture);
+    }
+
+
   } else {
     /* Texture sky controls. */
+    EditorGUILayout.Space();
+    EditorGUILayout.LabelField("Sky and Stars", subtitleStyle);
     PropertyField(nightSkyTexture);
     if (nightSkyTexture.value.objectReferenceValue != null) {
       PropertyField(nightSkyRotation);
@@ -493,6 +519,9 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
     PropertyField(nightSkyTint);
     PropertyField(nightSkyScatterIntensity);
     PropertyField(nightSkyScatterTint);
+
+    EditorGUILayout.Space();
+    EditorGUILayout.LabelField("Twinkle Effect", subtitleStyle);
     PropertyField(useTwinkle);
     if (useTwinkle.value.boolValue) {
       PropertyField(twinkleThreshold);
@@ -502,6 +531,11 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
       PropertyField(twinkleChaoticAmplitude, new UnityEngine.GUIContent("Chaotic Twinkle Intensity"));
     }
   }
+
+  EditorGUILayout.Space();
+  EditorGUILayout.LabelField("Light Pollution", subtitleStyle);
+  PropertyField(lightPollutionTint);
+  PropertyField(lightPollutionIntensity);
 }
 
 private void aerialPerspective(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
@@ -629,6 +663,10 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   starTemperatureRange = Unpack(o.Find(x => x.starTemperatureRange));
   starTemperatureBias = Unpack(o.Find(x => x.starTemperatureBias));
   starTemperatureSeed = Unpack(o.Find(x => x.starTemperatureSeed));
+  /* Nebulae. */
+  useProceduralNebulae = Unpack(o.Find(x => x.useProceduralNebulae));
+  nebulaeTextureQuality = Unpack(o.Find(x => x.nebulaeTextureQuality));
+  nebulaeTexture = Unpack(o.Find(x => x.nebulaeTexture));
 
   /* Regular. */
   lightPollutionTint = Unpack(o.Find(x => x.lightPollutionTint));
