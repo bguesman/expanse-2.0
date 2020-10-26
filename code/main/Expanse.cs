@@ -178,64 +178,117 @@ public BoolParameter useProceduralNebulae = new BoolParameter(true);
 /* Procedural nebulae. TODO: tooltips. */
 [Tooltip("Quality of procedural nebulae texture.")]
 public EnumParameter<ExpanseCommon.StarTextureQuality> nebulaeTextureQuality = new EnumParameter<ExpanseCommon.StarTextureQuality>(ExpanseCommon.StarTextureQuality.Medium);
+[Tooltip("Global definition control for the whole nebula texture. This increases saturation and contrast. It's useful to use in tandem with the global intensity control.")]
 public MinFloatParameter nebulaOverallDefinition = new MinFloatParameter(1, 0);
+[Tooltip("Global intensity control for the whole nebula texture.")]
 public MinFloatParameter nebulaOverallIntensity = new MinFloatParameter(1, 0);
+[Tooltip("Scale of noise used for determining nebula coverage. If this value is high, there will be lots of little nebulae scattered across the sky. If this value is low, there will be a few huge nebulae.")]
 public MinFloatParameter nebulaCoverageScale = new MinFloatParameter(3, 1);
 
+[Tooltip("Intensity of nebula haze.")]
 public MinFloatParameter nebulaHazeBrightness = new MinFloatParameter(1, 0);
+[Tooltip("Color of nebula haze.")]
 public ColorParameter nebulaHazeColor = new ColorParameter(Color.red, hdr: false, showAlpha: false, showEyeDropper: true);
+[Tooltip("Scale of base octave of noise used for nebula haze. Smaller values give bigger more global features, larger values give smaller more detailed features.")]
 public MinFloatParameter nebulaHazeScale = new MinFloatParameter(5, 5);
+[Tooltip("Scale multiplier applied to additional octaves of noise used for nebula haze. As an example, if this value is 2, each octave will be twice as small as the last octave.")]
 public ClampedFloatParameter nebulaHazeScaleFactor = new ClampedFloatParameter(2, 0.01f, 4.0f);
+[Tooltip("Intensity multiplier applied to additional octaves of noise used for nebula haze. As an example, if this value is 0.5, each octave will be half as intense as the last octave.")]
 public ClampedFloatParameter nebulaHazeDetailBalance = new ClampedFloatParameter(0.5f, 0.01f, 4.0f);
+[Tooltip("Number of noise octaves to use to generate nebula haze. Increasing the number of octaves can dim the overall noise texture, so it is useful to adjust the intensity control in tandem with this parameter.")]
 public ClampedIntParameter nebulaHazeOctaves = new ClampedIntParameter(5, 1, 8);
+[Tooltip("Bias of zero value for nebula haze.")]
 public ClampedFloatParameter nebulaHazeBias = new ClampedFloatParameter(0, -1, 1);
+[Tooltip("Spread of the nebula haze. This parameter allows the nebula to bleed across the coverage boundary, and is useful for softening edges.")]
 public MinFloatParameter nebulaHazeSpread = new MinFloatParameter(1, 0);
+[Tooltip("Coverage of the nebula haze. A higher value will result in less nebula coverage. A lower value will result in more nebula coverage.")]
 public ClampedFloatParameter nebulaHazeCoverage = new ClampedFloatParameter(0.5f, 0, 1);
+[Tooltip("Strength of the nebula haze. This is meant to be used in tandem with the coverage value. Higher strength values will allow more features to push through the coverage map. The best way to see what this parameter does is to play around with it.")]
 public MinFloatParameter nebulaHazeStrength = new MinFloatParameter(1, 0);
 
+[Tooltip("Intensity of nebula clouds.")]
 public MinFloatParameter nebulaCloudBrightness = new MinFloatParameter(1, 0);
+[Tooltip("Color of nebula clouds.")]
 public ColorParameter nebulaCloudColor = new ColorParameter(Color.green, hdr: false, showAlpha: false, showEyeDropper: true);
+[Tooltip("Scale of base octave of noise used for nebula clouds. Smaller values give bigger more global features, larger values give smaller more detailed features.")]
 public MinFloatParameter nebulaCloudScale = new MinFloatParameter(5, 5);
+[Tooltip("Scale multiplier applied to additional octaves of noise used for nebula clouds. As an example, if this value is 2, each octave will be twice as small as the last octave.")]
 public ClampedFloatParameter nebulaCloudScaleFactor = new ClampedFloatParameter(2, 0.01f, 4.0f);
+[Tooltip("Intensity multiplier applied to additional octaves of noise used for nebula clouds. As an example, if this value is 0.5, each octave will be half as intense as the last octave.")]
 public ClampedFloatParameter nebulaCloudDetailBalance = new ClampedFloatParameter(0.5f, 0.01f, 4.0f);
+[Tooltip("Number of noise octaves to use to generate nebula clouds. Increasing the number of octaves can dim the overall noise texture, so it is useful to adjust the intensity control in tandem with this parameter.")]
 public ClampedIntParameter nebulaCloudOctaves = new ClampedIntParameter(5, 1, 8);
+[Tooltip("Bias of zero value for nebula clouds.")]
 public ClampedFloatParameter nebulaCloudBias = new ClampedFloatParameter(0, -1, 1);
+[Tooltip("Spread of the nebula clouds. This parameter allows the nebula to bleed across the coverage boundary, and is useful for softening edges.")]
 public MinFloatParameter nebulaCloudSpread = new MinFloatParameter(1, 0);
+[Tooltip("Coverage of the nebula clouds. A higher value will result in less nebula coverage. A lower value will result in more nebula coverage.")]
 public ClampedFloatParameter nebulaCloudCoverage = new ClampedFloatParameter(0.5f, 0, 1);
+[Tooltip("Strength of the nebula clouds. This is meant to be used in tandem with the coverage value. Higher strength values will allow more features to push through the coverage map. The best way to see what this parameter does is to play around with it.")]
 public MinFloatParameter nebulaCloudStrength = new MinFloatParameter(1, 0);
 
+[Tooltip("Intensity of nebula big strands.")]
 public MinFloatParameter nebulaCoarseStrandBrightness = new MinFloatParameter(1, 0);
+[Tooltip("Color of nebula big strands.")]
 public ColorParameter nebulaCoarseStrandColor = new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true);
+[Tooltip("Scale of base octave of noise used for nebula big strands. Smaller values give bigger more global features, larger values give smaller more detailed features.")]
 public MinFloatParameter nebulaCoarseStrandScale = new MinFloatParameter(5, 5);
+[Tooltip("Scale multiplier applied to additional octaves of noise used for nebula big strands. As an example, if this value is 2, each octave will be twice as small as the last octave.")]
 public ClampedFloatParameter nebulaCoarseStrandScaleFactor = new ClampedFloatParameter(2, 0.01f, 4.0f);
+[Tooltip("Intensity multiplier applied to additional octaves of noise used for nebula big strands. As an example, if this value is 0.5, each octave will be half as intense as the last octave.")]
 public ClampedFloatParameter nebulaCoarseStrandDetailBalance = new ClampedFloatParameter(0.5f, 0.01f, 4.0f);
+[Tooltip("Number of noise octaves to use to generate nebula big strands. Increasing the number of octaves can dim the overall noise texture, so it is useful to adjust the intensity control in tandem with this parameter.")]
 public ClampedIntParameter nebulaCoarseStrandOctaves = new ClampedIntParameter(5, 1, 8);
+[Tooltip("Bias of zero value for nebula big strands.")]
 public ClampedFloatParameter nebulaCoarseStrandBias = new ClampedFloatParameter(0, -1, 1);
+[Tooltip("Definition of nebula big strands. This is useful for making the strands look more like long striations, as opposed to softer cells. Increasing the definition usually requires also increasing the strength parameter to ensure that the strands can still get through the coverage map.")]
 public MinFloatParameter nebulaCoarseStrandDefinition = new MinFloatParameter(1, 0);
+[Tooltip("Spread of the nebula big strands. This parameter allows the nebula to bleed across the coverage boundary, and is useful for softening edges.")]
 public MinFloatParameter nebulaCoarseStrandSpread = new MinFloatParameter(1, 0);
+[Tooltip("Coverage of the nebula big strands. A higher value will result in less nebula coverage. A lower value will result in more nebula coverage.")]
 public ClampedFloatParameter nebulaCoarseStrandCoverage = new ClampedFloatParameter(0.5f, 0, 1);
+[Tooltip("Strength of the nebula big strands. This is meant to be used in tandem with the coverage value. Higher strength values will allow more features to push through the coverage map. The best way to see what this parameter does is to play around with it.")]
 public MinFloatParameter nebulaCoarseStrandStrength = new MinFloatParameter(1, 0);
+[Tooltip("Scale of the noise used to warp the big strands. A higher value gives smaller vortices and tendrils. A lower value gives bigger swirls and arcs.")]
 public MinFloatParameter nebulaCoarseStrandWarpScale = new MinFloatParameter(16, 0);
+[Tooltip("Intensity of warping of the big strands. Nebulae are big bodies of interstellar gas, and so they obey the laws of fluid mechanics. It's important to capture some of the resulting swirly fluid features. This warp value helps to do that.")]
 public ClampedFloatParameter nebulaCoarseStrandWarp = new ClampedFloatParameter(0.003f, 0, 1);
 
+[Tooltip("Intensity of nebula small strands.")]
 public MinFloatParameter nebulaFineStrandBrightness = new MinFloatParameter(1, 0);
+[Tooltip("Color of nebula small strands.")]
 public ColorParameter nebulaFineStrandColor = new ColorParameter(Color.blue, hdr: false, showAlpha: false, showEyeDropper: true);
+[Tooltip("Scale of base octave of noise used for nebula small strands. Smaller values give bigger more global features, larger values give smaller more detailed features.")]
 public MinFloatParameter nebulaFineStrandScale = new MinFloatParameter(5, 5);
+[Tooltip("Scale multiplier applied to additional octaves of noise used for nebula small strands. As an example, if this value is 2, each octave will be twice as small as the last octave.")]
 public ClampedFloatParameter nebulaFineStrandScaleFactor = new ClampedFloatParameter(2, 0.01f, 4.0f);
+[Tooltip("Intensity multiplier applied to additional octaves of noise used for nebula small strands. As an example, if this value is 0.5, each octave will be half as intense as the last octave.")]
 public ClampedFloatParameter nebulaFineStrandDetailBalance = new ClampedFloatParameter(0.5f, 0.01f, 4.0f);
+[Tooltip("Number of noise octaves to use to generate nebula small strands. Increasing the number of octaves can dim the overall noise texture, so it is useful to adjust the intensity control in tandem with this parameter.")]
 public ClampedIntParameter nebulaFineStrandOctaves = new ClampedIntParameter(5, 1, 8);
+[Tooltip("Bias of zero value for nebula small strands.")]
 public ClampedFloatParameter nebulaFineStrandBias = new ClampedFloatParameter(0, -1, 1);
+[Tooltip("Definition of nebula small strands. This is useful for making the strands look more like long striations, as opposed to softer cells. Increasing the definition usually requires also increasing the strength parameter to ensure that the strands can still get through the coverage map.")]
 public MinFloatParameter nebulaFineStrandDefinition = new MinFloatParameter(1, 0);
+[Tooltip("Spread of the nebula small strands. This parameter allows the nebula to bleed across the coverage boundary, and is useful for softening edges.")]
 public MinFloatParameter nebulaFineStrandSpread = new MinFloatParameter(1, 0);
+[Tooltip("Coverage of the nebula small strands. A higher value will result in less nebula coverage. A lower value will result in more nebula coverage.")]
 public ClampedFloatParameter nebulaFineStrandCoverage = new ClampedFloatParameter(0.5f, 0, 1);
+[Tooltip("Strength of the nebula small strands. This is meant to be used in tandem with the coverage value. Higher strength values will allow more features to push through the coverage map. The best way to see what this parameter does is to play around with it.")]
 public MinFloatParameter nebulaFineStrandStrength = new MinFloatParameter(1, 0);
+[Tooltip("Scale of the noise used to warp the small strands. A higher value gives smaller vortices and tendrils. A lower value gives bigger swirls and arcs.")]
 public MinFloatParameter nebulaFineStrandWarpScale = new MinFloatParameter(16, 0);
+[Tooltip("Intensity of warping of the small strands. Nebulae are big bodies of interstellar gas, and so they obey the laws of fluid mechanics. It's important to capture some of the resulting swirly fluid features. This warp value helps to do that.")]
 public ClampedFloatParameter nebulaFineStrandWarp = new ClampedFloatParameter(0.003f, 0, 1);
 
+[Tooltip("Range of transmittance values the nebula can have.")]
 public FloatRangeParameter nebulaTransmittanceRange = new FloatRangeParameter(new Vector2(0, 1), 0, 1);
+[Tooltip("Scale of noise used to randomize nebula transmittance.")]
 public MinFloatParameter nebulaTransmittanceScale = new MinFloatParameter(5, 5);
 
+[Tooltip("Amount that the star density follows the nebula texture.")]
 public MinFloatParameter starNebulaFollowAmount = new MinFloatParameter(0, 0);
+[Tooltip("How strictly to have the star density follow the nebula density. At higher values, the star density change is very rapid across the nebula boundary. At lower values, the star density change is gradual from the center of the nebula to empty space.")]
 public MinFloatParameter starNebulaFollowSpread = new MinFloatParameter(2, 0);
 
 /* Regular nebulae. */
@@ -612,12 +665,10 @@ public int GetCloudHashCode() {
 public int GetNightSkyHashCode() {
   /* Used for checking if a recomputation of the night sky texture and
    * average color needs to take place. */
-  /* TODO */
   int hash = base.GetHashCode();
   unchecked {
     hash = hash * 23 + useProceduralNightSky.value.GetHashCode();
     if (useProceduralNightSky.value) {
-      /* TODO: procedural params in here. */
       hash = hash * 23 + starTextureQuality.value.GetHashCode();
       hash = hash * 23 + showStarSeeds.value.GetHashCode();
       hash = hash * 23 + useHighDensityMode.value.GetHashCode();
@@ -636,8 +687,9 @@ public int GetNightSkyHashCode() {
       hash = hash * 23 + nebulaeTextureQuality.value.GetHashCode();
       hash = nebulaeTexture.value != null ? hash * 23 + nebulaeTexture.value.GetHashCode() : hash;
       /* Procedural nebulae. */
-      hash = hash * 23 + nebulaOverallDefinition.value.GetHashCode();
-      hash = hash * 23 + nebulaOverallIntensity.value.GetHashCode();
+      // TODO: do we need this? so far no.
+      // hash = hash * 23 + nebulaOverallDefinition.value.GetHashCode();
+      // hash = hash * 23 + nebulaOverallIntensity.value.GetHashCode();
       hash = hash * 23 + nebulaCoverageScale.value.GetHashCode();
 
       hash = hash * 23 + nebulaHazeBrightness.value.GetHashCode();

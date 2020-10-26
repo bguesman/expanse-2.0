@@ -444,7 +444,6 @@ float3 shadeNightSky(float3 d) {
     /* Nebulae. */
     float3 nebulaeColor = float3(0, 0, 0);
     if (_useProceduralNebulae) {
-      // TODO: actually blend or just add on top?
       float4 nebulaeColorAndAlpha = SAMPLE_TEXTURE2D_ARRAY_LOD(_proceduralNebulae,
         s_linear_clamp_sampler, proceduralTextureCoordinate.xy, proceduralTextureCoordinate.z, 0);
       nebulaeColor = pow(nebulaeColorAndAlpha.xyz, _nebulaOverallDefinition) * _nebulaOverallIntensity;

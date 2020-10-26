@@ -124,7 +124,7 @@ SerializedDataParameter[] bodyEmissionTint
 SerializedDataParameter[] bodyEmissionMultiplier
   = new SerializedDataParameter[ExpanseCommon.kMaxCelestialBodies];
 
-/* Night Sky. TODO */
+/* Night Sky. */
 SerializedDataParameter useProceduralNightSky;
 /* Stars. */
 SerializedDataParameter starTextureQuality;
@@ -567,9 +567,8 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
 
     EditorGUILayout.Space();
     EditorGUILayout.LabelField("Nebulae", subtitleStyle);
-    PropertyField(useProceduralNebulae);
+    PropertyField(useProceduralNebulae, new UnityEngine.GUIContent("Procedural"));
     if (useProceduralNebulae.value.boolValue) {
-      /* Nebulae are procedural. TODO: better parameter names. */
       PropertyField(nebulaeTextureQuality, new UnityEngine.GUIContent("Texture Quality"));
       PropertyField(nebulaOverallDefinition, new UnityEngine.GUIContent("Overall Definition"));
       PropertyField(nebulaOverallIntensity, new UnityEngine.GUIContent("Overall Intensity"));
@@ -790,7 +789,7 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     bodyEmissionMultiplier[i] = Unpack(o.Find("bodyEmissionMultiplier" + i));
   }
 
-  /* Night Sky. TODO */
+  /* Night Sky. */
   useProceduralNightSky = Unpack(o.Find(x => x.useProceduralNightSky));
   /* Procedural. */
   starTextureQuality = Unpack(o.Find(x => x.starTextureQuality));
