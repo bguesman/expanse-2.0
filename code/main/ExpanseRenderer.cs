@@ -532,12 +532,13 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
   int currentNightSkyHash = sky.GetNightSkyHashCode();
   if (currentNightSkyHash != m_LastNightSkyHash) {
     if (sky.useProceduralNightSky.value) {
-      setStarRWTextures();
-      DispatchStarCompute(builtinParams.commandBuffer);
+      /* Generate nebula first so we can use it to affect star density. */
       if (sky.useProceduralNebulae.value) {
         setNebulaeRWTextures();
         DispatchNebulaeCompute(builtinParams.commandBuffer);
       }
+      setStarRWTextures();
+      DispatchStarCompute(builtinParams.commandBuffer);
     }
     m_averageNightSkyColor = computeAverageNightSkyColor(sky);
     m_LastNightSkyHash = currentNightSkyHash;
@@ -992,6 +993,13 @@ private void setGlobalCBufferNightSky(CommandBuffer cmd, Expanse sky) {
     cmd.SetGlobalFloat("_nebulaTransmittanceMin", sky.nebulaTransmittanceRange.value.x);
     cmd.SetGlobalFloat("_nebulaTransmittanceMax", sky.nebulaTransmittanceRange.value.y);
     cmd.SetGlobalFloat("_nebulaTransmittanceScale", sky.nebulaTransmittanceScale.value);
+
+    cmd.SetGlobalFloat("_starNebulaFollowAmount", sky.starNebulaFollowAmount.value);
+    cmd.SetGlobalFloat("_starNebulaFollowSpread", sky.starNebulaFollowSpread.value);
+
+    /* Set the procedural nebulae texture for use in the star generation. */
+    cmd.SetGlobalFloat("_useProceduralNebulae", (sky.useProceduralNebulae.value) ? 1 : 0);
+    cmd.SetGlobalTexture("_proceduralNebulae", m_proceduralNebulaeTexture);
   }
 }
 
@@ -1174,15 +1182,11 @@ private void setMaterialPropertyBlockNightSky(Expanse sky) {
   m_PropertyBlock.SetFloat("_useProceduralNightSky", (sky.useProceduralNightSky.value) ? 1 : 0);
   if (sky.useProceduralNightSky.value) {
     m_PropertyBlock.SetTexture("_Star", m_proceduralStarTexture);
-    m_PropertyBlock.SetFloat("_useProceduralNebulae", (sky.useProceduralNebulae.value) ? 1 : 0);
     if (!sky.useProceduralNebulae.value) {
       m_PropertyBlock.SetFloat("_hasNebulaeTexture", (sky.nebulaeTexture.value == null) ? 0 : 1);
       if (sky.nebulaeTexture.value != null) {
         m_PropertyBlock.SetTexture("_nebulaeTexture", sky.nebulaeTexture.value);
       }
-    } else {
-      /* Set the procedural nebulae texture. */
-      m_PropertyBlock.SetTexture("_proceduralNebulae", m_proceduralNebulaeTexture);
     }
   } else {
     m_PropertyBlock.SetFloat("_hasNightSkyTexture", (sky.nightSkyTexture.value == null) ? 0 : 1);

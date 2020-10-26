@@ -27,7 +27,7 @@ void STAR(uint3 id : SV_DispatchThreadID) {
    * tweakable. TODO: allow weight-painted cubemap to control star density.
    * TODO: allow grid size to be specified for max control? */
   float bigCells = 512;
-  float smallCells = 1024;
+  float smallCells = 2048;
   NoiseResultAndCoordinate noiseBig = worley3D(textureCoordinate,
     float3(bigCells, bigCells, bigCells));
   NoiseResultAndCoordinate noiseSmall = worley3D(textureCoordinate,
@@ -36,12 +36,20 @@ void STAR(uint3 id : SV_DispatchThreadID) {
   /* Cache our seed value for flickering, from the big cell. */
   float starSeed = random_3_1(noiseBig.coordinate);
 
+  /* Sample the procedural nebula to modify star density. */
+  float nebulaeDensityModifier = 1.0;
+  if (_useProceduralNebulae) {
+    float4 nebulaeColorAndAlpha = SAMPLE_TEXTURE2D_ARRAY_LOD(_proceduralNebulae,
+      s_linear_clamp_sampler, uv, id.z, 0);
+      nebulaeDensityModifier += _starNebulaFollowAmount * pow(dot(saturate(nebulaeColorAndAlpha.xyz), saturate(nebulaeColorAndAlpha.xyz))/3, _starNebulaFollowSpread);
+  }
+
   /*****************************************************/
   /******* Compute everything for the big stars. *******/
   /*****************************************************/
   /* Do we render this star? */
   float densityRandomBig = random_3_1_seeded(noiseBig.coordinate,
-    _starDensitySeed.xyz);
+    _starDensitySeed.xyz) * nebulaeDensityModifier;
   bool renderBig = densityRandomBig > (1 - _starDensity) ? true : false;
   float3 starBigColor = float3(0, 0, 0);
   if (renderBig) {
@@ -74,7 +82,7 @@ void STAR(uint3 id : SV_DispatchThreadID) {
   float3 starSmallColor = float3(0, 0, 0);
   if (_useHighDensityMode) {
     float densityRandomSmall = random_3_1_seeded(noiseSmall.coordinate,
-      _starDensitySeed.xyz);
+      _starDensitySeed.xyz) * nebulaeDensityModifier;
     /* Do we render this star? */
     bool renderSmall = densityRandomSmall > (1 - _starDensity) ? true : false;
     if (renderSmall) {
@@ -144,20 +152,21 @@ void NEBULAE(uint3 id : SV_DispatchThreadID) {
 
   /* 5. Curl noise to warp strands. Have to compute first to advect uv
    * coordinate. */
+  const float WARP_MAX = 0.08;
   float3 coarseCurl = curlNoise3D(saturate(textureCoordinate),
     float3(_nebulaCoarseStrandWarpScale, _nebulaCoarseStrandWarpScale, _nebulaCoarseStrandWarpScale));
   float3 fineCurl = curlNoise3D(saturate(textureCoordinate),
     float3(_nebulaFineStrandWarpScale, _nebulaFineStrandWarpScale, _nebulaFineStrandWarpScale));
 
   /* 3. Layered voronoi noise to create coarse strands. */
-  float3 warpedCoarseStrandTextureCoordinate = (normalize(d - _nebulaCoarseStrandWarp * coarseCurl) + 1) / 2;
+  float3 warpedCoarseStrandTextureCoordinate = (normalize(d - _nebulaCoarseStrandWarp * WARP_MAX * coarseCurl) + 1) / 2;
   float coarseStrands = saturate(voronoi3DLayered(saturate(warpedCoarseStrandTextureCoordinate),
     float3(_nebulaCoarseStrandScale, _nebulaCoarseStrandScale, _nebulaCoarseStrandScale),
     _nebulaCoarseStrandScaleFactor, _nebulaCoarseStrandDetailBalance, _nebulaCoarseStrandOctaves)
     + _nebulaCoarseStrandBias);
 
   /* 4. Layered voronoi noise to create fine strands. */
-  float3 warpedFineStrandTextureCoordinate = (normalize(d - _nebulaFineStrandWarp * fineCurl) + 1) / 2;
+  float3 warpedFineStrandTextureCoordinate = (normalize(d - _nebulaFineStrandWarp * WARP_MAX * fineCurl) + 1) / 2;
   float fineStrands = saturate(voronoi3DLayered(saturate(warpedFineStrandTextureCoordinate),
     float3(_nebulaFineStrandScale, _nebulaFineStrandScale, _nebulaFineStrandScale), _nebulaFineStrandScaleFactor,
     _nebulaFineStrandDetailBalance, _nebulaFineStrandOctaves) + _nebulaFineStrandBias);
@@ -180,8 +189,8 @@ void NEBULAE(uint3 id : SV_DispatchThreadID) {
   /* Remap all the base noises using the coverage noise. */
   haze = saturate(remap(haze * _nebulaHazeStrength, pow(coverage, _nebulaHazeSpread) * _nebulaHazeCoverage, 1, 0, 1));
   clouds = saturate(remap(clouds * _nebulaCloudStrength, pow(coverage, _nebulaCloudSpread) * _nebulaCloudCoverage, 1, 0, 1));
-  coarseStrands = saturate(remap(pow(coarseStrands, _nebulaCoarseStrandDefinition) * _nebulaCoarseStrandStrength, pow(coverage, _nebulaCoarseStrandSpread) * _nebulaCoarseStrandCoverage, 1, 0, 1));
-  fineStrands = saturate(remap(pow(fineStrands, _nebulaFineStrandDefinition) * _nebulaFineStrandStrength, pow(coverage, _nebulaFineStrandSpread) * _nebulaFineStrandCoverage, 1, 0, 1));
+  coarseStrands = saturate(remap(pow(coarseStrands, _nebulaCoarseStrandDefinition) * _nebulaCoarseStrandStrength / pow(0.15, _nebulaCoarseStrandDefinition), pow(coverage, _nebulaCoarseStrandSpread) * _nebulaCoarseStrandCoverage, 1, 0, 1));
+  fineStrands = saturate(remap(pow(fineStrands, _nebulaFineStrandDefinition) * _nebulaFineStrandStrength / pow(0.15, _nebulaFineStrandDefinition), pow(coverage, _nebulaFineStrandSpread) * _nebulaFineStrandCoverage, 1, 0, 1));
 
   float3 finalColor = _nebulaHazeColor * haze + _nebulaCloudColor * clouds
     + _nebulaCoarseStrandColor * coarseStrands + _nebulaFineStrandColor * fineStrands;

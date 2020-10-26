@@ -206,6 +206,9 @@ SerializedDataParameter nebulaFineStrandWarp;
 SerializedDataParameter nebulaTransmittanceRange;
 SerializedDataParameter nebulaTransmittanceScale;
 
+SerializedDataParameter starNebulaFollowAmount;
+SerializedDataParameter starNebulaFollowSpread;
+
 /* Regular nebulae. */
 SerializedDataParameter nebulaeTexture;
 
@@ -571,6 +574,8 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
       PropertyField(nebulaOverallDefinition, new UnityEngine.GUIContent("Overall Definition"));
       PropertyField(nebulaOverallIntensity, new UnityEngine.GUIContent("Overall Intensity"));
       PropertyField(nebulaCoverageScale, new UnityEngine.GUIContent("Coverage Scale"));
+      PropertyField(starNebulaFollowAmount, new UnityEngine.GUIContent("Star Follow Amount"));
+      PropertyField(starNebulaFollowSpread, new UnityEngine.GUIContent("Star Follow Spread"));
       PropertyField(nebulaTransmittanceRange, new UnityEngine.GUIContent("Transmittance Range"));
       PropertyField(nebulaTransmittanceScale, new UnityEngine.GUIContent("Transmittance Scale"));
 
@@ -578,61 +583,61 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
       nebulaLayerDropdownSelection = EditorGUILayout.Popup("Nebula Layer", nebulaLayerDropdownSelection, nebulaLayerDropdownOptions);
       switch (nebulaLayerDropdownSelection) {
         case 0: {
-          PropertyField(nebulaHazeBrightness, new UnityEngine.GUIContent("Brightness"));
+          PropertyField(nebulaHazeBrightness, new UnityEngine.GUIContent("Intensity"));
           PropertyField(nebulaHazeColor, new UnityEngine.GUIContent("Color"));
           PropertyField(nebulaHazeScale, new UnityEngine.GUIContent("Scale"));
-          PropertyField(nebulaHazeScaleFactor, new UnityEngine.GUIContent("Scale Factor"));
+          PropertyField(nebulaHazeScaleFactor, new UnityEngine.GUIContent("Detail"));
           PropertyField(nebulaHazeDetailBalance, new UnityEngine.GUIContent("Detail Balance"));
           PropertyField(nebulaHazeOctaves, new UnityEngine.GUIContent("Octaves"));
           PropertyField(nebulaHazeBias, new UnityEngine.GUIContent("Bias"));
-          PropertyField(nebulaHazeSpread, new UnityEngine.GUIContent("Spread"));
-          PropertyField(nebulaHazeCoverage, new UnityEngine.GUIContent("Coverage"));
           PropertyField(nebulaHazeStrength, new UnityEngine.GUIContent("Strength"));
+          PropertyField(nebulaHazeCoverage, new UnityEngine.GUIContent("Coverage"));
+          PropertyField(nebulaHazeSpread, new UnityEngine.GUIContent("Spread"));
           break;
         }
         case 1: {
-          PropertyField(nebulaCloudBrightness, new UnityEngine.GUIContent("Brightness"));
+          PropertyField(nebulaCloudBrightness, new UnityEngine.GUIContent("Intensity"));
           PropertyField(nebulaCloudColor, new UnityEngine.GUIContent("Color"));
           PropertyField(nebulaCloudScale, new UnityEngine.GUIContent("Scale"));
-          PropertyField(nebulaCloudScaleFactor, new UnityEngine.GUIContent("Scale Factor"));
+          PropertyField(nebulaCloudScaleFactor, new UnityEngine.GUIContent("Detail"));
           PropertyField(nebulaCloudDetailBalance, new UnityEngine.GUIContent("Detail Balance"));
           PropertyField(nebulaCloudOctaves, new UnityEngine.GUIContent("Octaves"));
           PropertyField(nebulaCloudBias, new UnityEngine.GUIContent("Bias"));
-          PropertyField(nebulaCloudSpread, new UnityEngine.GUIContent("Spread"));
-          PropertyField(nebulaCloudCoverage, new UnityEngine.GUIContent("Coverage"));
           PropertyField(nebulaCloudStrength, new UnityEngine.GUIContent("Strength"));
+          PropertyField(nebulaCloudCoverage, new UnityEngine.GUIContent("Coverage"));
+          PropertyField(nebulaCloudSpread, new UnityEngine.GUIContent("Spread"));
           break;
         }
         case 2: {
-          PropertyField(nebulaCoarseStrandBrightness, new UnityEngine.GUIContent("Brightness"));
+          PropertyField(nebulaCoarseStrandBrightness, new UnityEngine.GUIContent("Intensity"));
           PropertyField(nebulaCoarseStrandColor, new UnityEngine.GUIContent("Color"));
           PropertyField(nebulaCoarseStrandScale, new UnityEngine.GUIContent("Scale"));
-          PropertyField(nebulaCoarseStrandScaleFactor, new UnityEngine.GUIContent("Scale Factor"));
+          PropertyField(nebulaCoarseStrandScaleFactor, new UnityEngine.GUIContent("Detail"));
           PropertyField(nebulaCoarseStrandDetailBalance, new UnityEngine.GUIContent("Detail Balance"));
           PropertyField(nebulaCoarseStrandOctaves, new UnityEngine.GUIContent("Octaves"));
           PropertyField(nebulaCoarseStrandBias, new UnityEngine.GUIContent("Bias"));
-          PropertyField(nebulaCoarseStrandDefinition, new UnityEngine.GUIContent("Definition"));
-          PropertyField(nebulaCoarseStrandSpread, new UnityEngine.GUIContent("Spread"));
-          PropertyField(nebulaCoarseStrandCoverage, new UnityEngine.GUIContent("Coverage"));
           PropertyField(nebulaCoarseStrandStrength, new UnityEngine.GUIContent("Strength"));
-          PropertyField(nebulaCoarseStrandWarpScale, new UnityEngine.GUIContent("Warp Scale"));
+          PropertyField(nebulaCoarseStrandDefinition, new UnityEngine.GUIContent("Definition"));
+          PropertyField(nebulaCoarseStrandCoverage, new UnityEngine.GUIContent("Coverage"));
+          PropertyField(nebulaCoarseStrandSpread, new UnityEngine.GUIContent("Spread"));
           PropertyField(nebulaCoarseStrandWarp, new UnityEngine.GUIContent("Warp"));
+          PropertyField(nebulaCoarseStrandWarpScale, new UnityEngine.GUIContent("Warp Scale"));
           break;
         }
         case 3: {
-          PropertyField(nebulaFineStrandBrightness, new UnityEngine.GUIContent("Brightness"));
+          PropertyField(nebulaFineStrandBrightness, new UnityEngine.GUIContent("Intensity"));
           PropertyField(nebulaFineStrandColor, new UnityEngine.GUIContent("Color"));
           PropertyField(nebulaFineStrandScale, new UnityEngine.GUIContent("Scale"));
-          PropertyField(nebulaFineStrandScaleFactor, new UnityEngine.GUIContent("Scale Factor"));
+          PropertyField(nebulaFineStrandScaleFactor, new UnityEngine.GUIContent("Detail"));
           PropertyField(nebulaFineStrandDetailBalance, new UnityEngine.GUIContent("Detail Balance"));
           PropertyField(nebulaFineStrandOctaves, new UnityEngine.GUIContent("Octaves"));
           PropertyField(nebulaFineStrandBias, new UnityEngine.GUIContent("Bias"));
-          PropertyField(nebulaFineStrandDefinition, new UnityEngine.GUIContent("Definition"));
-          PropertyField(nebulaFineStrandSpread, new UnityEngine.GUIContent("Spread"));
-          PropertyField(nebulaFineStrandCoverage, new UnityEngine.GUIContent("Coverage"));
           PropertyField(nebulaFineStrandStrength, new UnityEngine.GUIContent("Strength"));
-          PropertyField(nebulaFineStrandWarpScale, new UnityEngine.GUIContent("Warp Scale"));
+          PropertyField(nebulaFineStrandDefinition, new UnityEngine.GUIContent("Definition"));
+          PropertyField(nebulaFineStrandCoverage, new UnityEngine.GUIContent("Coverage"));
+          PropertyField(nebulaFineStrandSpread, new UnityEngine.GUIContent("Spread"));
           PropertyField(nebulaFineStrandWarp, new UnityEngine.GUIContent("Warp"));
+          PropertyField(nebulaFineStrandWarpScale, new UnityEngine.GUIContent("Warp Scale"));
           break;
         }
         default: {
@@ -857,6 +862,8 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   nebulaFineStrandWarp = Unpack(o.Find(x => x.nebulaFineStrandWarp));
   nebulaTransmittanceRange = Unpack(o.Find(x => x.nebulaTransmittanceRange));
   nebulaTransmittanceScale = Unpack(o.Find(x => x.nebulaTransmittanceScale));
+  starNebulaFollowAmount = Unpack(o.Find(x => x.starNebulaFollowAmount));
+  starNebulaFollowSpread = Unpack(o.Find(x => x.starNebulaFollowSpread));
 
   /* Regular nebulae. */
   nebulaeTexture = Unpack(o.Find(x => x.nebulaeTexture));

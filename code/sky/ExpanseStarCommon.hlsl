@@ -80,6 +80,12 @@ float _nebulaTransmittanceMin;
 float _nebulaTransmittanceMax;
 float _nebulaTransmittanceScale;
 
+float _starNebulaFollowAmount;
+float _starNebulaFollowSpread;
+
+bool _useProceduralNebulae;
+TEXTURE2D_ARRAY(_proceduralNebulae);
+
 CBUFFER_END // Expanse Star
 
 float3 directionToTex2DArrayCubemapUV(float3 xyz)

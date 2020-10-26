@@ -235,6 +235,8 @@ public ClampedFloatParameter nebulaFineStrandWarp = new ClampedFloatParameter(0.
 public FloatRangeParameter nebulaTransmittanceRange = new FloatRangeParameter(new Vector2(0, 1), 0, 1);
 public MinFloatParameter nebulaTransmittanceScale = new MinFloatParameter(5, 5);
 
+public MinFloatParameter starNebulaFollowAmount = new MinFloatParameter(0, 0);
+public MinFloatParameter starNebulaFollowSpread = new MinFloatParameter(2, 0);
 
 /* Regular nebulae. */
 [Tooltip("Nebulae texture.")]
@@ -512,6 +514,9 @@ public override int GetHashCode() {
     hash = hash * 23 + nebulaTransmittanceRange.value.GetHashCode();
     hash = hash * 23 + nebulaTransmittanceScale.value.GetHashCode();
 
+    hash = hash * 23 + starNebulaFollowAmount.value.GetHashCode();
+    hash = hash * 23 + starNebulaFollowSpread.value.GetHashCode();
+
     /* Texture. */
     hash = hash * 23 + lightPollutionTint.value.GetHashCode();
     hash = hash * 23 + lightPollutionIntensity.value.GetHashCode();
@@ -688,6 +693,9 @@ public int GetNightSkyHashCode() {
 
       hash = hash * 23 + nebulaTransmittanceRange.value.GetHashCode();
       hash = hash * 23 + nebulaTransmittanceScale.value.GetHashCode();
+
+      hash = hash * 23 + starNebulaFollowAmount.value.GetHashCode();
+      hash = hash * 23 + starNebulaFollowSpread.value.GetHashCode();
     }
     hash = nightSkyTexture.value != null ? hash * 23 + nightSkyTexture.value.GetHashCode() : hash;
   }
