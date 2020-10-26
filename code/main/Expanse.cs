@@ -322,7 +322,7 @@ public MinFloatParameter twinkleThreshold = new MinFloatParameter(0.001f, 0);
 public FloatRangeParameter twinkleFrequencyRange = new FloatRangeParameter(new Vector2(0.5f, 3), 0, 10);
 [Tooltip("Bias to twinkle effect. Negative values increase the time when the star is not visible.")]
 public FloatParameter twinkleBias = new FloatParameter(0);
-[Tooltip("Intensity of more smooth twinkle effect.")]
+[Tooltip("Intensity of smoother twinkle effect.")]
 public MinFloatParameter twinkleSmoothAmplitude = new MinFloatParameter(1, 0);
 [Tooltip("Intensity of more chaotic twinkle effect.")]
 public MinFloatParameter twinkleChaoticAmplitude = new MinFloatParameter(1, 0);
