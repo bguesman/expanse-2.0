@@ -83,6 +83,9 @@ float _nebulaTransmittanceScale;
 float _starNebulaFollowAmount;
 float _starNebulaFollowSpread;
 
+bool _hasNebulaeTexture;
+TEXTURECUBE(_nebulaeTexture);
+
 bool _useProceduralNebulae;
 TEXTURE2D_ARRAY(_proceduralNebulae);
 

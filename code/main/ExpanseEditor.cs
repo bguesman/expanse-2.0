@@ -649,6 +649,8 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
       /* Nebulae is a texture. */
       PropertyField(nebulaeTexture);
       PropertyField(nebulaOverallIntensity, new UnityEngine.GUIContent("Intensity"));
+      PropertyField(starNebulaFollowAmount, new UnityEngine.GUIContent("Star Follow Amount"));
+      PropertyField(starNebulaFollowSpread, new UnityEngine.GUIContent("Star Follow Spread"));
     }
   } else {
     /* Texture sky controls. */

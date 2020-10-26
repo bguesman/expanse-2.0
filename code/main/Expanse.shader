@@ -93,8 +93,6 @@ float _twinkleFrequencyMax;
 float _twinkleBias;
 float _twinkleSmoothAmplitude;
 float _twinkleChaoticAmplitude;
-bool _hasNebulaeTexture;
-TEXTURECUBE(_nebulaeTexture);
 
 /* Aerial Perspective. */
 float _aerialPerspectiveOcclusionBiasUniform;

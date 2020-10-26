@@ -939,67 +939,73 @@ private void setGlobalCBufferNightSky(CommandBuffer cmd, Expanse sky) {
     cmd.SetGlobalVector("_starTemperatureSeed", sky.starTemperatureSeed.value);
 
     /* Nebulae. */
-    cmd.SetGlobalVector("_resNebulae", m_nebulaeTextureResolution.Star);
-    cmd.SetGlobalFloat("_nebulaOverallDefinition", sky.nebulaOverallDefinition.value);
-    cmd.SetGlobalFloat("_nebulaOverallIntensity", sky.nebulaOverallIntensity.value);
-    cmd.SetGlobalFloat("_nebulaCoverageScale", sky.nebulaCoverageScale.value);
-
-    cmd.SetGlobalVector("_nebulaHazeColor", sky.nebulaHazeBrightness.value * sky.nebulaHazeColor.value);
-    cmd.SetGlobalFloat("_nebulaHazeScale", sky.nebulaHazeScale.value);
-    cmd.SetGlobalFloat("_nebulaHazeScaleFactor", sky.nebulaHazeScaleFactor.value);
-    cmd.SetGlobalFloat("_nebulaHazeDetailBalance", sky.nebulaHazeDetailBalance.value);
-    cmd.SetGlobalFloat("_nebulaHazeOctaves", sky.nebulaHazeOctaves.value);
-    cmd.SetGlobalFloat("_nebulaHazeBias", sky.nebulaHazeBias.value);
-    cmd.SetGlobalFloat("_nebulaHazeSpread", sky.nebulaHazeSpread.value);
-    cmd.SetGlobalFloat("_nebulaHazeCoverage", sky.nebulaHazeCoverage.value);
-    cmd.SetGlobalFloat("_nebulaHazeStrength", sky.nebulaHazeStrength.value);
-
-    cmd.SetGlobalVector("_nebulaCloudColor", sky.nebulaCloudBrightness.value * sky.nebulaCloudColor.value);
-    cmd.SetGlobalFloat("_nebulaCloudScale", sky.nebulaCloudScale.value);
-    cmd.SetGlobalFloat("_nebulaCloudScaleFactor", sky.nebulaCloudScaleFactor.value);
-    cmd.SetGlobalFloat("_nebulaCloudDetailBalance", sky.nebulaCloudDetailBalance.value);
-    cmd.SetGlobalFloat("_nebulaCloudOctaves", sky.nebulaCloudOctaves.value);
-    cmd.SetGlobalFloat("_nebulaCloudBias", sky.nebulaCloudBias.value);
-    cmd.SetGlobalFloat("_nebulaCloudSpread", sky.nebulaCloudSpread.value);
-    cmd.SetGlobalFloat("_nebulaCloudCoverage", sky.nebulaCloudCoverage.value);
-    cmd.SetGlobalFloat("_nebulaCloudStrength", sky.nebulaCloudStrength.value);
-
-    cmd.SetGlobalVector("_nebulaCoarseStrandColor", sky.nebulaCoarseStrandBrightness.value * sky.nebulaCoarseStrandColor.value);
-    cmd.SetGlobalFloat("_nebulaCoarseStrandScale", sky.nebulaCoarseStrandScale.value);
-    cmd.SetGlobalFloat("_nebulaCoarseStrandScaleFactor", sky.nebulaCoarseStrandScaleFactor.value);
-    cmd.SetGlobalFloat("_nebulaCoarseStrandDetailBalance", sky.nebulaCoarseStrandDetailBalance.value);
-    cmd.SetGlobalFloat("_nebulaCoarseStrandOctaves", sky.nebulaCoarseStrandOctaves.value);
-    cmd.SetGlobalFloat("_nebulaCoarseStrandBias", sky.nebulaCoarseStrandBias.value);
-    cmd.SetGlobalFloat("_nebulaCoarseStrandDefinition", sky.nebulaCoarseStrandDefinition.value);
-    cmd.SetGlobalFloat("_nebulaCoarseStrandSpread", sky.nebulaCoarseStrandSpread.value);
-    cmd.SetGlobalFloat("_nebulaCoarseStrandCoverage", sky.nebulaCoarseStrandCoverage.value);
-    cmd.SetGlobalFloat("_nebulaCoarseStrandStrength", sky.nebulaCoarseStrandStrength.value);
-    cmd.SetGlobalFloat("_nebulaCoarseStrandWarpScale", sky.nebulaCoarseStrandWarpScale.value);
-    cmd.SetGlobalFloat("_nebulaCoarseStrandWarp", sky.nebulaCoarseStrandWarp.value);
-
-    cmd.SetGlobalVector("_nebulaFineStrandColor", sky.nebulaFineStrandBrightness.value * sky.nebulaFineStrandColor.value);
-    cmd.SetGlobalFloat("_nebulaFineStrandScale", sky.nebulaFineStrandScale.value);
-    cmd.SetGlobalFloat("_nebulaFineStrandScaleFactor", sky.nebulaFineStrandScaleFactor.value);
-    cmd.SetGlobalFloat("_nebulaFineStrandDetailBalance", sky.nebulaFineStrandDetailBalance.value);
-    cmd.SetGlobalFloat("_nebulaFineStrandOctaves", sky.nebulaFineStrandOctaves.value);
-    cmd.SetGlobalFloat("_nebulaFineStrandBias", sky.nebulaFineStrandBias.value);
-    cmd.SetGlobalFloat("_nebulaFineStrandDefinition", sky.nebulaFineStrandDefinition.value);
-    cmd.SetGlobalFloat("_nebulaFineStrandSpread", sky.nebulaFineStrandSpread.value);
-    cmd.SetGlobalFloat("_nebulaFineStrandCoverage", sky.nebulaFineStrandCoverage.value);
-    cmd.SetGlobalFloat("_nebulaFineStrandStrength", sky.nebulaFineStrandStrength.value);
-    cmd.SetGlobalFloat("_nebulaFineStrandWarpScale", sky.nebulaFineStrandWarpScale.value);
-    cmd.SetGlobalFloat("_nebulaFineStrandWarp", sky.nebulaFineStrandWarp.value);
-
-    cmd.SetGlobalFloat("_nebulaTransmittanceMin", sky.nebulaTransmittanceRange.value.x);
-    cmd.SetGlobalFloat("_nebulaTransmittanceMax", sky.nebulaTransmittanceRange.value.y);
-    cmd.SetGlobalFloat("_nebulaTransmittanceScale", sky.nebulaTransmittanceScale.value);
-
+    cmd.SetGlobalFloat("_useProceduralNebulae", (sky.useProceduralNebulae.value) ? 1 : 0);
     cmd.SetGlobalFloat("_starNebulaFollowAmount", sky.starNebulaFollowAmount.value);
     cmd.SetGlobalFloat("_starNebulaFollowSpread", sky.starNebulaFollowSpread.value);
+    if (!sky.useProceduralNebulae.value) {
+      cmd.SetGlobalFloat("_hasNebulaeTexture", (sky.nebulaeTexture.value == null) ? 0 : 1);
+      if (sky.nebulaeTexture.value != null) {
+        cmd.SetGlobalTexture("_nebulaeTexture", sky.nebulaeTexture.value);
+      }
+    } else {
+      cmd.SetGlobalVector("_resNebulae", m_nebulaeTextureResolution.Star);
+      cmd.SetGlobalFloat("_nebulaOverallDefinition", sky.nebulaOverallDefinition.value);
+      cmd.SetGlobalFloat("_nebulaOverallIntensity", sky.nebulaOverallIntensity.value);
+      cmd.SetGlobalFloat("_nebulaCoverageScale", sky.nebulaCoverageScale.value);
 
-    /* Set the procedural nebulae texture for use in the star generation. */
-    cmd.SetGlobalFloat("_useProceduralNebulae", (sky.useProceduralNebulae.value) ? 1 : 0);
-    cmd.SetGlobalTexture("_proceduralNebulae", m_proceduralNebulaeTexture);
+      cmd.SetGlobalVector("_nebulaHazeColor", sky.nebulaHazeBrightness.value * sky.nebulaHazeColor.value);
+      cmd.SetGlobalFloat("_nebulaHazeScale", sky.nebulaHazeScale.value);
+      cmd.SetGlobalFloat("_nebulaHazeScaleFactor", sky.nebulaHazeScaleFactor.value);
+      cmd.SetGlobalFloat("_nebulaHazeDetailBalance", sky.nebulaHazeDetailBalance.value);
+      cmd.SetGlobalFloat("_nebulaHazeOctaves", sky.nebulaHazeOctaves.value);
+      cmd.SetGlobalFloat("_nebulaHazeBias", sky.nebulaHazeBias.value);
+      cmd.SetGlobalFloat("_nebulaHazeSpread", sky.nebulaHazeSpread.value);
+      cmd.SetGlobalFloat("_nebulaHazeCoverage", sky.nebulaHazeCoverage.value);
+      cmd.SetGlobalFloat("_nebulaHazeStrength", sky.nebulaHazeStrength.value);
+
+      cmd.SetGlobalVector("_nebulaCloudColor", sky.nebulaCloudBrightness.value * sky.nebulaCloudColor.value);
+      cmd.SetGlobalFloat("_nebulaCloudScale", sky.nebulaCloudScale.value);
+      cmd.SetGlobalFloat("_nebulaCloudScaleFactor", sky.nebulaCloudScaleFactor.value);
+      cmd.SetGlobalFloat("_nebulaCloudDetailBalance", sky.nebulaCloudDetailBalance.value);
+      cmd.SetGlobalFloat("_nebulaCloudOctaves", sky.nebulaCloudOctaves.value);
+      cmd.SetGlobalFloat("_nebulaCloudBias", sky.nebulaCloudBias.value);
+      cmd.SetGlobalFloat("_nebulaCloudSpread", sky.nebulaCloudSpread.value);
+      cmd.SetGlobalFloat("_nebulaCloudCoverage", sky.nebulaCloudCoverage.value);
+      cmd.SetGlobalFloat("_nebulaCloudStrength", sky.nebulaCloudStrength.value);
+
+      cmd.SetGlobalVector("_nebulaCoarseStrandColor", sky.nebulaCoarseStrandBrightness.value * sky.nebulaCoarseStrandColor.value);
+      cmd.SetGlobalFloat("_nebulaCoarseStrandScale", sky.nebulaCoarseStrandScale.value);
+      cmd.SetGlobalFloat("_nebulaCoarseStrandScaleFactor", sky.nebulaCoarseStrandScaleFactor.value);
+      cmd.SetGlobalFloat("_nebulaCoarseStrandDetailBalance", sky.nebulaCoarseStrandDetailBalance.value);
+      cmd.SetGlobalFloat("_nebulaCoarseStrandOctaves", sky.nebulaCoarseStrandOctaves.value);
+      cmd.SetGlobalFloat("_nebulaCoarseStrandBias", sky.nebulaCoarseStrandBias.value);
+      cmd.SetGlobalFloat("_nebulaCoarseStrandDefinition", sky.nebulaCoarseStrandDefinition.value);
+      cmd.SetGlobalFloat("_nebulaCoarseStrandSpread", sky.nebulaCoarseStrandSpread.value);
+      cmd.SetGlobalFloat("_nebulaCoarseStrandCoverage", sky.nebulaCoarseStrandCoverage.value);
+      cmd.SetGlobalFloat("_nebulaCoarseStrandStrength", sky.nebulaCoarseStrandStrength.value);
+      cmd.SetGlobalFloat("_nebulaCoarseStrandWarpScale", sky.nebulaCoarseStrandWarpScale.value);
+      cmd.SetGlobalFloat("_nebulaCoarseStrandWarp", sky.nebulaCoarseStrandWarp.value);
+
+      cmd.SetGlobalVector("_nebulaFineStrandColor", sky.nebulaFineStrandBrightness.value * sky.nebulaFineStrandColor.value);
+      cmd.SetGlobalFloat("_nebulaFineStrandScale", sky.nebulaFineStrandScale.value);
+      cmd.SetGlobalFloat("_nebulaFineStrandScaleFactor", sky.nebulaFineStrandScaleFactor.value);
+      cmd.SetGlobalFloat("_nebulaFineStrandDetailBalance", sky.nebulaFineStrandDetailBalance.value);
+      cmd.SetGlobalFloat("_nebulaFineStrandOctaves", sky.nebulaFineStrandOctaves.value);
+      cmd.SetGlobalFloat("_nebulaFineStrandBias", sky.nebulaFineStrandBias.value);
+      cmd.SetGlobalFloat("_nebulaFineStrandDefinition", sky.nebulaFineStrandDefinition.value);
+      cmd.SetGlobalFloat("_nebulaFineStrandSpread", sky.nebulaFineStrandSpread.value);
+      cmd.SetGlobalFloat("_nebulaFineStrandCoverage", sky.nebulaFineStrandCoverage.value);
+      cmd.SetGlobalFloat("_nebulaFineStrandStrength", sky.nebulaFineStrandStrength.value);
+      cmd.SetGlobalFloat("_nebulaFineStrandWarpScale", sky.nebulaFineStrandWarpScale.value);
+      cmd.SetGlobalFloat("_nebulaFineStrandWarp", sky.nebulaFineStrandWarp.value);
+
+      cmd.SetGlobalFloat("_nebulaTransmittanceMin", sky.nebulaTransmittanceRange.value.x);
+      cmd.SetGlobalFloat("_nebulaTransmittanceMax", sky.nebulaTransmittanceRange.value.y);
+      cmd.SetGlobalFloat("_nebulaTransmittanceScale", sky.nebulaTransmittanceScale.value);
+
+      /* Set the procedural nebulae texture for use in the star generation. */
+      cmd.SetGlobalTexture("_proceduralNebulae", m_proceduralNebulaeTexture);
+    }
   }
 }
 
@@ -1182,12 +1188,6 @@ private void setMaterialPropertyBlockNightSky(Expanse sky) {
   m_PropertyBlock.SetFloat("_useProceduralNightSky", (sky.useProceduralNightSky.value) ? 1 : 0);
   if (sky.useProceduralNightSky.value) {
     m_PropertyBlock.SetTexture("_Star", m_proceduralStarTexture);
-    if (!sky.useProceduralNebulae.value) {
-      m_PropertyBlock.SetFloat("_hasNebulaeTexture", (sky.nebulaeTexture.value == null) ? 0 : 1);
-      if (sky.nebulaeTexture.value != null) {
-        m_PropertyBlock.SetTexture("_nebulaeTexture", sky.nebulaeTexture.value);
-      }
-    }
   } else {
     m_PropertyBlock.SetFloat("_hasNightSkyTexture", (sky.nightSkyTexture.value == null) ? 0 : 1);
     if (sky.nightSkyTexture.value != null) {
