@@ -310,7 +310,9 @@ float value3DLayeredSeeded(float3 uv, float3 startingGrid,
   return noise / maxValue;
 }
 
-// TODO HACK: fails for grid size of less than 3,3,3
+// TODO HACK: fails for grid size of less than 3,3,3. TODO: also fails
+// when being warped. Something is wrong with this implementation...
+// default z seed maybe? probably not since it works fine for voronoi
 NoiseResultAndCoordinate perlin3DSeeded(float3 uv, float3 cells, float3 seed_x,
   float3 seed_y, float3 seed_z) {
   /* Final result. */
@@ -433,6 +435,58 @@ float perlin3DLayeredSeeded(float3 uv, float3 startingGrid,
 
 /******************************************************************************/
 /**************************** END TRADITIONAL NOISE ***************************/
+/******************************************************************************/
+
+
+
+/******************************************************************************/
+/****************************** SIMULATION NOISE ******************************/
+/******************************************************************************/
+
+float3 curlNoise3DSeeded(float3 uv, float3 cells, float3 seed_x, float3 seed_y,
+  float3 seed_z) {
+  float epsilon = 0.00001;
+
+  /* Compute offset uv coordinates, taking into account wraparound. */
+  float3 uvx0 = float3(uv.x - epsilon - floor(uv.x - epsilon), uv.y, uv.z);
+  float3 uvxf = float3(uv.x + epsilon - floor(uv.x + epsilon), uv.y, uv.z);
+  float3 uvy0 = float3(uv.x, uv.y - epsilon - floor(uv.y - epsilon), uv.z);
+  float3 uvyf = float3(uv.x, uv.y + epsilon - floor(uv.y + epsilon), uv.z);
+  float3 uvz0 = float3(uv.x, uv.y, uv.z - epsilon - floor(uv.z - epsilon));
+  float3 uvzf = float3(uv.x, uv.y, uv.z + epsilon - floor(uv.z + epsilon));
+
+  /* Compute noise values for finite differencing. */
+  // float x0 = perlin3DSeeded(uvx0, cells, seed_x, seed_y, seed_z).result;
+  // float xf = perlin3DSeeded(uvxf, cells, seed_x, seed_y, seed_z).result;
+  // float y0 = perlin3DSeeded(uvy0, cells, seed_x, seed_y, seed_z).result;
+  // float yf = perlin3DSeeded(uvyf, cells, seed_x, seed_y, seed_z).result;
+  // float z0 = perlin3DSeeded(uvz0, cells, seed_x, seed_y, seed_z).result;
+  // float zf = perlin3DSeeded(uvzf, cells, seed_x, seed_y, seed_z).result;
+  float x0 = value3DSeeded(uvx0, cells, seed_x).result;
+  float xf = value3DSeeded(uvxf, cells, seed_x).result;
+  float y0 = value3DSeeded(uvy0, cells, seed_x).result;
+  float yf = value3DSeeded(uvyf, cells, seed_x).result;
+  float z0 = value3DSeeded(uvz0, cells, seed_x).result;
+  float zf = value3DSeeded(uvzf, cells, seed_x).result;
+
+  /* Compute the derivatives via finite differencing. */
+  float dx = (xf - x0) / (2 * epsilon);
+  float dy = (yf - y0) / (2 * epsilon);
+  float dz = (zf - z0) / (2 * epsilon);
+
+  /* Return the curl. */
+  return float3(dz - dy, dx - dz, dy - dx);
+}
+
+float3 curlNoise3D(float3 uv, float3 cells) {
+  return curlNoise3DSeeded(uv, cells,
+    float3(EXPANSE_DEFAULT_SEED_X_1, EXPANSE_DEFAULT_SEED_X_2, EXPANSE_DEFAULT_SEED_X_3),
+    float3(EXPANSE_DEFAULT_SEED_Y_1, EXPANSE_DEFAULT_SEED_Y_2, EXPANSE_DEFAULT_SEED_Y_3),
+    float3(EXPANSE_DEFAULT_SEED_Z_1, EXPANSE_DEFAULT_SEED_Z_2, EXPANSE_DEFAULT_SEED_Z_3));
+}
+
+/******************************************************************************/
+/**************************** END SIMULATION NOISE ****************************/
 /******************************************************************************/
 
 #endif  // EXPANSE_SKY_RANDOM_INCLUDED

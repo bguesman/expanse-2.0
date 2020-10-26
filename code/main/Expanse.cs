@@ -215,6 +215,8 @@ public MinFloatParameter nebulaCoarseStrandDefinition = new MinFloatParameter(1,
 public MinFloatParameter nebulaCoarseStrandSpread = new MinFloatParameter(1, 0);
 public ClampedFloatParameter nebulaCoarseStrandCoverage = new ClampedFloatParameter(0.5f, 0, 1);
 public MinFloatParameter nebulaCoarseStrandStrength = new MinFloatParameter(1, 0);
+public MinFloatParameter nebulaCoarseStrandWarpScale = new MinFloatParameter(16, 0);
+public ClampedFloatParameter nebulaCoarseStrandWarp = new ClampedFloatParameter(0.003f, 0, 1);
 
 public MinFloatParameter nebulaFineStrandBrightness = new MinFloatParameter(1, 0);
 public ColorParameter nebulaFineStrandColor = new ColorParameter(Color.blue, hdr: false, showAlpha: false, showEyeDropper: true);
@@ -227,6 +229,8 @@ public MinFloatParameter nebulaFineStrandDefinition = new MinFloatParameter(1, 0
 public MinFloatParameter nebulaFineStrandSpread = new MinFloatParameter(1, 0);
 public ClampedFloatParameter nebulaFineStrandCoverage = new ClampedFloatParameter(0.5f, 0, 1);
 public MinFloatParameter nebulaFineStrandStrength = new MinFloatParameter(1, 0);
+public MinFloatParameter nebulaFineStrandWarpScale = new MinFloatParameter(16, 0);
+public ClampedFloatParameter nebulaFineStrandWarp = new ClampedFloatParameter(0.003f, 0, 1);
 
 public FloatRangeParameter nebulaTransmittanceRange = new FloatRangeParameter(new Vector2(0, 1), 0, 1);
 public MinFloatParameter nebulaTransmittanceScale = new MinFloatParameter(5, 5);
@@ -450,6 +454,63 @@ public override int GetHashCode() {
     hash = hash * 23 + useProceduralNebulae.value.GetHashCode();
     hash = hash * 23 + nebulaeTextureQuality.value.GetHashCode();
     hash = nebulaeTexture.value != null ? hash * 23 + nebulaeTexture.value.GetHashCode() : hash;
+    /* Procedural nebulae. */
+    hash = hash * 23 + nebulaOverallDefinition.value.GetHashCode();
+    hash = hash * 23 + nebulaOverallIntensity.value.GetHashCode();
+    hash = hash * 23 + nebulaCoverageScale.value.GetHashCode();
+
+    hash = hash * 23 + nebulaHazeBrightness.value.GetHashCode();
+    hash = hash * 23 + nebulaHazeColor.value.GetHashCode();
+    hash = hash * 23 + nebulaHazeScale.value.GetHashCode();
+    hash = hash * 23 + nebulaHazeScaleFactor.value.GetHashCode();
+    hash = hash * 23 + nebulaHazeDetailBalance.value.GetHashCode();
+    hash = hash * 23 + nebulaHazeOctaves.value.GetHashCode();
+    hash = hash * 23 + nebulaHazeBias.value.GetHashCode();
+    hash = hash * 23 + nebulaHazeSpread.value.GetHashCode();
+    hash = hash * 23 + nebulaHazeCoverage.value.GetHashCode();
+    hash = hash * 23 + nebulaHazeStrength.value.GetHashCode();
+
+    hash = hash * 23 + nebulaCloudBrightness.value.GetHashCode();
+    hash = hash * 23 + nebulaCloudColor.value.GetHashCode();
+    hash = hash * 23 + nebulaCloudScale.value.GetHashCode();
+    hash = hash * 23 + nebulaCloudScaleFactor.value.GetHashCode();
+    hash = hash * 23 + nebulaCloudDetailBalance.value.GetHashCode();
+    hash = hash * 23 + nebulaCloudOctaves.value.GetHashCode();
+    hash = hash * 23 + nebulaCloudBias.value.GetHashCode();
+    hash = hash * 23 + nebulaCloudSpread.value.GetHashCode();
+    hash = hash * 23 + nebulaCloudCoverage.value.GetHashCode();
+    hash = hash * 23 + nebulaCloudStrength.value.GetHashCode();
+
+    hash = hash * 23 + nebulaCoarseStrandBrightness.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandColor.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandScale.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandScaleFactor.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandDetailBalance.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandOctaves.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandBias.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandDefinition.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandSpread.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandCoverage.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandStrength.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandWarpScale.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandWarp.value.GetHashCode();
+
+    hash = hash * 23 + nebulaFineStrandBrightness.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandColor.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandScale.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandScaleFactor.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandDetailBalance.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandOctaves.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandBias.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandDefinition.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandSpread.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandCoverage.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandStrength.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandWarpScale.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandWarp.value.GetHashCode();
+
+    hash = hash * 23 + nebulaTransmittanceRange.value.GetHashCode();
+    hash = hash * 23 + nebulaTransmittanceScale.value.GetHashCode();
 
     /* Texture. */
     hash = hash * 23 + lightPollutionTint.value.GetHashCode();
@@ -569,6 +630,64 @@ public int GetNightSkyHashCode() {
       hash = hash * 23 + useProceduralNebulae.value.GetHashCode();
       hash = hash * 23 + nebulaeTextureQuality.value.GetHashCode();
       hash = nebulaeTexture.value != null ? hash * 23 + nebulaeTexture.value.GetHashCode() : hash;
+      /* Procedural nebulae. */
+      hash = hash * 23 + nebulaOverallDefinition.value.GetHashCode();
+      hash = hash * 23 + nebulaOverallIntensity.value.GetHashCode();
+      hash = hash * 23 + nebulaCoverageScale.value.GetHashCode();
+
+      hash = hash * 23 + nebulaHazeBrightness.value.GetHashCode();
+      hash = hash * 23 + nebulaHazeColor.value.GetHashCode();
+      hash = hash * 23 + nebulaHazeScale.value.GetHashCode();
+      hash = hash * 23 + nebulaHazeScaleFactor.value.GetHashCode();
+      hash = hash * 23 + nebulaHazeDetailBalance.value.GetHashCode();
+      hash = hash * 23 + nebulaHazeOctaves.value.GetHashCode();
+      hash = hash * 23 + nebulaHazeBias.value.GetHashCode();
+      hash = hash * 23 + nebulaHazeSpread.value.GetHashCode();
+      hash = hash * 23 + nebulaHazeCoverage.value.GetHashCode();
+      hash = hash * 23 + nebulaHazeStrength.value.GetHashCode();
+
+      hash = hash * 23 + nebulaCloudBrightness.value.GetHashCode();
+      hash = hash * 23 + nebulaCloudColor.value.GetHashCode();
+      hash = hash * 23 + nebulaCloudScale.value.GetHashCode();
+      hash = hash * 23 + nebulaCloudScaleFactor.value.GetHashCode();
+      hash = hash * 23 + nebulaCloudDetailBalance.value.GetHashCode();
+      hash = hash * 23 + nebulaCloudOctaves.value.GetHashCode();
+      hash = hash * 23 + nebulaCloudBias.value.GetHashCode();
+      hash = hash * 23 + nebulaCloudSpread.value.GetHashCode();
+      hash = hash * 23 + nebulaCloudCoverage.value.GetHashCode();
+      hash = hash * 23 + nebulaCloudStrength.value.GetHashCode();
+
+      hash = hash * 23 + nebulaCoarseStrandBrightness.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandColor.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandScale.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandScaleFactor.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandDetailBalance.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandOctaves.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandBias.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandDefinition.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandSpread.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandCoverage.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandStrength.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandWarpScale.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandWarp.value.GetHashCode();
+
+
+      hash = hash * 23 + nebulaFineStrandBrightness.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandColor.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandScale.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandScaleFactor.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandDetailBalance.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandOctaves.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandBias.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandDefinition.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandSpread.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandCoverage.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandStrength.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandWarpScale.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandWarp.value.GetHashCode();
+
+      hash = hash * 23 + nebulaTransmittanceRange.value.GetHashCode();
+      hash = hash * 23 + nebulaTransmittanceScale.value.GetHashCode();
     }
     hash = nightSkyTexture.value != null ? hash * 23 + nightSkyTexture.value.GetHashCode() : hash;
   }

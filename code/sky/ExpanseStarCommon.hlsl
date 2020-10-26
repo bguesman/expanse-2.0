@@ -30,7 +30,6 @@ float _nebulaOverallDefinition;
 float _nebulaOverallIntensity;
 float _nebulaCoverageScale;
 
-// float _nebulaHazeBrightness;
 float4 _nebulaHazeColor; // Brightness and color.
 float _nebulaHazeScale;
 float _nebulaHazeScaleFactor;
@@ -41,7 +40,6 @@ float _nebulaHazeSpread;
 float _nebulaHazeCoverage;
 float _nebulaHazeStrength;
 
-// float _nebulaCloudBrightness;
 float4 _nebulaCloudColor; // Brightness and color.
 float _nebulaCloudScale;
 float _nebulaCloudScaleFactor;
@@ -52,7 +50,6 @@ float _nebulaCloudSpread;
 float _nebulaCloudCoverage;
 float _nebulaCloudStrength;
 
-// float _nebulaCoarseStrandBrightness;
 float4 _nebulaCoarseStrandColor; // Brightness and color.
 float _nebulaCoarseStrandScale;
 float _nebulaCoarseStrandScaleFactor;
@@ -63,8 +60,9 @@ float _nebulaCoarseStrandDefinition;
 float _nebulaCoarseStrandSpread;
 float _nebulaCoarseStrandCoverage;
 float _nebulaCoarseStrandStrength;
+float _nebulaCoarseStrandWarpScale;
+float _nebulaCoarseStrandWarp;
 
-// float _nebulaFineStrandBrightness;
 float4 _nebulaFineStrandColor; // Brightness and color.
 float _nebulaFineStrandScale;
 float _nebulaFineStrandScaleFactor;
@@ -75,6 +73,8 @@ float _nebulaFineStrandDefinition;
 float _nebulaFineStrandSpread;
 float _nebulaFineStrandCoverage;
 float _nebulaFineStrandStrength;
+float _nebulaFineStrandWarpScale;
+float _nebulaFineStrandWarp;
 
 float _nebulaTransmittanceMin;
 float _nebulaTransmittanceMax;

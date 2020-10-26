@@ -973,6 +973,8 @@ private void setGlobalCBufferNightSky(CommandBuffer cmd, Expanse sky) {
     cmd.SetGlobalFloat("_nebulaCoarseStrandSpread", sky.nebulaCoarseStrandSpread.value);
     cmd.SetGlobalFloat("_nebulaCoarseStrandCoverage", sky.nebulaCoarseStrandCoverage.value);
     cmd.SetGlobalFloat("_nebulaCoarseStrandStrength", sky.nebulaCoarseStrandStrength.value);
+    cmd.SetGlobalFloat("_nebulaCoarseStrandWarpScale", sky.nebulaCoarseStrandWarpScale.value);
+    cmd.SetGlobalFloat("_nebulaCoarseStrandWarp", sky.nebulaCoarseStrandWarp.value);
 
     cmd.SetGlobalVector("_nebulaFineStrandColor", sky.nebulaFineStrandBrightness.value * sky.nebulaFineStrandColor.value);
     cmd.SetGlobalFloat("_nebulaFineStrandScale", sky.nebulaFineStrandScale.value);
@@ -984,6 +986,8 @@ private void setGlobalCBufferNightSky(CommandBuffer cmd, Expanse sky) {
     cmd.SetGlobalFloat("_nebulaFineStrandSpread", sky.nebulaFineStrandSpread.value);
     cmd.SetGlobalFloat("_nebulaFineStrandCoverage", sky.nebulaFineStrandCoverage.value);
     cmd.SetGlobalFloat("_nebulaFineStrandStrength", sky.nebulaFineStrandStrength.value);
+    cmd.SetGlobalFloat("_nebulaFineStrandWarpScale", sky.nebulaFineStrandWarpScale.value);
+    cmd.SetGlobalFloat("_nebulaFineStrandWarp", sky.nebulaFineStrandWarp.value);
 
     cmd.SetGlobalFloat("_nebulaTransmittanceMin", sky.nebulaTransmittanceRange.value.x);
     cmd.SetGlobalFloat("_nebulaTransmittanceMax", sky.nebulaTransmittanceRange.value.y);

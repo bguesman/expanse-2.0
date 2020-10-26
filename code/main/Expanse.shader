@@ -449,7 +449,7 @@ float3 shadeNightSky(float3 d) {
       // TODO: actually blend or just add on top?
       float4 nebulaeColorAndAlpha = SAMPLE_TEXTURE2D_ARRAY_LOD(_proceduralNebulae,
         s_linear_clamp_sampler, proceduralTextureCoordinate.xy, proceduralTextureCoordinate.z, 0);
-      nebulaeColor = nebulaeColorAndAlpha.xyz;
+      nebulaeColor = pow(nebulaeColorAndAlpha.xyz, _nebulaOverallDefinition) * _nebulaOverallIntensity;
       float nebulaeAlpha = nebulaeColorAndAlpha.w;
       nebulaeColor *= nebulaeAlpha;
       // Blend probabilistically.
@@ -457,7 +457,7 @@ float3 shadeNightSky(float3 d) {
       starColor *= 1-(starNebulaeBlendAmount * nebulaeAlpha);
     } else {
       if (_hasNebulaeTexture) {
-        nebulaeColor = SAMPLE_TEXTURECUBE_LOD(_nebulaeTexture,
+        nebulaeColor = _nebulaOverallIntensity * SAMPLE_TEXTURECUBE_LOD(_nebulaeTexture,
           s_linear_clamp_sampler, textureCoordinate, 0);
       }
     }
