@@ -1106,7 +1106,7 @@ private void setMaterialPropertyBlockCelestialBodies(Expanse sky) {
       /* TODO: this mapping could use work. */
       Vector3 angles = ((Vector3Parameter) sky.GetType().GetField("bodyDirection" + i).GetValue(sky)).value;
       Quaternion bodyLightRotation = Quaternion.Euler(angles.x, angles.y, angles.z);
-      Vector3 direction = bodyLightRotation * (new Vector3(0, 1, 0));
+      Vector3 direction = bodyLightRotation * (new Vector3(0, 0, -1));
       bodyDirection[numActiveBodies] = new Vector4(direction.x, direction.y, direction.z, 0);
 
       bodyAngularRadius[numActiveBodies] = Mathf.PI * (((ClampedFloatParameter) sky.GetType().GetField("bodyAngularRadius" + i).GetValue(sky)).value / 180);

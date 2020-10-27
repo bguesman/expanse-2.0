@@ -21,6 +21,9 @@ float3 uvToDeepTexCoord(float u, float v, int numRows, int numCols) {
   return float3(coord_0, coord_1, a);
 }
 
+// TODO: I'm like 90% certain something is wrong here, based on the artifacts
+// you see when you're higher in the sky in the aerial perspective.
+
 /* Converts deep texture index in range zTexSize * zTexCount to the
  * uv coordinate in unit range that represents the 2D table index for a
  * table with zTexSize rows and zTexCount columns.

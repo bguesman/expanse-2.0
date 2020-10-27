@@ -397,8 +397,8 @@ float3 sampleSSTexture(TexCoord4D uv, int i) {
   float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw01, i, 0).xyz;
   float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw10, i, 0).xyz;
   float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  float3 result0 = lerp(contrib00, contrib01, uv.b);
-  float3 result1 = lerp(contrib10, contrib11, uv.b);
+  float3 result0 = lerp(contrib00, contrib01, 1-uv.b);
+  float3 result1 = lerp(contrib10, contrib11, 1-uv.b);
   return lerp(result0, result1, uv.a);
 }
 

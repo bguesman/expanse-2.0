@@ -492,10 +492,10 @@ float computeAerialPerspectiveLODBlend(int LOD, float depth) {
   switch (LOD) {
     case AERIAL_PERPSECTIVE_LOD0:
       /* Lerp for last 25 percent of interval. */
-      return 1-saturate((_aerialPerspectiveTableDistanceLOD0 - depth) / (0.25 * _aerialPerspectiveTableDistanceLOD0));
+      return 1 - saturate((_aerialPerspectiveTableDistanceLOD0 - depth) / (0.5 * _aerialPerspectiveTableDistanceLOD0));
     case AERIAL_PERPSECTIVE_LOD1:
       /* Lerp for last 25 percent of interval. */
-      return 1-saturate((_aerialPerspectiveTableDistanceLOD1 - depth) / (0.25 * _aerialPerspectiveTableDistanceLOD1));
+      return 1 - saturate((_aerialPerspectiveTableDistanceLOD1 - depth) / (0.5 * _aerialPerspectiveTableDistanceLOD1));
     case AERIAL_PERPSECTIVE_LOD2:
       return 0;
     default:
@@ -692,7 +692,9 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   float3 endPoint = O + d * intersection.endT;
   float t_hit = intersection.endT - intersection.startT;
 
-  /* Sample the depth buffer and figure out if we hit anything. */
+  /* Sample the depth buffer and figure out if we hit anything.
+   * TODO: depth conversion here might not account for the fact that
+   * depth changes across camera coordinate? no idea. */
   float depth = LoadCameraDepth(input.positionCS.xy);
   depth = LinearEyeDepth(depth, _ZBufferParams);
   bool geoHit = depth < t_hit && depth < _ProjectionParams.z - 0.001;
@@ -745,7 +747,7 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
       dot(normalize(depthSamplePoint), d), _atmosphereRadius, _planetRadius,
       t_hit-depth, intersection.groundHit);
     float3 aerialPerspectiveTransmittanceRaw = computeSkyTransmittanceRaw(depthCoord2D);
-    blendTransmittance = exp(transmittanceRaw - aerialPerspectiveTransmittanceRaw);
+    blendTransmittance = saturate(exp(transmittanceRaw - aerialPerspectiveTransmittanceRaw));
 
     /* Now, compute sky color at correct LOD. */
     int LOD = computeAerialPerspectiveLOD(depth);

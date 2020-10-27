@@ -278,6 +278,11 @@ void SS(uint3 id : SV_DispatchThreadID) {
   }
 }
 
+// TODO: this fundamentally doesn't work, for the same reason density
+// attenuation doesn't work. You end up sampling twice from this table
+// expecting the boundary to be the same in both cases, but it's not.
+// It is ALWAYS 300m (if that's the set distance) away from the sample
+// point.
 [numthreads(8,8,1)]
 void SSAerialPerspective(uint3 id : SV_DispatchThreadID) {
   /* Get the uv for this id and unwrap it to a viewing angle, a

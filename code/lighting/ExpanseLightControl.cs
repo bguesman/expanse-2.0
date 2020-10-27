@@ -8,40 +8,30 @@ using ExpanseCommonNamespace;
 public class ExpanseLightControl : MonoBehaviour
 {
 
-  GameObject skyFogVolume;
-  UnityEngine.Rendering.Volume volume;
-  Expanse sky;
-  UnityEngine.Light light;
   public int bodyIndex;
 
   // Start is called before the first frame update
-  void Start() {
-    Debug.Log("Starting light control.");
+  void Start() {}
+
+  // Update is called once per fram3
+  void Update() {
     /* Get the light. */
-    light = gameObject.GetComponent(typeof(UnityEngine.Light)) as UnityEngine.Light;
+    UnityEngine.Light light = gameObject.GetComponent(typeof(UnityEngine.Light)) as UnityEngine.Light;
 
     /* Get the sky. */
-    skyFogVolume = GameObject.FindWithTag("ExpanseSkyAndFogVolume");
-    volume = skyFogVolume.GetComponent<UnityEngine.Rendering.Volume>();
-    Expanse tmp;
-    if( volume.profile.TryGet<Expanse>( out tmp ) ) {
-      sky = tmp;
-      Debug.Log("success");
-    } else {
-      Debug.Log("failed"); // lal
-    }
-  }
-
-  // Update is called once per fram
-  void Update() {
-    /* For editor. */
-    if (sky == null) {
-      Start();
+    GameObject skyFogVolume = GameObject.FindWithTag("ExpanseSkyAndFogVolume");
+    UnityEngine.Rendering.Volume volume = skyFogVolume.GetComponent<UnityEngine.Rendering.Volume>();
+    Expanse sky;
+    if( !volume.profile.TryGet<Expanse>( out sky ) ) {
+      Debug.Log("Expanse Light Control: failed to get sky. Is your sky volume tagged as ExpanseSkyAndFogVolume?");
+      return;
     }
 
     int i = bodyIndex;
     Vector3 bodyDirection = ((Vector3Parameter) sky.GetType().GetField("bodyDirection" + i).GetValue(sky)).value;
-    gameObject.transform.eulerAngles = new Vector3(bodyDirection.x, bodyDirection.y, bodyDirection.z);
+    gameObject.transform.localRotation = Quaternion.Euler(bodyDirection.x,
+                                      bodyDirection.y,
+                                      bodyDirection.z);
 
     /* Compute and set light color. */
     bool useTemperature = ((BoolParameter) sky.GetType().GetField("bodyUseTemperature" + i).GetValue(sky)).value;
