@@ -90,8 +90,8 @@ void LP(uint3 id : SV_DispatchThreadID) {
   float3 endPoint = O + d * intersection.endT;
   float t_hit = intersection.endT;
 
-  float2 oToSample = mapSky2DCoord(length(O),
-    mu, _atmosphereRadius, _planetRadius, t_hit, intersection.groundHit);
+  float2 oToSample = mapSky2DCoord(length(O), mu, _atmosphereRadius,
+    _planetRadius, t_hit, intersection.groundHit, _resT.y);
 
   float3 lightPollution[MAX_LAYERS];
   float scaledDensity[MAX_LAYERS];
@@ -134,14 +134,15 @@ void LP(uint3 id : SV_DispatchThreadID) {
      * atmosphere, or ground, depending on what we hit. */
     float2 sampleOut = mapSky2DCoord(length(samplePoint),
       clampCosine(dot(normalizedSamplePoint, d)), _atmosphereRadius,
-      _planetRadius, t_hit - sampleT, intersection.groundHit);
+      _planetRadius, t_hit - sampleT, intersection.groundHit, _resT.y);
     float3 T_sampleOut = SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler,
       sampleOut, 0).xyz;
     T_oToSample -= T_sampleOut;
 
     /* Compute the light transmittance to the ground. */
     float2 sampleToGround = mapSky2DCoord(length(samplePoint), -1.0,
-      _atmosphereRadius, _planetRadius, length(samplePoint) - _planetRadius, true);
+      _atmosphereRadius, _planetRadius, length(samplePoint) - _planetRadius,
+      true, _resT.y);
     float3 T_sampleToGround = SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler,
       sampleToGround, 0).xyz;
 
@@ -193,8 +194,8 @@ void SS(uint3 id : SV_DispatchThreadID) {
   float3 endPoint = O + d * intersection.endT;
   float t_hit = intersection.endT;
 
-  float2 oToSample = mapSky2DCoord(length(O),
-    mu, _atmosphereRadius, _planetRadius, t_hit, intersection.groundHit);
+  float2 oToSample = mapSky2DCoord(length(O), mu, _atmosphereRadius,
+    _planetRadius, t_hit, intersection.groundHit, _resT.y);
 
   float3 inScattering[MAX_LAYERS];
   float3 inScatteringNoShadows[MAX_LAYERS];
@@ -240,7 +241,7 @@ void SS(uint3 id : SV_DispatchThreadID) {
      * atmosphere, or ground, depending on what we hit. */
     float2 sampleOut = mapSky2DCoord(length(samplePoint),
       clampCosine(dot(normalizedSamplePoint, d)), _atmosphereRadius,
-      _planetRadius, t_hit - sampleT, intersection.groundHit);
+      _planetRadius, t_hit - sampleT, intersection.groundHit, _resT.y);
     float3 T_sampleOut = SAMPLE_TEXTURE2D_LOD(_T,
       s_linear_clamp_sampler, sampleOut, 0).rgb;
     T_oToSample -= T_sampleOut;
@@ -260,7 +261,7 @@ void SS(uint3 id : SV_DispatchThreadID) {
       /* Compute the light transmittance to the sample point. */
       float2 sampleToL = mapSky2DCoord(length(samplePoint),
         clampCosine(dot(normalizedSamplePoint, L)), _atmosphereRadius,
-        _planetRadius, t_light_hit, lightIntersection.groundHit);
+        _planetRadius, t_light_hit, lightIntersection.groundHit, _resT.y);
       /* Compute transmittance through sample to light hit point. */
       float3 T_sampleToL = SAMPLE_TEXTURE2D_LOD(_T,
         s_linear_clamp_sampler, sampleToL, 0).rgb;
@@ -323,8 +324,8 @@ void SSAerialPerspective(uint3 id : SV_DispatchThreadID) {
   float3 endPoint = O + d * min(_aerialPerspectiveTableDistanceLOD0, intersection.endT);
   float t_hit = min(_aerialPerspectiveTableDistanceLOD0, intersection.endT);
 
-  float2 oToSample = mapSky2DCoord(length(O),
-    mu, _atmosphereRadius, _planetRadius, intersection.endT, intersection.groundHit);
+  float2 oToSample = mapSky2DCoord(length(O), mu, _atmosphereRadius,
+    _planetRadius, intersection.endT, intersection.groundHit, _resT.y);
 
   float3 inScattering[MAX_LAYERS];
   float scaledDensity[MAX_LAYERS];
@@ -368,7 +369,7 @@ void SSAerialPerspective(uint3 id : SV_DispatchThreadID) {
      * atmosphere, or ground, depending on what we hit. */
     float2 sampleOut = mapSky2DCoord(length(samplePoint),
       clampCosine(dot(normalizedSamplePoint, d)), _atmosphereRadius,
-      _planetRadius, intersection.endT - sampleT, intersection.groundHit);
+      _planetRadius, intersection.endT - sampleT, intersection.groundHit, _resT.y);
     float3 T_sampleOut = SAMPLE_TEXTURE2D_LOD(_T,
       s_linear_clamp_sampler, sampleOut, 0).rgb;
     T_oToSample -= T_sampleOut;
@@ -384,7 +385,7 @@ void SSAerialPerspective(uint3 id : SV_DispatchThreadID) {
       /* Compute the light transmittance to the sample point. */
       float2 sampleToL = mapSky2DCoord(length(samplePoint),
         clampCosine(dot(normalizedSamplePoint, L)), _atmosphereRadius,
-        _planetRadius, t_light_hit, lightIntersection.groundHit);
+        _planetRadius, t_light_hit, lightIntersection.groundHit, _resT.y);
       /* Compute transmittance through sample to light hit point. */
       float3 T_sampleToL = SAMPLE_TEXTURE2D_LOD(_T,
         s_linear_clamp_sampler, sampleToL, 0).rgb;
@@ -407,8 +408,8 @@ void SSAerialPerspective(uint3 id : SV_DispatchThreadID) {
   endPoint = O + d * min(_aerialPerspectiveTableDistanceLOD1, intersection.endT);
   t_hit = min(_aerialPerspectiveTableDistanceLOD1, intersection.endT);
 
-  oToSample = mapSky2DCoord(length(O),
-    mu, _atmosphereRadius, _planetRadius, intersection.endT, intersection.groundHit);
+  oToSample = mapSky2DCoord(length(O), mu, _atmosphereRadius, _planetRadius,
+    intersection.endT, intersection.groundHit, _resT.y);
 
   for (int j = 0; j < _numActiveLayers; j++) {
     inScattering[j] = float3(0, 0, 0);
@@ -450,7 +451,7 @@ void SSAerialPerspective(uint3 id : SV_DispatchThreadID) {
      * atmosphere, or ground, depending on what we hit. */
     float2 sampleOut = mapSky2DCoord(length(samplePoint),
       clampCosine(dot(normalizedSamplePoint, d)), _atmosphereRadius,
-      _planetRadius, intersection.endT - sampleT, intersection.groundHit);
+      _planetRadius, intersection.endT - sampleT, intersection.groundHit, _resT.y);
     float3 T_sampleOut = SAMPLE_TEXTURE2D_LOD(_T,
       s_linear_clamp_sampler, sampleOut, 0).rgb;
     T_oToSample -= T_sampleOut;
@@ -466,7 +467,7 @@ void SSAerialPerspective(uint3 id : SV_DispatchThreadID) {
       /* Compute the light transmittance to the sample point. */
       float2 sampleToL = mapSky2DCoord(length(samplePoint),
         clampCosine(dot(normalizedSamplePoint, L)), _atmosphereRadius,
-        _planetRadius, t_light_hit, lightIntersection.groundHit);
+        _planetRadius, t_light_hit, lightIntersection.groundHit, _resT.y);
       /* Compute transmittance through sample to light hit point. */
       float3 T_sampleToL = SAMPLE_TEXTURE2D_LOD(_T,
         s_linear_clamp_sampler, sampleToL, 0).rgb;
@@ -581,7 +582,7 @@ void MS(uint3 id : SV_DispatchThreadID) {
      * commenting out. */
     if (intersection.groundHit) {
       float2 groundUV = mapSky2DCoord(r, mu, _atmosphereRadius,
-        _planetRadius, t_hit, true);
+        _planetRadius, t_hit, true, _resT.y);
       float3 groundTransmittance = exp(SAMPLE_TEXTURE2D_LOD(_T,
         s_linear_clamp_sampler, groundUV, 0).xyz);
       float3 groundAlbedo = 2 * _groundTint.xyz / PI;

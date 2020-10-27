@@ -22,7 +22,9 @@ float3 uvToDeepTexCoord(float u, float v, int numRows, int numCols) {
 }
 
 // TODO: I'm like 90% certain something is wrong here, based on the artifacts
-// you see when you're higher in the sky in the aerial perspective.
+// you see when you're higher in the sky in the aerial perspective. Looks like
+// if you go really high, you see this weird artifact at the edges of the
+// planet.
 
 /* Converts deep texture index in range zTexSize * zTexCount to the
  * uv coordinate in unit range that represents the 2D table index for a
@@ -64,25 +66,36 @@ float unmap_r(float u_r, float atmosphereRadius, float planetRadius) {
 /* Maps mu, the cosine of the viewing angle, into range 0-1. Uses
  * mapping from bruneton and neyer. */
 float map_mu(float r, float mu, float atmosphereRadius, float planetRadius,
-  float d, bool groundHit) {
+  float d, bool groundHit, float resMu) {
   float planetRadiusSq = planetRadius * planetRadius;
   float rSq = r * r;
   float rho = safeSqrt(r * r - planetRadiusSq);
   float H = safeSqrt(atmosphereRadius * atmosphereRadius - planetRadiusSq);
 
   float u_mu = 0.0;
+  float muStep = 1/resMu;
   float discriminant = rSq * mu * mu - rSq + planetRadiusSq;
   if (groundHit) {
     float d_min = r - planetRadius;
     float d_max = rho;
     /* Use lower half of [0, 1] range. */
-    u_mu = 0.4 - 0.4 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
+    u_mu = 0.5 - 0.5 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
+    if (floatGT(u_mu, 0.5-muStep)) {
+      u_mu = 0.5 - muStep;
+    }
   } else {
     float d_min = atmosphereRadius - r;
     float d_max = rho + H;
     /* Use upper half of [0, 1] range. */
-    u_mu = 0.6 + 0.4 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
+    u_mu = 0.5 + 0.5 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
+    if (floatLT(u_mu, 0.5+muStep)) {
+      u_mu = 0.5 + muStep;
+    }
   }
+
+  // TODO: not right place, but smoothstep at horizon have to do with mu
+  // artifact??? not sure. bruneton neyer implementation has smoothstep
+  // should take a look at that.
 
   return u_mu;
 }
@@ -97,51 +110,50 @@ float unmap_mu(float u_r, float u_mu, float atmosphereRadius,
   float rho = u_r * H;
   float r = safeSqrt(rho * rho + planetRadiusSq);
 
-  /* Clamp u_mu to valid range. */
-  if (floatLT(u_mu, 0.6) && floatGT(u_mu, 0.5)) {
-    u_mu = 0.6;
-  } else if (floatGT(u_mu, 0.4) && floatLT(u_mu, 0.5)) {
-    u_mu = 0.4;
-  }
-
   float mu = 0.0;
   if (floatLT(u_mu, 0.5)) {
     float d_min = r - planetRadius;
     float d_max = rho;
-    float d = d_min + (((0.4 - u_mu) / 0.4) * (d_max - d_min));
+    float d = d_min + (((0.5 - u_mu) / 0.5) * (d_max - d_min));
     mu = (d == 0.0) ? -1.0 : clampCosine(-(rho * rho + d * d) / (2 * r * d));
   } else {
     float d_min = atmosphereRadius - r;
     float d_max = rho + H;
-    float d = d_min + (((u_mu - 0.6) / 0.4) * (d_max - d_min));
+    float d = d_min + (((u_mu - 0.5) / 0.5) * (d_max - d_min));
     mu = (d == 0.0) ? 1.0 : clampCosine((H * H - rho * rho - d * d) / (2 * r * d));
   }
 
   return mu;
 }
 
-
 /* Maps r and mu together---slightly more efficient than mapping them
  * individually, since they share calculations. */
 float2 map_r_mu(float r, float mu, float atmosphereRadius, float planetRadius,
-  float d, bool groundHit) {
+  float d, bool groundHit, float resMu) {
   float planetRadiusSq = planetRadius * planetRadius;
   float rSq = r * r;
   float rho = safeSqrt(rSq - planetRadiusSq);
   float H = safeSqrt(atmosphereRadius * atmosphereRadius - planetRadiusSq);
 
   float u_mu = 0.0;
+  float muStep = 1/resMu;
   float discriminant = rSq * mu * mu - rSq + planetRadiusSq;
   if (groundHit) {
     float d_min = r - planetRadius;
     float d_max = rho;
     /* Use lower half of [0, 1] range. */
-    u_mu = 0.4 - 0.4 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
+    u_mu = 0.5 - 0.5 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
+    if (floatGT(u_mu, 0.5-muStep)) {
+      u_mu = 0.5 - muStep;
+    }
   } else {
     float d_min = atmosphereRadius - r;
     float d_max = rho + H;
     /* Use upper half of [0, 1] range. */
-    u_mu = 0.6 + 0.4 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
+    u_mu = 0.5 + 0.5 * (d_max == d_min ? 0.0 : (d - d_min) / (d_max - d_min));
+    if (floatLT(u_mu, 0.5+muStep)) {
+      u_mu = 0.5 + muStep;
+    }
   }
 
   float u_r = rho / H;
@@ -158,28 +170,49 @@ float2 unmap_r_mu(float u_r, float u_mu, float atmosphereRadius,
   float rho = u_r * H;
   float r = safeSqrt(rho * rho + planetRadiusSq);
 
-  /* Clamp u_mu to valid range. */
-  if (floatLT(u_mu, 0.6) && floatGT(u_mu, 0.5)) {
-    u_mu = 0.6;
-  } else if (floatGT(u_mu, 0.4) && floatLT(u_mu, 0.5)) {
-    u_mu = 0.4;
-  }
-
   float mu = 0.0;
   if (floatLT(u_mu, 0.5)) {
     float d_min = r - planetRadius;
     float d_max = rho;
-    float d = d_min + (((0.4 - u_mu) / 0.4) * (d_max - d_min));
+    float d = d_min + (((0.5 - u_mu) / 0.5) * (d_max - d_min));
     mu = (d == 0.0) ? -1.0 : clampCosine(-(rho * rho + d * d) / (2 * r * d));
   } else {
     float d_min = atmosphereRadius - r;
     float d_max = rho + H;
-    float d = d_min + (((u_mu - 0.6) / 0.4) * (d_max - d_min));
+    float d = d_min + (((u_mu - 0.5) / 0.5) * (d_max - d_min));
     mu = (d == 0.0) ? 1.0 : clampCosine((H * H - rho * rho - d * d) / (2 * r * d));
   }
 
   return float2(r, mu);
 }
+
+// float map_r(float r, float atmosphereRadius, float planetRadius) {
+//   return (r - planetRadius) / (atmosphereRadius - planetRadius);
+// }
+//
+// float unmap_r(float u_r, float atmosphereRadius, float planetRadius) {
+//   return planetRadius + u_r * (atmosphereRadius - planetRadius);
+// }
+//
+// float map_mu(float r, float mu, float atmosphereRadius, float planetRadius,
+//   float d, bool groundHit) {
+//   return (mu + 1) / 2;
+// }
+//
+// float unmap_mu(float u_r, float u_mu, float atmosphereRadius,
+//   float planetRadius) {
+//   return u_mu * 2 - 1;
+// }
+//
+// float2 map_r_mu(float r, float mu, float atmosphereRadius, float planetRadius,
+//   float d, bool groundHit) {
+//   return float2((r - planetRadius) / (atmosphereRadius - planetRadius), (mu + 1) / 2);
+// }
+//
+// float2 unmap_r_mu(float u_r, float u_mu, float atmosphereRadius,
+//   float planetRadius) {
+//   return float2(planetRadius + u_r * (atmosphereRadius - planetRadius), u_mu * 2 - 1);
+// }
 
 /* Maps mu_l, the cosine of the sun zenith angle, into range 0-1. Uses
  * mapping from bruneton and neyer. */
@@ -208,8 +241,8 @@ float unmap_nu(float u_nu) {
 
 /* Returns u_r, u_mu. */
 float2 mapSky2DCoord(float r, float mu, float atmosphereRadius,
-  float planetRadius, float d, bool groundHit) {
-  return map_r_mu(r, mu, atmosphereRadius, planetRadius, d, groundHit);
+  float planetRadius, float d, bool groundHit, float resMu) {
+  return map_r_mu(r, mu, atmosphereRadius, planetRadius, d, groundHit, resMu);
 }
 
 /* Returns r, mu. */
@@ -221,24 +254,11 @@ float2 unmapSky2DCoord(float u_r, float u_mu,
 /* Returns u_r, u_mu, u_mu_l/u_nu bundled into z. */
 TexCoord4D mapSky4DCoord(float r, float mu, float mu_l,
   float nu, float atmosphereRadius, float planetRadius, float d,
-  bool groundHit, uint yTexSize, uint yTexCount, uint zTexSize, int zTexCount) {
+  bool groundHit, uint yTexSize, uint yTexCount, uint zTexSize,
+  int zTexCount) {
   float2 u_r_mu = map_r_mu(r, mu, atmosphereRadius, planetRadius,
-    d, groundHit);
+    d, groundHit, yTexCount);
   float3 deepYTexCoord = uvToDeepTexCoord(u_r_mu.x, u_r_mu.y,
-    yTexSize, yTexCount);
-  float3 deepZTexCoord = uvToDeepTexCoord(map_mu_l(mu_l), map_nu(nu),
-    zTexSize, zTexCount);
-  TexCoord4D toRet = {deepYTexCoord.x, deepYTexCoord.y, deepZTexCoord.x,
-    deepZTexCoord.y, deepYTexCoord.z, deepZTexCoord.z};
-  return toRet;
-}
-
-/* Returns u_r, u_mu, u_mu_l/u_nu bundled into z. Overloaded to
- * handle the case where we don't want to recompute r/mu's uv's. */
-TexCoord4D mapSky4DCoord(float2 r_mu_uv, float mu_l,
-  float nu, float atmosphereRadius, float planetRadius, float d,
-  bool groundHit, uint yTexSize, uint yTexCount, uint zTexSize, int zTexCount) {
-  float3 deepYTexCoord = uvToDeepTexCoord(r_mu_uv.x, r_mu_uv.y,
     yTexSize, yTexCount);
   float3 deepZTexCoord = uvToDeepTexCoord(map_mu_l(mu_l), map_nu(nu),
     zTexSize, zTexCount);

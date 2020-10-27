@@ -89,18 +89,18 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
     case SkyTextureQuality.Low:
       return new SkyTextureResolution() {
         quality = quality,
-        T = new Vector2(32, 256),
-        SS = new Vector4(64, 256, 32, 8),
-        MS = new Vector2(16, 16),
-        MSAccumulation = new Vector4(8, 8, 32, 4),
-        LP = new Vector2(8, 16),
-        GI = 64
         // T = new Vector2(32, 256),
-        // SS = new Vector4(8, 64, 128, 8),
+        // SS = new Vector4(64, 256, 32, 8),
         // MS = new Vector2(16, 16),
         // MSAccumulation = new Vector4(8, 8, 32, 4),
         // LP = new Vector2(8, 16),
         // GI = 64
+        T = new Vector2(32, 256),
+        SS = new Vector4(8, 64, 128, 8),
+        MS = new Vector2(16, 16),
+        MSAccumulation = new Vector4(8, 8, 32, 4),
+        LP = new Vector2(8, 16),
+        GI = 64
       };
     case SkyTextureQuality.Medium:
       return new SkyTextureResolution() {

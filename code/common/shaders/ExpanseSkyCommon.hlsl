@@ -124,11 +124,17 @@ float minNonNegative(float a, float b) {
 bool floatGT(float a, float b) {
   return a > b - FLT_EPSILON;
 }
+bool floatGT(float a, float b, float eps) {
+  return a > b - eps;
+}
 
 /* True if a is less than b within tolerance FLT_EPSILON, false
  * otherwise. */
 bool floatLT(float a, float b) {
   return a < b + FLT_EPSILON;
+}
+bool floatLT(float a, float b, float eps) {
+  return a < b + eps;
 }
 
 /******************************************************************************/
@@ -388,6 +394,7 @@ struct TexCoord4D {
   float x, y, z, w, a, b;
 };
 
+// TODO: manually lerp and clamp 0.5's instead of using linear clamp sampler.
 float3 sampleSSTexture(TexCoord4D uv, int i) {
   float2 uvw00 = float2(uv.x, uv.z);
   float2 uvw01 = float2(uv.x, uv.w);
@@ -397,9 +404,10 @@ float3 sampleSSTexture(TexCoord4D uv, int i) {
   float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw01, i, 0).xyz;
   float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw10, i, 0).xyz;
   float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  float3 result0 = lerp(contrib00, contrib01, 1-uv.b);
-  float3 result1 = lerp(contrib10, contrib11, 1-uv.b);
+  float3 result0 = lerp(contrib00, contrib01, uv.b);
+  float3 result1 = lerp(contrib10, contrib11, uv.b);
   return lerp(result0, result1, uv.a);
+  return contrib00;
 }
 
 float3 sampleAerialPerspectiveLOD0Texture(TexCoord4D uv, int i) {
@@ -457,6 +465,7 @@ float3 sampleSSNoShadowTexture(TexCoord4D uv, int i) {
   float3 result0 = lerp(contrib00, contrib01, uv.b);
   float3 result1 = lerp(contrib10, contrib11, uv.b);
   return lerp(result0, result1, uv.a);
+  return contrib00;
 }
 
 float3 sampleMSAccTexture(TexCoord4D uv, int i) {
@@ -471,6 +480,7 @@ float3 sampleMSAccTexture(TexCoord4D uv, int i) {
   float3 result0 = lerp(contrib00, contrib01, uv.b);
   float3 result1 = lerp(contrib10, contrib11, uv.b);
   return lerp(result0, result1, uv.a);
+  return contrib00;
 }
 
 float3 sampleGITexture(float2 uv, int i) {

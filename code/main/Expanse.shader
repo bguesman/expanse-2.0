@@ -516,7 +516,7 @@ float computeAerialPerspectiveLODDistance(int LOD, float t_hit) {
   }
 }
 
-float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
+float3 computeSkyColorBody(float r, float mu, int i, float3 start, float3 d,
   float t_hit, bool groundHit, float interval_length) {
   /* Final result. */
   float3 result = float3(0, 0, 0);
@@ -536,10 +536,10 @@ float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
   float3 proj_L = normalize(L - startNormalized * mu_l);
   float3 proj_d = normalize(d - startNormalized * dot(startNormalized, d));
   float nu = clampCosine(dot(proj_L, proj_d));
-  TexCoord4D uvSS = mapSky4DCoord(r_mu_uv, mu_l, nu,
+  TexCoord4D uvSS = mapSky4DCoord(r,  mu, mu_l, nu,
     _atmosphereRadius, _planetRadius, t_hit, groundHit,
     _resSS.x, _resSS.y, _resSS.z, _resSS.w);
-  TexCoord4D uvMSAcc = mapSky4DCoord(r_mu_uv, mu_l, nu,
+  TexCoord4D uvMSAcc = mapSky4DCoord(r, mu, mu_l, nu,
     _atmosphereRadius, _planetRadius, t_hit, groundHit,
     _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
 
@@ -560,19 +560,19 @@ float3 computeSkyColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
 }
 
 /* Given uv coordinate representing direction, computes sky color. */
-float3 computeSkyColor(float2 r_mu_uv, float3 start, float3 d, float t_hit,
+float3 computeSkyColor(float r, float mu, float3 start, float3 d, float t_hit,
   bool groundHit, float interval_length) {
   float3 result = float3(0, 0, 0);
   /* Loop through all the celestial bodies. */
   float3 color = float3(0, 0, 0);
   for (int i = 0; i < _numActiveBodies; i++) {
-    result += computeSkyColorBody(r_mu_uv, i, start, d, t_hit,
+    result += computeSkyColorBody(r, mu, i, start, d, t_hit,
       groundHit, interval_length);
   }
   return result;
 }
 
-float3 computeAerialPerspectiveColorBody(float2 r_mu_uv, int i, float3 start, float3 d,
+float3 computeAerialPerspectiveColorBody(float r, float mu, int i, float3 start, float3 d,
   float t_hit, bool groundHit, float interval_length_0, float interval_length_1,
   int LOD_0, int LOD_1, float LODBlend) {
   /* Final result. */
@@ -605,10 +605,10 @@ float3 computeAerialPerspectiveColorBody(float2 r_mu_uv, int i, float3 start, fl
   float3 proj_L = normalize(L - startNormalized * mu_l);
   float3 proj_d = normalize(d - startNormalized * dot(startNormalized, d));
   float nu = clampCosine(dot(proj_L, proj_d));
-  TexCoord4D uvSS = mapSky4DCoord(r_mu_uv, mu_l, nu,
+  TexCoord4D uvSS = mapSky4DCoord(r, mu, mu_l, nu,
     _atmosphereRadius, _planetRadius, t_hit, groundHit,
     _resSS.x, _resSS.y, _resSS.z, _resSS.w);
-  TexCoord4D uvMSAcc = mapSky4DCoord(r_mu_uv, mu_l, nu,
+  TexCoord4D uvMSAcc = mapSky4DCoord(r, mu, mu_l, nu,
     _atmosphereRadius, _planetRadius, t_hit, groundHit,
     _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
 
@@ -630,14 +630,14 @@ float3 computeAerialPerspectiveColorBody(float2 r_mu_uv, int i, float3 start, fl
 }
 
 /* Given uv coordinate representing direction, computes aerial perspective color. */
-float3 computeAerialPerspectiveColor(float2 r_mu_uv, float3 start, float3 d, float t_hit,
+float3 computeAerialPerspectiveColor(float r, float mu, float3 start, float3 d, float t_hit,
   bool groundHit, float interval_length_0, float interval_length_1,
   int LOD_0, int LOD_1, float LODBlend) {
   float3 result = float3(0, 0, 0);
   /* Loop through all the celestial bodies. */
   float3 color = float3(0, 0, 0);
   for (int i = 0; i < _numActiveBodies; i++) {
-    result += computeAerialPerspectiveColorBody(r_mu_uv, i, start, d, t_hit,
+    result += computeAerialPerspectiveColorBody(r, mu, i, start, d, t_hit,
       groundHit, interval_length_0, interval_length_1, LOD_0, LOD_1, LODBlend);
   }
   return result;
@@ -653,13 +653,13 @@ float3 computeLightPollutionColor(float2 uv, float t_hit) {
   return t_hit * color;
 }
 
-float3 computeStarScatteringColor(float2 r_mu_uv, float mu, float3 directLight,
+float3 computeStarScatteringColor(float r, float mu, float3 directLight,
   float t_hit, bool groundHit) {
   /* HACK: to get some sort of approximation of rayleigh scattering
    * for the ambient night color of the sky,  */
-  TexCoord4D uvSS = mapSky4DCoord(r_mu_uv, mu, 1, _atmosphereRadius,
+  TexCoord4D uvSS = mapSky4DCoord(r, mu, mu, 1, _atmosphereRadius,
     _planetRadius, t_hit, groundHit, _resSS.x, _resSS.y, _resSS.z, _resSS.w);
-  TexCoord4D uvMSAcc = mapSky4DCoord(r_mu_uv, mu, 1, _atmosphereRadius,
+  TexCoord4D uvMSAcc = mapSky4DCoord(r, mu, mu, 1, _atmosphereRadius,
     _planetRadius, t_hit, groundHit, _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
 
   /* Accumulate contribution from each layer. */
@@ -696,8 +696,15 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
    * TODO: depth conversion here might not account for the fact that
    * depth changes across camera coordinate? no idea. */
   float depth = LoadCameraDepth(input.positionCS.xy);
-  depth = LinearEyeDepth(depth, _ZBufferParams);
-  bool geoHit = depth < t_hit && depth < _ProjectionParams.z - 0.001;
+  depth = Linear01Depth(depth, _ZBufferParams) * _ProjectionParams.z;
+  /* Get camera center, and angle between direction and center. */
+  float3 cameraCenterD = -GetSkyViewDirWS(float2(_ScreenParams.x/2, _ScreenParams.y/2));
+  float cosTheta = dot(cameraCenterD, d);
+  /* Divide depth through by cos theta. */
+  depth /= max(cosTheta, 0.00001);
+  float farClip = _ProjectionParams.z / cosTheta;
+
+  bool geoHit = depth < t_hit && depth < farClip - 0.001;
 
   /* Compute direct illumination, but only if we don't hit anything. */
   float3 directLight = float3(0, 0, 0);
@@ -726,7 +733,7 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   float r = length(startPoint);
   float mu = dot(normalize(startPoint), d);
   float2 coord2D = mapSky2DCoord(r, mu, _atmosphereRadius, _planetRadius,
-    t_hit, intersection.groundHit);
+    t_hit, intersection.groundHit, _resT.y);
 
   /* Compute transmittance. */
   float3 transmittanceRaw = computeSkyTransmittanceRaw(coord2D);
@@ -737,15 +744,17 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   float3 blendTransmittance = float3(0, 0, 0);
   if (!geoHit || cubemap) {
     /* Just render the sky normally. */
-    skyColor = computeSkyColor(coord2D, startPoint, d, t_hit,
+    skyColor = computeSkyColor(r, mu, startPoint, d, t_hit,
       intersection.groundHit, t_hit);
   } else {
     /* We have to compute aerial perspective. First, compute blend
      * transmittance. */
     float3 depthSamplePoint = startPoint + d * depth;
-    float2 depthCoord2D = mapSky2DCoord(length(depthSamplePoint),
-      dot(normalize(depthSamplePoint), d), _atmosphereRadius, _planetRadius,
-      t_hit-depth, intersection.groundHit);
+    float depthR = length(depthSamplePoint);
+    float depthMu = dot(normalize(depthSamplePoint), d);
+    float2 depthCoord2D = mapSky2DCoord(depthR,
+      depthMu, _atmosphereRadius, _planetRadius,
+      t_hit-depth, intersection.groundHit, _resT.y);
     float3 aerialPerspectiveTransmittanceRaw = computeSkyTransmittanceRaw(depthCoord2D);
     blendTransmittance = saturate(exp(transmittanceRaw - aerialPerspectiveTransmittanceRaw));
 
@@ -755,10 +764,10 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     float LODBlend = computeAerialPerspectiveLODBlend(LOD, depth);
     float aerialPerspectiveDistance = computeAerialPerspectiveLODDistance(LOD, t_hit);
     float aerialPerspectiveDistance_up = computeAerialPerspectiveLODDistance(LOD_up, t_hit);
-    skyColor = computeAerialPerspectiveColor(coord2D, startPoint, d, t_hit,
+    skyColor = computeAerialPerspectiveColor(r, mu, startPoint, d, t_hit,
       intersection.groundHit, aerialPerspectiveDistance,
       aerialPerspectiveDistance_up, LOD, LOD_up, LODBlend);
-    float3 attenuatedSkyColor = computeAerialPerspectiveColor(depthCoord2D,
+    float3 attenuatedSkyColor = computeAerialPerspectiveColor(depthR, depthMu,
       depthSamplePoint, d, t_hit-depth, intersection.groundHit,
       aerialPerspectiveDistance-depth, aerialPerspectiveDistance_up-depth,
       LOD, LOD_up, LODBlend);
@@ -768,13 +777,15 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   /* Compute light pollution. */
   float3 lightPollution = float3(0, 0, 0);
   if (!geoHit || cubemap) {
-    lightPollution = computeLightPollutionColor(coord2D, t_hit);
+    float2 coord2DLP = mapSky2DCoord(r, mu, _atmosphereRadius, _planetRadius,
+      t_hit, intersection.groundHit, _resLP.y);
+    lightPollution = computeLightPollutionColor(coord2DLP, t_hit);
   }
 
   /* Compute star scattering. */
   float3 starScattering = float3(0, 0, 0);
   if (!geoHit || cubemap) {
-    starScattering = computeStarScatteringColor(coord2D, mu,
+    starScattering = computeStarScatteringColor(r, mu,
       directLightNightSky, t_hit, intersection.groundHit);
   }
 
