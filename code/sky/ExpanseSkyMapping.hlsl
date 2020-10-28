@@ -10,15 +10,23 @@
  *         sample(u, v) = a * sample(w0) + (1 - a) * sample(w1)
  *
  */
-float3 uvToDeepTexCoord(float u, float v, int numRows, int numCols) {
-  float w_id = ((u) * (numRows-2)) + 1; // fractional row number
-  float k_id = ((v) * (numCols-2)) + 1; // fractional column number
+
+deepTexCoord uvToDeepTexCoord(float u, float v, int numRows, int numCols) {
+  deepTexCoord c;
+  float w_id = ((u) * (numRows)); // fractional row number
+  float k_id = ((v) * (numCols)); // fractional column number
   float a = frac(w_id); // 0-1 along row
   float w_size = 1.0/(numRows); // bucket size for each row
   float k_size = 1.0/((numRows) * (numCols)); // bucket size for each column
-  float coord_0 = floor(w_id) * w_size + k_id * k_size;
-  float coord_1 = ceil(w_id) * w_size + k_id * k_size;
-  return float3(coord_0, coord_1, a);
+  c.c00 = floor(w_id) * w_size + floor(k_id) * k_size;
+  c.c10 = ceil(w_id) * w_size + floor(k_id) * k_size;
+  c.c01 = floor(w_id) * w_size + ceil(k_id) * k_size;
+  c.c11 = ceil(w_id) * w_size + ceil(k_id) * k_size;
+  c.xa = frac(w_id); // 0-1 along row
+  c.ya = frac(k_id); // 0-1 along column
+  // TODO: may need to clamp k manually. or may be able to do that and
+  // avoid the manual lerping.
+  return c;
 }
 
 // TODO: I'm like 90% certain something is wrong here, based on the artifacts
@@ -26,17 +34,24 @@ float3 uvToDeepTexCoord(float u, float v, int numRows, int numCols) {
 // if you go really high, you see this weird artifact at the edges of the
 // planet.
 
+// TODO: this could be it: at the outer edge boundaries of the deep tex UV,
+// you're gonna wrap around if you use a linear clamp sampler (it won't clamp
+// because the texture is 1d). So you've gotta point sample there. And that
+// could easily be what's causing the visible lines---the lack of clamping
+// at the boundaries, and instead interpolating, possibly into some part
+// of the texture that's not meant to be interpolated into.
+
 /* Converts deep texture index in range zTexSize * zTexCount to the
  * uv coordinate in unit range that represents the 2D table index for a
  * table with zTexSize rows and zTexCount columns.
  *
  * Returns (u, v).
  */
-float2 deepTexIndexToUV(uint deepTexCoord, uint numRows, int numCols) {
-  int w_id = deepTexCoord / numCols;
-  int k_id = deepTexCoord % numCols;
-  float u = saturate((w_id - 0.5) / (numRows-2));
-  float v = saturate((k_id - 0.5) / (numCols-2));
+float2 deepTexIndexToUV(uint deepTexIndex, uint numRows, int numCols) {
+  int w_id = deepTexIndex / numCols;
+  int k_id = deepTexIndex % numCols;
+  float u = saturate((w_id + 0.5) / (numRows));
+  float v = saturate((k_id + 0.5) / (numCols));
   return float2(u, v);
 }
 
@@ -258,12 +273,11 @@ TexCoord4D mapSky4DCoord(float r, float mu, float mu_l,
   int zTexCount) {
   float2 u_r_mu = map_r_mu(r, mu, atmosphereRadius, planetRadius,
     d, groundHit, yTexCount);
-  float3 deepYTexCoord = uvToDeepTexCoord(u_r_mu.x, u_r_mu.y,
+  deepTexCoord deepXYTexCoord = uvToDeepTexCoord(u_r_mu.x, u_r_mu.y,
     yTexSize, yTexCount);
-  float3 deepZTexCoord = uvToDeepTexCoord(map_mu_l(mu_l), map_nu(nu),
+  deepTexCoord deepZWTexCoord = uvToDeepTexCoord(map_mu_l(mu_l), map_nu(nu),
     zTexSize, zTexCount);
-  TexCoord4D toRet = {deepYTexCoord.x, deepYTexCoord.y, deepZTexCoord.x,
-    deepZTexCoord.y, deepYTexCoord.z, deepZTexCoord.z};
+  TexCoord4D toRet = {deepXYTexCoord, deepZWTexCoord};
   return toRet;
 }
 

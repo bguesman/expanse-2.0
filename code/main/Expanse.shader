@@ -573,8 +573,7 @@ float3 computeSkyColor(float r, float mu, float3 start, float3 d, float t_hit,
 }
 
 float3 computeAerialPerspectiveColorBody(float r, float mu, int i, float3 start, float3 d,
-  float t_hit, bool groundHit, float interval_length_0, float interval_length_1,
-  int LOD_0, int LOD_1, float LODBlend) {
+  float t_hit, bool groundHit, float interval_length) {
   /* Final result. */
   float3 result = float3(0, 0, 0);
 
@@ -608,17 +607,12 @@ float3 computeAerialPerspectiveColorBody(float r, float mu, int i, float3 start,
   TexCoord4D uvSS = mapSky4DCoord(r, mu, mu_l, nu,
     _atmosphereRadius, _planetRadius, t_hit, groundHit,
     _resSS.x, _resSS.y, _resSS.z, _resSS.w);
-  TexCoord4D uvMSAcc = mapSky4DCoord(r, mu, mu_l, nu,
-    _atmosphereRadius, _planetRadius, t_hit, groundHit,
-    _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
 
   /* Loop through layers and accumulate contributions for this body. */
   for (int j = 0; j < _numActiveLayers; j++) {
     /* Single scattering. */
     float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
-    float3 ssLOD0 = interval_length_0 * sampleAerialPerspectiveTexture(uvSS, j, LOD_0);
-    float3 ssLOD1 = interval_length_1 * sampleAerialPerspectiveTexture(uvSS, j, LOD_1);
-    float3 ss = lerp(ssLOD0, ssLOD1, LODBlend);
+    float3 ss = interval_length * sampleSSTexture(uvSS, j);
 
     /* Final color. HACK: == 2 here is for Mie phase. If this changes,
      * we will need to change it. */
@@ -631,14 +625,13 @@ float3 computeAerialPerspectiveColorBody(float r, float mu, int i, float3 start,
 
 /* Given uv coordinate representing direction, computes aerial perspective color. */
 float3 computeAerialPerspectiveColor(float r, float mu, float3 start, float3 d, float t_hit,
-  bool groundHit, float interval_length_0, float interval_length_1,
-  int LOD_0, int LOD_1, float LODBlend) {
+  bool groundHit, float interval_length) {
   float3 result = float3(0, 0, 0);
   /* Loop through all the celestial bodies. */
   float3 color = float3(0, 0, 0);
   for (int i = 0; i < _numActiveBodies; i++) {
     result += computeAerialPerspectiveColorBody(r, mu, i, start, d, t_hit,
-      groundHit, interval_length_0, interval_length_1, LOD_0, LOD_1, LODBlend);
+      groundHit, interval_length);
   }
   return result;
 }
@@ -759,18 +752,22 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     blendTransmittance = saturate(exp(transmittanceRaw - aerialPerspectiveTransmittanceRaw));
 
     /* Now, compute sky color at correct LOD. */
-    int LOD = computeAerialPerspectiveLOD(depth);
-    int LOD_up = min(LOD + 1, AERIAL_PERPSECTIVE_LOD2);
-    float LODBlend = computeAerialPerspectiveLODBlend(LOD, depth);
-    float aerialPerspectiveDistance = computeAerialPerspectiveLODDistance(LOD, t_hit);
-    float aerialPerspectiveDistance_up = computeAerialPerspectiveLODDistance(LOD_up, t_hit);
+    // int LOD = computeAerialPerspectiveLOD(depth);
+    // int LOD_up = min(LOD + 1, AERIAL_PERPSECTIVE_LOD2);
+    // float LODBlend = computeAerialPerspectiveLODBlend(LOD, depth);
+    // float aerialPerspectiveDistance = computeAerialPerspectiveLODDistance(LOD, t_hit);
+    // float aerialPerspectiveDistance_up = computeAerialPerspectiveLODDistance(LOD_up, t_hit);
+    // skyColor = computeAerialPerspectiveColor(r, mu, startPoint, d, t_hit,
+    //   intersection.groundHit, aerialPerspectiveDistance,
+    //   aerialPerspectiveDistance_up, LOD, LOD_up, LODBlend);
+    // float3 attenuatedSkyColor = computeAerialPerspectiveColor(depthR, depthMu,
+    //   depthSamplePoint, d, t_hit-depth, intersection.groundHit,
+    //   aerialPerspectiveDistance-depth, aerialPerspectiveDistance_up-depth,
+    //   LOD, LOD_up, LODBlend);
     skyColor = computeAerialPerspectiveColor(r, mu, startPoint, d, t_hit,
-      intersection.groundHit, aerialPerspectiveDistance,
-      aerialPerspectiveDistance_up, LOD, LOD_up, LODBlend);
+      intersection.groundHit, t_hit);
     float3 attenuatedSkyColor = computeAerialPerspectiveColor(depthR, depthMu,
-      depthSamplePoint, d, t_hit-depth, intersection.groundHit,
-      aerialPerspectiveDistance-depth, aerialPerspectiveDistance_up-depth,
-      LOD, LOD_up, LODBlend);
+      depthSamplePoint, d, t_hit-depth, intersection.groundHit, t_hit-depth);
     skyColor = max(0, skyColor - blendTransmittance*attenuatedSkyColor);
   }
 
