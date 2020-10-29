@@ -158,21 +158,21 @@ void LP(uint3 id : SV_DispatchThreadID) {
   }
 }
 
-[numthreads(8,8,1)]
+[numthreads(8,32,1)]
 void SS(uint3 id : SV_DispatchThreadID) {
   /* Get the uv for this id and unwrap it to a viewing angle, a
    * height, and the sun zenith and azimuth angles. */
-  float2 u_r_mu = deepTexIndexToUV(id.x, _resSS.x, _resSS.y);
-  /* Height. */
-  float u_r = u_r_mu.x;
-  /* Viewing angle. */
-  float u_mu = u_r_mu.y;
 
-  float2 u_mu_l_u_nu = deepTexIndexToUV(id.y, _resSS.z, _resSS.w);
+  /* Viewing angle. */
+  float u_mu = (id.x + 0.5f) / float(_resSS.y);
+
+  float3 u_r_u_mu_l_u_nu = deepTexIndexToUV(id.y, _resSS.x, _resSS.z, _resSS.w);
+  /* Height. */
+  float u_r = u_r_u_mu_l_u_nu.x;
   /* Sun zenith angle. */
-  float u_mu_l = u_mu_l_u_nu.x;
+  float u_mu_l = u_r_u_mu_l_u_nu.y;
   /* Sun azimuth angle. */
-  float u_nu = u_mu_l_u_nu.y;
+  float u_nu = u_r_u_mu_l_u_nu.z;
 
   float4 ssCoord = unmapSky4DCoord(u_r, u_mu, u_mu_l, u_nu, _atmosphereRadius,
     _planetRadius);
@@ -284,21 +284,20 @@ void SS(uint3 id : SV_DispatchThreadID) {
 // expecting the boundary to be the same in both cases, but it's not.
 // It is ALWAYS 300m (if that's the set distance) away from the sample
 // point.
-[numthreads(8,8,1)]
+[numthreads(8,32,1)]
 void SSAerialPerspective(uint3 id : SV_DispatchThreadID) {
   /* Get the uv for this id and unwrap it to a viewing angle, a
    * height, and the sun zenith and azimuth angles. */
-  float2 u_r_mu = deepTexIndexToUV(id.x, _resSS.x, _resSS.y);
-  /* Height. */
-  float u_r = u_r_mu.x;
   /* Viewing angle. */
-  float u_mu = u_r_mu.y;
+  float u_mu = (id.x + 0.5f) / float(_resSS.y);
 
-  float2 u_mu_l_u_nu = deepTexIndexToUV(id.y, _resSS.z, _resSS.w);
+  float3 u_r_u_mu_l_u_nu = deepTexIndexToUV(id.y, _resSS.x, _resSS.z, _resSS.w);
+  /* Height. */
+  float u_r = u_r_u_mu_l_u_nu.x;
   /* Sun zenith angle. */
-  float u_mu_l = u_mu_l_u_nu.x;
+  float u_mu_l = u_r_u_mu_l_u_nu.y;
   /* Sun azimuth angle. */
-  float u_nu = u_mu_l_u_nu.y;
+  float u_nu = u_r_u_mu_l_u_nu.z;
 
   float4 ssCoord = unmapSky4DCoord(u_r, u_mu, u_mu_l, u_nu, _atmosphereRadius,
     _planetRadius);
@@ -612,21 +611,20 @@ void MS(uint3 id : SV_DispatchThreadID) {
   _MS_RW[id.xy] = secondOrder * transferFunction;
 }
 
-[numthreads(8,8,1)]
+[numthreads(8,32,1)]
 void MSAcc(uint3 id : SV_DispatchThreadID) {
   /* Get the uv for this id and unwrap it to a viewing angle, a
    * height, and the sun zenith and azimuth angles. */
-  float2 u_r_mu = deepTexIndexToUV(id.x, _resMSAcc.x, _resMSAcc.y);
-  /* Height. */
-  float u_r = u_r_mu.x;
   /* Viewing angle. */
-  float u_mu = u_r_mu.y;
+  float u_mu = (id.x + 0.5f) / float(_resMSAcc.y);
 
-  float2 u_mu_l_u_nu = deepTexIndexToUV(id.y, _resMSAcc.z, _resMSAcc.w);
+  float3 u_r_u_mu_l_u_nu = deepTexIndexToUV(id.y, _resMSAcc.x, _resMSAcc.z, _resMSAcc.w);
+  /* Height. */
+  float u_r = u_r_u_mu_l_u_nu.x;
   /* Sun zenith angle. */
-  float u_mu_l = u_mu_l_u_nu.x;
+  float u_mu_l = u_r_u_mu_l_u_nu.y;
   /* Sun azimuth angle. */
-  float u_nu = u_mu_l_u_nu.y;
+  float u_nu = u_r_u_mu_l_u_nu.z;
 
   float4 ssCoord = unmapSky4DCoord(u_r, u_mu, u_mu_l,
     u_nu, _atmosphereRadius, _planetRadius);

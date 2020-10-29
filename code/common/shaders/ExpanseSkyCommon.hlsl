@@ -137,6 +137,13 @@ bool floatLT(float a, float b, float eps) {
   return a < b + eps;
 }
 
+#define EXP_LERP_A 1
+#define EXP_LERP_B 1 / (exp(EXP_LERP_A) - 1)
+float3 expLerp(float3 v0, float3 vf, float t) {
+  t = exp(EXP_LERP_A * t) * EXP_LERP_B - EXP_LERP_B;
+  return lerp(v0, vf, t);
+}
+
 /******************************************************************************/
 /*************************** END UTILITY FUNCTIONS ****************************/
 /******************************************************************************/
@@ -389,91 +396,35 @@ float computePhase(float dot_L_d, float anisotropy, int type) {
 /* The following implements the strategy used in physically based sky
  * to lerp between 2 4D texture lookups to solve the issue of uv-mapping for
  * a deep texture. */
- struct deepTexCoord {
-   float c00;
-   float c10;
-   float c01;
-   float c11;
-   float xa;
-   float ya;
- };
+
+struct DeepTexCoord {
+  float coord_00;
+  float coord_01;
+  float coord_10;
+  float coord_11;
+  float ax; // blend for x
+  float ay; // blend for y
+};
+
 struct TexCoord4D {
-  deepTexCoord coordXY;
-  deepTexCoord coordZW;
+  float x;
+  DeepTexCoord d;
 };
 
 // TODO: manually lerp and clamp 0.5's instead of using linear clamp sampler.
 float3 sampleSSTexture(TexCoord4D uv, int i) {
-  // float2 uvw00 = float2(uv.x, uv.z);
-  // float2 uvw01 = float2(uv.x, uv.w);
-  // float2 uvw10 = float2(uv.y, uv.z);
-  // float2 uvw11 = float2(uv.y, uv.w);
-  // float3 contrib00 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw00, i, 0).xyz;
-  // float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw01, i, 0).xyz;
-  // float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw10, i, 0).xyz;
-  // float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  // float3 result0 = lerp(contrib00, contrib01, uv.b);
-  // float3 result1 = lerp(contrib10, contrib11, uv.b);
-  // return lerp(result0, result1, uv.a);
-
-  // Have to compute 16 point samples. Ahhhh!!!!
-  float2 uv0000 = float2(uv.coordXY.c00, uv.coordZW.c00);
-  float2 uv0001 = float2(uv.coordXY.c00, uv.coordZW.c01);
-  float2 uv0010 = float2(uv.coordXY.c00, uv.coordZW.c10);
-  float2 uv0011 = float2(uv.coordXY.c00, uv.coordZW.c11);
-  float2 uv0100 = float2(uv.coordXY.c01, uv.coordZW.c00);
-  float2 uv0101 = float2(uv.coordXY.c01, uv.coordZW.c01);
-  float2 uv0110 = float2(uv.coordXY.c01, uv.coordZW.c10);
-  float2 uv0111 = float2(uv.coordXY.c01, uv.coordZW.c11);
-  float2 uv1000 = float2(uv.coordXY.c10, uv.coordZW.c00);
-  float2 uv1001 = float2(uv.coordXY.c10, uv.coordZW.c01);
-  float2 uv1010 = float2(uv.coordXY.c10, uv.coordZW.c10);
-  float2 uv1011 = float2(uv.coordXY.c10, uv.coordZW.c11);
-  float2 uv1100 = float2(uv.coordXY.c11, uv.coordZW.c00);
-  float2 uv1101 = float2(uv.coordXY.c11, uv.coordZW.c01);
-  float2 uv1110 = float2(uv.coordXY.c11, uv.coordZW.c10);
-  float2 uv1111 = float2(uv.coordXY.c11, uv.coordZW.c11);
-
-  float3 c0000 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv0000, i, 0).xyz;
-  float3 c0001 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv0001, i, 0).xyz;
-  float3 c0010 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv0010, i, 0).xyz;
-  float3 c0011 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv0011, i, 0).xyz;
-  float3 c0100 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv0100, i, 0).xyz;
-  float3 c0101 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv0101, i, 0).xyz;
-  float3 c0110 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv0110, i, 0).xyz;
-  float3 c0111 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv0111, i, 0).xyz;
-  float3 c1000 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv1000, i, 0).xyz;
-  float3 c1001 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv1001, i, 0).xyz;
-  float3 c1010 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv1010, i, 0).xyz;
-  float3 c1011 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv1011, i, 0).xyz;
-  float3 c1100 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv1100, i, 0).xyz;
-  float3 c1101 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv1101, i, 0).xyz;
-  float3 c1110 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv1110, i, 0).xyz;
-  float3 c1111 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_point_clamp_sampler, uv1111, i, 0).xyz;
-
-  // Now, have to lerp between them all.
-  // Lerp w.
-  float3 c000 = lerp(c0000, c0001, uv.coordZW.ya);
-  float3 c001 = lerp(c0010, c0011, uv.coordZW.ya);
-  float3 c010 = lerp(c0100, c0101, uv.coordZW.ya);
-  float3 c011 = lerp(c0110, c0111, uv.coordZW.ya);
-  float3 c100 = lerp(c1000, c1001, uv.coordZW.ya);
-  float3 c101 = lerp(c1010, c1011, uv.coordZW.ya);
-  float3 c110 = lerp(c1100, c1101, uv.coordZW.ya);
-  float3 c111 = lerp(c1110, c1111, uv.coordZW.ya);
-
-  // Lerp z.
-  float3 c00 = lerp(c000, c001, uv.coordZW.xa);
-  float3 c01 = lerp(c010, c011, uv.coordZW.xa);
-  float3 c10 = lerp(c100, c101, uv.coordZW.xa);
-  float3 c11 = lerp(c110, c111, uv.coordZW.xa);
-
-  // Lerp y.
-  float3 c0 = lerp(c00, c01, uv.coordXY.ya);
-  float3 c1 = lerp(c10, c11, uv.coordXY.ya);
-
-  // Lerp x.
-  return lerp(c0, c1, uv.coordXY.xa);
+  float2 uvw00 = float2(uv.x, uv.d.coord_00);
+  float2 uvw01 = float2(uv.x, uv.d.coord_01);
+  float2 uvw10 = float2(uv.x, uv.d.coord_10);
+  float2 uvw11 = float2(uv.x, uv.d.coord_11);
+  float3 contrib00 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw00, i, 0).xyz;
+  float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw01, i, 0).xyz;
+  float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw10, i, 0).xyz;
+  float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw11, i, 0).xyz;
+  float3 result0 = expLerp(contrib00, contrib01, uv.d.ay);
+  float3 result1 = expLerp(contrib10, contrib11, uv.d.ay);
+  return lerp(result0, result1, uv.d.ax);
+  // return result0;
 }
 
 float3 sampleAerialPerspectiveLOD0Texture(TexCoord4D uv, int i) {
@@ -507,49 +458,46 @@ float3 sampleAerialPerspectiveLOD1Texture(TexCoord4D uv, int i) {
 }
 
 float3 sampleAerialPerspectiveTexture(TexCoord4D uv, int i, int LOD) {
-  // switch (LOD) {
-  //   case AERIAL_PERPSECTIVE_LOD0: {
-  //     return sampleAerialPerspectiveLOD0Texture(uv, i);
-  //   }
-  //   case AERIAL_PERPSECTIVE_LOD1: {
-  //     return sampleAerialPerspectiveLOD1Texture(uv, i);
-  //   }
-  //   case AERIAL_PERPSECTIVE_LOD2:
-  //     return sampleSSTexture(uv, i);
-  //   default:
-  //     return float3(0, 0, 0);
-  // }
-  return float3(0, 0, 0);
+  switch (LOD) {
+    case AERIAL_PERPSECTIVE_LOD0: {
+      return sampleAerialPerspectiveLOD0Texture(uv, i);
+    }
+    case AERIAL_PERPSECTIVE_LOD1: {
+      return sampleAerialPerspectiveLOD1Texture(uv, i);
+    }
+    case AERIAL_PERPSECTIVE_LOD2:
+      return sampleSSTexture(uv, i);
+    default:
+      return float3(0, 0, 0);
+  }
 }
 
 float3 sampleSSNoShadowTexture(TexCoord4D uv, int i) {
-  // float2 uvw00 = float2(uv.x, uv.z);
-  // float2 uvw01 = float2(uv.x, uv.w);
-  // float2 uvw10 = float2(uv.y, uv.z);
-  // float2 uvw11 = float2(uv.y, uv.w);
-  // float3 contrib00 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw00, i, 0).xyz;
-  // float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw01, i, 0).xyz;
-  // float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw10, i, 0).xyz;
-  // float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  // float3 result0 = lerp(contrib00, contrib01, uv.b);
-  // float3 result1 = lerp(contrib10, contrib11, uv.b);
-  // return lerp(result0, result1, uv.a);
-  return float3(0, 0, 0);
+  float2 uvw00 = float2(uv.x, uv.d.coord_00);
+  float2 uvw01 = float2(uv.x, uv.d.coord_01);
+  float2 uvw10 = float2(uv.x, uv.d.coord_10);
+  float2 uvw11 = float2(uv.x, uv.d.coord_11);
+  float3 contrib00 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw00, i, 0).xyz;
+  float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw01, i, 0).xyz;
+  float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw10, i, 0).xyz;
+  float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw11, i, 0).xyz;
+  float3 result0 = expLerp(contrib00, contrib01, uv.d.ay);
+  float3 result1 = expLerp(contrib10, contrib11, uv.d.ay);
+  return lerp(result0, result1, uv.d.ax);
 }
 
 float3 sampleMSAccTexture(TexCoord4D uv, int i) {
-  // float2 uvw00 = float2(uv.x, uv.z);
-  // float2 uvw01 = float2(uv.x, uv.w);
-  // float2 uvw10 = float2(uv.y, uv.z);
-  // float2 uvw11 = float2(uv.y, uv.w);
-  // float3 contrib00 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw00, i, 0).xyz;
-  // float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw01, i, 0).xyz;
-  // float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw10, i, 0).xyz;
-  // float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  // float3 result0 = lerp(contrib00, contrib01, uv.b);
-  // float3 result1 = lerp(contrib10, contrib11, uv.b);
-  // return lerp(result0, result1, uv.a);
-  return float3(0, 0, 0);
+  float2 uvw00 = float2(uv.x, uv.d.coord_00);
+  float2 uvw01 = float2(uv.x, uv.d.coord_01);
+  float2 uvw10 = float2(uv.x, uv.d.coord_10);
+  float2 uvw11 = float2(uv.x, uv.d.coord_11);
+  float3 contrib00 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw00, i, 0).xyz;
+  float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw01, i, 0).xyz;
+  float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw10, i, 0).xyz;
+  float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw11, i, 0).xyz;
+  float3 result0 = expLerp(contrib00, contrib01, uv.d.ay);
+  float3 result1 = expLerp(contrib10, contrib11, uv.d.ay);
+  return lerp(result0, result1, uv.d.ax);
 }
 
 float3 sampleGITexture(float2 uv, int i) {

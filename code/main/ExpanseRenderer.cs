@@ -183,8 +183,8 @@ RTHandle allocateSky4DTable(Vector4 resolution, int index, string name) {
 
 /* Allocates 4D sky precomputation table. */
 RTHandle allocateSky4DArrayTable(Vector4 resolution, int depth, string name) {
-  var table = RTHandles.Alloc(((int) resolution.x) * ((int) resolution.y),
-                              ((int) resolution.z) * ((int) resolution.w),
+  var table = RTHandles.Alloc(((int) resolution.y),
+                              ((int) resolution.x) * ((int) resolution.z) * ((int) resolution.w),
                               depth,
                               dimension: TextureDimension.Tex2DArray,
                               colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
@@ -699,20 +699,20 @@ private void DispatchSkyCompute(CommandBuffer cmd) {
         (int) m_skyTextureResolution.LP.y / 8, 1);
 
       cmd.DispatchCompute(m_skyCS, handle_SS,
-        ((int) (m_skyTextureResolution.SS.x * m_skyTextureResolution.SS.y)) / 8,
-        ((int) (m_skyTextureResolution.SS.z * m_skyTextureResolution.SS.w)) / 8, 1);
+        ((int) (m_skyTextureResolution.SS.y)) / 8,
+        ((int) (m_skyTextureResolution.SS.x * m_skyTextureResolution.SS.z * m_skyTextureResolution.SS.w)) / 32, 1);
 
       cmd.DispatchCompute(m_skyCS, handle_SSAerialPerspective,
-        ((int) (m_skyTextureResolution.SS.x * m_skyTextureResolution.SS.y)) / 8,
-        ((int) (m_skyTextureResolution.SS.z * m_skyTextureResolution.SS.w)) / 8, 1);
+        ((int) (m_skyTextureResolution.SS.y)) / 8,
+        ((int) (m_skyTextureResolution.SS.x * m_skyTextureResolution.SS.z * m_skyTextureResolution.SS.w)) / 32, 1);
 
       cmd.DispatchCompute(m_skyCS, handle_MS,
         (int) m_skyTextureResolution.MS.x / 8,
         (int) m_skyTextureResolution.MS.y / 8, 1);
 
       cmd.DispatchCompute(m_skyCS, handle_MSAcc,
-        ((int) (m_skyTextureResolution.MSAccumulation.x * m_skyTextureResolution.MSAccumulation.y)) / 8,
-        ((int) (m_skyTextureResolution.MSAccumulation.z * m_skyTextureResolution.MSAccumulation.z)) / 8, 1);
+        ((int) (m_skyTextureResolution.MSAccumulation.y)) / 8,
+        ((int) (m_skyTextureResolution.MSAccumulation.x * m_skyTextureResolution.MSAccumulation.z * m_skyTextureResolution.MSAccumulation.z)) / 32, 1);
 
       cmd.DispatchCompute(m_skyCS, handle_GI,
         (int) m_skyTextureResolution.GI / 8, 1, 1);
