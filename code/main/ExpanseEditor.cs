@@ -229,7 +229,6 @@ SerializedDataParameter twinkleSmoothAmplitude;
 SerializedDataParameter twinkleChaoticAmplitude;
 
 /* Aerial Perspective. */
-SerializedDataParameter aerialPerspectiveTableDistances;
 SerializedDataParameter aerialPerspectiveOcclusionPowerUniform;
 SerializedDataParameter aerialPerspectiveOcclusionBiasUniform;
 SerializedDataParameter aerialPerspectiveOcclusionPowerDirectional;
@@ -685,7 +684,6 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
 
 private void aerialPerspective(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
   EditorGUILayout.LabelField("Aerial Perspective", titleStyle);
-  PropertyField(aerialPerspectiveTableDistances, new UnityEngine.GUIContent("LOD Distances"));
   PropertyField(aerialPerspectiveOcclusionPowerUniform, new UnityEngine.GUIContent("Uniform Occlusion Spread"));
   PropertyField(aerialPerspectiveOcclusionBiasUniform, new UnityEngine.GUIContent("Uniform Occlusion Bias"));
   PropertyField(aerialPerspectiveOcclusionPowerDirectional, new UnityEngine.GUIContent("Directional Occlusion Spread"));
@@ -886,7 +884,6 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   twinkleChaoticAmplitude = Unpack(o.Find(x => x.twinkleChaoticAmplitude));
 
   /* Aerial perspective. */
-  aerialPerspectiveTableDistances = Unpack(o.Find(x => x.aerialPerspectiveTableDistances));
   aerialPerspectiveOcclusionPowerUniform = Unpack(o.Find(x => x.aerialPerspectiveOcclusionPowerUniform));
   aerialPerspectiveOcclusionBiasUniform = Unpack(o.Find(x => x.aerialPerspectiveOcclusionBiasUniform));
   aerialPerspectiveOcclusionPowerDirectional = Unpack(o.Find(x => x.aerialPerspectiveOcclusionPowerDirectional));

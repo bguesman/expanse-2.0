@@ -1,12 +1,13 @@
 #include "../common/shaders/ExpanseSkyCommon.hlsl"
+#include "../common/shaders/ExpanseRandom.hlsl"
 
-struct SSResult {
+struct SSLayersResult {
   float3 shadows[MAX_LAYERS];
   float3 noShadows[MAX_LAYERS];
 };
 
-SSResult computeSS(float3 O, float3 d, float3 L, float t_hit, bool groundHit) {
-  SSResult result; // final result
+SSLayersResult computeSSLayers(float3 O, float3 d, float t_hit, bool groundHit, float3 L) {
+  SSLayersResult result; // final result
 
   float mu = dot(normalize(O), d);
 
@@ -87,5 +88,40 @@ SSResult computeSS(float3 O, float3 d, float3 L, float t_hit, bool groundHit) {
     }
   }
 
+  return result;
+}
+
+struct SSResult {
+  float3 shadows;
+  float3 noShadows;
+};
+
+SSResult computeSSBody(float3 O, float3 d, float t_hit, bool groundHit, float3 L,
+  float3 lightColor) {
+  SSLayersResult ssLayers = computeSSLayers(O, d, t_hit, groundHit, L);
+  float dot_L_d = dot(L, d);
+  SSResult result;
+  result.shadows = float3(0, 0, 0);
+  result.noShadows = float3(0, 0, 0);
+  for (int i = 0; i < _numActiveLayers; i++) {
+    float phase = computePhase(dot_L_d, _layerAnisotropy[i], _layerPhaseFunction[i]);
+    result.shadows += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz) * (ssLayers.shadows[i] * phase);
+    result.noShadows += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz) * (ssLayers.noShadows[i] * phase);
+  }
+  result.shadows *= lightColor;
+  result.noShadows *= lightColor;
+  return result;
+}
+
+SSResult computeSS(float3 O, float3 d, float t_hit, bool groundHit) {
+  SSResult result;
+  result.shadows = float3(0, 0, 0);
+  result.noShadows = float3(0, 0, 0);
+  for (int i = 0; i < _numActiveBodies; i++) {
+    SSResult bodySS = computeSSBody(O, d, t_hit, groundHit, _bodyDirection[i], _bodyLightColor[i]);
+    result.shadows += bodySS.shadows;
+    // result.shadows += 500 * (d+1); // DEBUG
+    result.noShadows += bodySS.noShadows;
+  }
   return result;
 }

@@ -36,27 +36,16 @@ HLSLINCLUDE
 /****************************** INPUT VARIABLES *******************************/
 /******************************************************************************/
 
-/* Atmosphere Layers. */
-float _layerMultipleScatteringMultiplier[MAX_LAYERS];
-
-/* Celestial Bodies. */
-
-#define MAX_BODIES 8
-
-// need a num active bodies parameter
-int _numActiveBodies;
-float3 _bodyDirection[MAX_BODIES];
+/* Celestial bodies. */
 float _bodyAngularRadius[MAX_BODIES];
 float _bodyDistance[MAX_BODIES];
 bool _bodyReceivesLight[MAX_BODIES];
 float4x4 _bodyAlbedoTextureRotation[MAX_BODIES];
 float4 _bodyAlbedoTint[MAX_BODIES];
 bool _bodyEmissive[MAX_BODIES];
-float4 _bodyLightColor[MAX_BODIES];
 float _bodyLimbDarkening[MAX_BODIES];
 float4x4 _bodyEmissionTextureRotation[MAX_BODIES];
 float4 _bodyEmissionTint[MAX_BODIES];
-
 // Textures can't be array, so declare them individually.
 bool _bodyAlbedoTextureEnabled[MAX_BODIES];
 TEXTURECUBE(_bodyAlbedoTexture0);
@@ -101,10 +90,6 @@ float _aerialPerspectiveOcclusionPowerUniform;
 float _aerialPerspectiveOcclusionBiasDirectional;
 float _aerialPerspectiveOcclusionPowerDirectional;
 
-/* Quality. */
-bool _useAntiAliasing;
-float _ditherAmount;
-
 /* Render textures. */
 TEXTURE2D(_fullscreenSkyColorRT);
 TEXTURE2D(_cubemapSkyColorRT);
@@ -116,11 +101,6 @@ TEXTURE2D(_currFullscreenCloudColorRT);
 TEXTURE2D(_currFullscreenCloudTransmittanceRT);
 TEXTURE2D(_currCubemapCloudColorRT);
 TEXTURE2D(_currCubemapCloudTransmittanceRT);
-
-float3 _WorldSpaceCameraPos1;
-float4x4 _ViewMatrix1;
-#undef UNITY_MATRIX_V
-#define UNITY_MATRIX_V _ViewMatrix1
 
 /******************************************************************************/
 /**************************** END INPUT VARIABLES *****************************/
@@ -239,16 +219,6 @@ float3 sampleBodyAlbedoTexture(float3 uv, int i) {
 /******************************************************************************/
 /**************************** SKY FRAGMENT SHADER *****************************/
 /******************************************************************************/
-
-/* Given uv coodinate representing direction, computes sky transmittance. */
-float3 computeSkyTransmittance(float2 uv) {
-  return exp(SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler, uv, 0).xyz);
-}
-
-/* Given uv coodinate representing direction, computes sky transmittance. */
-float3 computeSkyTransmittanceRaw(float2 uv) {
-  return SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler, uv, 0).xyz;
-}
 
 float3 shadeGround(float3 endPoint) {
   float3 color = float3(0, 0, 0);
@@ -479,241 +449,203 @@ float3 shadeNightSky(float3 d) {
   }
 }
 
-int computeAerialPerspectiveLOD(float depth) {
-  if (depth < _aerialPerspectiveTableDistanceLOD0) {
-    return AERIAL_PERPSECTIVE_LOD0;
-  } else if (depth < _aerialPerspectiveTableDistanceLOD1) {
-    return AERIAL_PERPSECTIVE_LOD1;
-  } else {
-    return AERIAL_PERPSECTIVE_LOD2;
-  }
-}
-
-float computeAerialPerspectiveLODBlend(int LOD, float depth) {
-  switch (LOD) {
-    case AERIAL_PERPSECTIVE_LOD0:
-      /* Lerp for last 25 percent of interval. */
-      return 1 - saturate((_aerialPerspectiveTableDistanceLOD0 - depth) / (0.5 * _aerialPerspectiveTableDistanceLOD0));
-    case AERIAL_PERPSECTIVE_LOD1:
-      /* Lerp for last 25 percent of interval. */
-      return 1 - saturate((_aerialPerspectiveTableDistanceLOD1 - depth) / (0.5 * _aerialPerspectiveTableDistanceLOD1));
-    case AERIAL_PERPSECTIVE_LOD2:
-      return 0;
-    default:
-      return 0;
-  }
-}
-
-float computeAerialPerspectiveLODDistance(int LOD, float t_hit) {
-  switch (LOD) {
-    case AERIAL_PERPSECTIVE_LOD0:
-      return min(t_hit, _aerialPerspectiveTableDistanceLOD0);
-    case AERIAL_PERPSECTIVE_LOD1:
-      return min(t_hit, _aerialPerspectiveTableDistanceLOD1);
-    case AERIAL_PERPSECTIVE_LOD2:
-      return t_hit;
-    default:
-      return 0;
-  }
-}
-
-float3 computeSkyColorBody(float r, float mu, int i, float3 start, float3 d,
-  float t_hit, bool groundHit, float interval_length) {
-  /* Final result. */
-  float3 result = float3(0, 0, 0);
-
-  /* Get the body's direction. */
-  float3 L = _bodyDirection[i];
-  float3 lightColor = _bodyLightColor[i].xyz;
-  float dot_L_d = clampCosine(dot(L, d));
-
-  /* TODO: how to figure out if body is occluded? Could use global bool array.
-   * But need to do better. Need to figure out HOW occluded and attenuate
-   * light accordingly. May need to do this with horizon too. */
-
-  /* Compute 4D tex coords. */
-  // float3 startNormalized = normalize(start);
-  // float mu_l = clampCosine(dot(startNormalized, L));
-  // float3 proj_L = normalize(L - startNormalized * mu_l);
-  // float3 proj_d = normalize(d - startNormalized * dot(startNormalized, d));
-  // float nu = clampCosine(dot(proj_L, proj_d));
-  // TexCoord4D uvSS = mapSky4DCoord(r,  mu, mu_l, nu,
-  //   _atmosphereRadius, _planetRadius, t_hit, groundHit,
-  //   _resSS.x, _resSS.y, _resSS.z, _resSS.w);
-  // TexCoord4D uvMSAcc = mapSky4DCoord(r, mu, mu_l, nu,
-  //   _atmosphereRadius, _planetRadius, t_hit, groundHit,
-  //   _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
-  //
-  // /* Loop through layers and accumulate contributions for this body. */
-  // for (int j = 0; j < _numActiveLayers; j++) {
-  //   /* Single scattering. */
-  //   float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
-  //   float3 ss = sampleSSTexture(uvSS, j);
-  //
-  //   /* Multiple scattering. */
-  //   float3 ms = sampleMSAccTexture(uvMSAcc, j);
-  //
-  //   /* Final color. */
-  //   result += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
-  //     * (ss * phase + ms * _layerMultipleScatteringMultiplier[j]);
-  // }
-  SSResult ssLayers = computeSS(start, d, L, interval_length, groundHit);
-  for (int j = 0; j < _numActiveLayers; j++) {
-    float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
-    float3 ss = ssLayers.shadows[j];
-    result += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
-       * (ss * phase);
-  }
-  return result * interval_length * lightColor;
-}
-
-/* Given uv coordinate representing direction, computes sky color. */
-float3 computeSkyColor(float r, float mu, float3 start, float3 d, float t_hit,
-  bool groundHit, float interval_length) {
-  float3 result = float3(0, 0, 0);
-  /* Loop through all the celestial bodies. */
-  float3 color = float3(0, 0, 0);
-  for (int i = 0; i < _numActiveBodies; i++) {
-    result += computeSkyColorBody(r, mu, i, start, d, t_hit,
-      groundHit, interval_length);
-  }
-  return result;
-}
-
-float3 computeAerialPerspectiveColorBody(float r, float mu, float depthR, float depthMu,
-  float3 start, float3 depthSamplePoint, float3 d, float t_hit, float depth,
-  bool groundHit, float3 blendTransmittance, int i) {
-  /* Final result. */
-  float3 result = float3(0, 0, 0);
-
-  /* Get the body's direction. */
-  float3 L = _bodyDirection[i];
-  float3 lightColor = _bodyLightColor[i].xyz;
-  float dot_L_d = clampCosine(dot(L, d));
-
-  /* Now, technically, this is a hack. But it's a good hack for far
-   * away geo. We basically see how "behind" the geo the light is by
-   * checking how parallel the view and light vectors are. If they're
-   * really parallel, that means the light is totally behind the geo.
-   * If they're less parallel, then the light is less behind the geo.
-   * Then, we allow the user to tweak parameters until they're happy
-   * with the result. */
-  float occlusionMultiplierUniform = _aerialPerspectiveOcclusionBiasUniform
-    + (1-_aerialPerspectiveOcclusionBiasUniform) * pow(1-saturate(dot_L_d), _aerialPerspectiveOcclusionPowerUniform);
-  float occlusionMultiplierDirectional = _aerialPerspectiveOcclusionBiasDirectional
-    + (1-_aerialPerspectiveOcclusionBiasDirectional) * pow(1-saturate(dot_L_d), _aerialPerspectiveOcclusionPowerDirectional);
-
-  /* TODO: how to figure out if body is occluded? Could use global bool array.
-   * But need to do better. Need to figure out HOW occluded and attenuate
-   * light accordingly. May need to do this with horizon too. */
-
-  /* Compute 4D tex coords. */
-  // float3 startNormalized = normalize(start);
-  // float mu_l = clampCosine(dot(startNormalized, L));
-  // float3 proj_L = normalize(L - startNormalized * mu_l);
-  // float3 proj_d = normalize(d - startNormalized * dot(startNormalized, d));
-  // float nu = clampCosine(dot(proj_L, proj_d));
-  // TexCoord4D uvSS = mapSky4DCoord(r, mu, mu_l, nu,
-  //   _atmosphereRadius, _planetRadius, t_hit, groundHit,
-  //   _resSS.x, _resSS.y, _resSS.z, _resSS.w);
-  // TexCoord4D uvMSAcc = mapSky4DCoord(r, mu, mu_l, nu,
-  //   _atmosphereRadius, _planetRadius, t_hit, groundHit,
-  //   _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
-  //
-  // float3 depthStartNormalized = normalize(depthSamplePoint);
-  // float depth_mu_l = clampCosine(dot(depthStartNormalized, L));
-  // float3 depth_proj_L = normalize(L - depthStartNormalized * mu_l);
-  // float3 depth_proj_d = normalize(d - depthStartNormalized * dot(depthStartNormalized, d));
-  // float depth_nu = clampCosine(dot(proj_L, proj_d));
-  // TexCoord4D depth_uvSS = mapSky4DCoord(depthR, depthMu, depth_mu_l, depth_nu,
-  //   _atmosphereRadius, _planetRadius, t_hit-depth, groundHit,
-  //   _resSS.x, _resSS.y, _resSS.z, _resSS.w);
-  // TexCoord4D depth_uvMSAcc = mapSky4DCoord(r, mu, mu_l, nu,
-  //   _atmosphereRadius, _planetRadius, t_hit-depth, groundHit,
-  //   _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
-  //
-  // /* Loop through layers and accumulate contributions for this body. */
-  // for (int j = 0; j < _numActiveLayers; j++) {
-  //   /* Single scattering. */
-  //   float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
-  //   float3 ss = t_hit * sampleSSTexture(uvSS, j);
-  //   float3 depth_ss = (t_hit - depth) * sampleSSTexture(depth_uvSS, j);
-  //   ss = ss - blendTransmittance * depth_ss;
-  //
-  //   float3 ms = t_hit * sampleMSAccTexture(uvMSAcc, j);
-  //   float3 depth_ms = (t_hit - depth) * sampleMSAccTexture(depth_uvMSAcc, j);
-  //   ms = ms - blendTransmittance * depth_ms;
-  //
-  //   /* Final color. HACK: == 2 here is for Mie phase. If this changes,
-  //    * we will need to change it. */
-  //   result += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
-  //     * (ss * phase * ((_layerPhaseFunction[j] == 2) ? occlusionMultiplierDirectional
-  //     : occlusionMultiplierUniform) + ms * _layerMultipleScatteringMultiplier[j]);
-  // }
-  // return result * lightColor;
-
-  // Compute single scattering for all the layers.
-  SSResult ssLayers = computeSS(start, d, L, depth, groundHit);
-  for (int j = 0; j < _numActiveLayers; j++) {
-    float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
-    float3 ss = depth * ssLayers.shadows[j];
-    result += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
-       * (ss * phase * ((_layerPhaseFunction[j] == 2) ? occlusionMultiplierDirectional
-       : occlusionMultiplierUniform));
-  }
-  return result * lightColor;
-}
-
-/* Given uv coordinate representing direction, computes aerial perspective color. */
-float3 computeAerialPerspectiveColor(float r, float mu, float depthR, float depthMu,
-  float3 start, float3 depthSamplePoint, float3 d, float t_hit, float depth,
-  bool groundHit, float3 blendTransmittance) {
-  float3 result = float3(0, 0, 0);
-  /* Loop through all the celestial bodies. */
-  float3 color = float3(0, 0, 0);
-  for (int i = 0; i < _numActiveBodies; i++) {
-    result += computeAerialPerspectiveColorBody(r, mu, depthR, depthMu, start,
-      depthSamplePoint, d, t_hit, depth, groundHit, blendTransmittance, i);
-  }
-  return result;
-}
-
-float3 computeLightPollutionColor(float2 uv, float t_hit) {
-  float3 color = float3(0, 0, 0);
-  for (int i = 0; i < _numActiveLayers; i++) {
-    float3 lp = sampleLPTexture(uv, i);
-    color += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz) * lp;
-  }
-  color *= _lightPollutionTint;
-  return t_hit * color;
-}
-
-float3 computeStarScatteringColor(float r, float mu, float3 directLight,
-  float t_hit, bool groundHit) {
-  /* HACK: to get some sort of approximation of rayleigh scattering
-   * for the ambient night color of the sky,  */
-  TexCoord4D uvSS = mapSky4DCoord(r, mu, mu, 1, _atmosphereRadius,
-    _planetRadius, t_hit, groundHit, _resSS.x, _resSS.y, _resSS.z, _resSS.w);
-  TexCoord4D uvMSAcc = mapSky4DCoord(r, mu, mu, 1, _atmosphereRadius,
-    _planetRadius, t_hit, groundHit, _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
-
-  /* Accumulate contribution from each layer. */
-  float3 color = float3(0, 0, 0);
-  for (int j = 0; j < _numActiveLayers; j++) {
-    /* Single scattering. Use isotropic phase, since this approximation
-     * has no directionality. */
-    float3 ss = sampleSSTexture(uvSS, j) * isotropicPhase();
-
-    /* Multiple scattering. eyo */
-    float3 ms = sampleMSAccTexture(uvMSAcc, j);
-
-    /* Final color. */
-    color += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
-      * (ss + ms * _layerMultipleScatteringMultiplier[j]);
-  }
-
-  return color * t_hit * _nightSkyScatterTint * _averageNightSkyColor;
-}
+// float3 computeSkyColorBody(float r, float mu, int i, float3 start, float3 d,
+//   float t_hit, bool groundHit, float interval_length) {
+//   /* Final result. */
+//   float3 result = float3(0, 0, 0);
+//
+//   /* Get the body's direction. */
+//   float3 L = _bodyDirection[i];
+//   float3 lightColor = _bodyLightColor[i].xyz;
+//   float dot_L_d = clampCosine(dot(L, d));
+//
+//   /* TODO: how to figure out if body is occluded? Could use global bool array.
+//    * But need to do better. Need to figure out HOW occluded and attenuate
+//    * light accordingly. May need to do this with horizon too. */
+//
+//   /* Compute 4D tex coords. */
+//   // float3 startNormalized = normalize(start);
+//   // float mu_l = clampCosine(dot(startNormalized, L));
+//   // float3 proj_L = normalize(L - startNormalized * mu_l);
+//   // float3 proj_d = normalize(d - startNormalized * dot(startNormalized, d));
+//   // float nu = clampCosine(dot(proj_L, proj_d));
+//   // TexCoord4D uvSS = mapSky4DCoord(r,  mu, mu_l, nu,
+//   //   _atmosphereRadius, _planetRadius, t_hit, groundHit,
+//   //   _resSS.x, _resSS.y, _resSS.z, _resSS.w);
+//   // TexCoord4D uvMSAcc = mapSky4DCoord(r, mu, mu_l, nu,
+//   //   _atmosphereRadius, _planetRadius, t_hit, groundHit,
+//   //   _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
+//   //
+//   // /* Loop through layers and accumulate contributions for this body. */
+//   // for (int j = 0; j < _numActiveLayers; j++) {
+//   //   /* Single scattering. */
+//   //   float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
+//   //   float3 ss = sampleSSTexture(uvSS, j);
+//   //
+//   //   /* Multiple scattering. */
+//   //   float3 ms = sampleMSAccTexture(uvMSAcc, j);
+//   //
+//   //   /* Final color. */
+//   //   result += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
+//   //     * (ss * phase + ms * _layerMultipleScatteringMultiplier[j]);
+//   // }
+//   SSResult ssLayers = computeSS(start, d, L, interval_length, groundHit);
+//   for (int j = 0; j < _numActiveLayers; j++) {
+//     float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
+//     float3 ss = ssLayers.shadows[j];
+//     result += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
+//        * (ss * phase);
+//   }
+//   return result * interval_length * lightColor;
+// }
+//
+// /* Given uv coordinate representing direction, computes sky color. */
+// float3 computeSkyColor(float r, float mu, float3 start, float3 d, float t_hit,
+//   bool groundHit, float interval_length) {
+//   float3 result = float3(0, 0, 0);
+//   /* Loop through all the celestial bodies. */
+//   float3 color = float3(0, 0, 0);
+//   for (int i = 0; i < _numActiveBodies; i++) {
+//     result += computeSkyColorBody(r, mu, i, start, d, t_hit,
+//       groundHit, interval_length);
+//   }
+//   return result;
+// }
+//
+// float3 computeAerialPerspectiveColorBody(float r, float mu, float depthR, float depthMu,
+//   float3 start, float3 depthSamplePoint, float3 d, float t_hit, float depth,
+//   bool groundHit, float3 blendTransmittance, int i) {
+//   /* Final result. */
+//   float3 result = float3(0, 0, 0);
+//
+//   /* Get the body's direction. */
+//   float3 L = _bodyDirection[i];
+//   float3 lightColor = _bodyLightColor[i].xyz;
+//   float dot_L_d = clampCosine(dot(L, d));
+//
+//   /* Now, technically, this is a hack. But it's a good hack for far
+//    * away geo. We basically see how "behind" the geo the light is by
+//    * checking how parallel the view and light vectors are. If they're
+//    * really parallel, that means the light is totally behind the geo.
+//    * If they're less parallel, then the light is less behind the geo.
+//    * Then, we allow the user to tweak parameters until they're happy
+//    * with the result. */
+//   float occlusionMultiplierUniform = _aerialPerspectiveOcclusionBiasUniform
+//     + (1-_aerialPerspectiveOcclusionBiasUniform) * pow(1-saturate(dot_L_d), _aerialPerspectiveOcclusionPowerUniform);
+//   float occlusionMultiplierDirectional = _aerialPerspectiveOcclusionBiasDirectional
+//     + (1-_aerialPerspectiveOcclusionBiasDirectional) * pow(1-saturate(dot_L_d), _aerialPerspectiveOcclusionPowerDirectional);
+//
+//   /* TODO: how to figure out if body is occluded? Could use global bool array.
+//    * But need to do better. Need to figure out HOW occluded and attenuate
+//    * light accordingly. May need to do this with horizon too. */
+//
+//   /* Compute 4D tex coords. */
+//   // float3 startNormalized = normalize(start);
+//   // float mu_l = clampCosine(dot(startNormalized, L));
+//   // float3 proj_L = normalize(L - startNormalized * mu_l);
+//   // float3 proj_d = normalize(d - startNormalized * dot(startNormalized, d));
+//   // float nu = clampCosine(dot(proj_L, proj_d));
+//   // TexCoord4D uvSS = mapSky4DCoord(r, mu, mu_l, nu,
+//   //   _atmosphereRadius, _planetRadius, t_hit, groundHit,
+//   //   _resSS.x, _resSS.y, _resSS.z, _resSS.w);
+//   // TexCoord4D uvMSAcc = mapSky4DCoord(r, mu, mu_l, nu,
+//   //   _atmosphereRadius, _planetRadius, t_hit, groundHit,
+//   //   _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
+//   //
+//   // float3 depthStartNormalized = normalize(depthSamplePoint);
+//   // float depth_mu_l = clampCosine(dot(depthStartNormalized, L));
+//   // float3 depth_proj_L = normalize(L - depthStartNormalized * mu_l);
+//   // float3 depth_proj_d = normalize(d - depthStartNormalized * dot(depthStartNormalized, d));
+//   // float depth_nu = clampCosine(dot(proj_L, proj_d));
+//   // TexCoord4D depth_uvSS = mapSky4DCoord(depthR, depthMu, depth_mu_l, depth_nu,
+//   //   _atmosphereRadius, _planetRadius, t_hit-depth, groundHit,
+//   //   _resSS.x, _resSS.y, _resSS.z, _resSS.w);
+//   // TexCoord4D depth_uvMSAcc = mapSky4DCoord(r, mu, mu_l, nu,
+//   //   _atmosphereRadius, _planetRadius, t_hit-depth, groundHit,
+//   //   _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
+//   //
+//   // /* Loop through layers and accumulate contributions for this body. */
+//   // for (int j = 0; j < _numActiveLayers; j++) {
+//   //   /* Single scattering. */
+//   //   float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
+//   //   float3 ss = t_hit * sampleSSTexture(uvSS, j);
+//   //   float3 depth_ss = (t_hit - depth) * sampleSSTexture(depth_uvSS, j);
+//   //   ss = ss - blendTransmittance * depth_ss;
+//   //
+//   //   float3 ms = t_hit * sampleMSAccTexture(uvMSAcc, j);
+//   //   float3 depth_ms = (t_hit - depth) * sampleMSAccTexture(depth_uvMSAcc, j);
+//   //   ms = ms - blendTransmittance * depth_ms;
+//   //
+//   //   /* Final color. HACK: == 2 here is for Mie phase. If this changes,
+//   //    * we will need to change it. */
+//   //   result += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
+//   //     * (ss * phase * ((_layerPhaseFunction[j] == 2) ? occlusionMultiplierDirectional
+//   //     : occlusionMultiplierUniform) + ms * _layerMultipleScatteringMultiplier[j]);
+//   // }
+//   // return result * lightColor;
+//
+//   // Compute single scattering for all the layers.
+//   SSResult ssLayers = computeSS(start, d, L, depth, groundHit);
+//   for (int j = 0; j < _numActiveLayers; j++) {
+//     float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
+//     float3 ss = depth * ssLayers.shadows[j];
+//     result += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
+//        * (ss * phase * ((_layerPhaseFunction[j] == 2) ? occlusionMultiplierDirectional
+//        : occlusionMultiplierUniform));
+//   }
+//   return result * lightColor;
+// }
+//
+// /* Given uv coordinate representing direction, computes aerial perspective color. */
+// float3 computeAerialPerspectiveColor(float r, float mu, float depthR, float depthMu,
+//   float3 start, float3 depthSamplePoint, float3 d, float t_hit, float depth,
+//   bool groundHit, float3 blendTransmittance) {
+//   float3 result = float3(0, 0, 0);
+//   /* Loop through all the celestial bodies. */
+//   float3 color = float3(0, 0, 0);
+//   for (int i = 0; i < _numActiveBodies; i++) {
+//     result += computeAerialPerspectiveColorBody(r, mu, depthR, depthMu, start,
+//       depthSamplePoint, d, t_hit, depth, groundHit, blendTransmittance, i);
+//   }
+//   return result;
+// }
+//
+// float3 computeLightPollutionColor(float2 uv, float t_hit) {
+//   float3 color = float3(0, 0, 0);
+//   for (int i = 0; i < _numActiveLayers; i++) {
+//     float3 lp = sampleLPTexture(uv, i);
+//     color += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz) * lp;
+//   }
+//   color *= _lightPollutionTint;
+//   return t_hit * color;
+// }
+//
+// float3 computeStarScatteringColor(float r, float mu, float3 directLight,
+//   float t_hit, bool groundHit) {
+//   /* HACK: to get some sort of approximation of rayleigh scattering
+//    * for the ambient night color of the sky,  */
+//   TexCoord4D uvSS = mapSky4DCoord(r, mu, mu, 1, _atmosphereRadius,
+//     _planetRadius, t_hit, groundHit, _resSS.x, _resSS.y, _resSS.z, _resSS.w);
+//   TexCoord4D uvMSAcc = mapSky4DCoord(r, mu, mu, 1, _atmosphereRadius,
+//     _planetRadius, t_hit, groundHit, _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
+//
+//   /* Accumulate contribution from each layer. */
+//   float3 color = float3(0, 0, 0);
+//   for (int j = 0; j < _numActiveLayers; j++) {
+//     /* Single scattering. Use isotropic phase, since this approximation
+//      * has no directionality. */
+//     float3 ss = sampleSSTexture(uvSS, j) * isotropicPhase();
+//
+//     /* Multiple scattering. eyo */
+//     float3 ms = sampleMSAccTexture(uvMSAcc, j);
+//
+//     /* Final color. */
+//     color += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
+//       * (ss + ms * _layerMultipleScatteringMultiplier[j]);
+//   }
+//
+//   return color * t_hit * _nightSkyScatterTint * _averageNightSkyColor;
+// }
 
 float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   /* Trace a ray to see what we hit. */
@@ -727,9 +659,7 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   float3 endPoint = O + d * intersection.endT;
   float t_hit = intersection.endT - intersection.startT;
 
-  /* Sample the depth buffer and figure out if we hit anything.
-   * TODO: depth conversion here might not account for the fact that
-   * depth changes across camera coordinate? no idea. */
+  /* Sample the depth buffer and figure out if we hit anything. */
   float depth = LoadCameraDepth(input.positionCS.xy);
   depth = Linear01Depth(depth, _ZBufferParams) * _ProjectionParams.z;
   /* Get camera center, and angle between direction and center. */
@@ -761,10 +691,10 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   /* If we didn't hit the ground or the atmosphere, return just direct
    * light. */
   if (!intersection.groundHit && !intersection.atmoHit) {
-    return float4(directLight, 1);
+    return float4(directLight, 0);
   }
 
-  /* Precompute 2D texture coordinate. */
+  /* Compute 2D texture coordinate. */
   float r = length(startPoint);
   float mu = dot(normalize(startPoint), d);
   float2 coord2D = mapSky2DCoord(r, mu, _atmosphereRadius, _planetRadius,
@@ -774,53 +704,72 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   float3 transmittanceRaw = computeSkyTransmittanceRaw(coord2D);
   float3 transmittance = exp(transmittanceRaw);
 
-  /* Compute sky color and blend transmittance for aerial perspective. */
-  float3 skyColor = float3(0, 0, 0);
-  float3 blendTransmittance = float3(0, 0, 0);
-  if (!geoHit || cubemap) {
-    /* Just render the sky normally. */
-    skyColor = computeSkyColor(r, mu, startPoint, d, t_hit,
-      intersection.groundHit, t_hit);
-  } else {
-    /* We have to compute aerial perspective. First, compute blend
-     * transmittance. */
-    float3 depthSamplePoint = startPoint + d * depth;
-    float depthR = length(depthSamplePoint);
-    float depthMu = dot(normalize(depthSamplePoint), d);
-    float2 depthCoord2D = mapSky2DCoord(depthR,
-      depthMu, _atmosphereRadius, _planetRadius,
-      t_hit-depth, intersection.groundHit, _resT.y);
-    float3 aerialPerspectiveTransmittanceRaw = computeSkyTransmittanceRaw(depthCoord2D);
-    blendTransmittance = saturate(exp(transmittanceRaw - aerialPerspectiveTransmittanceRaw));
+  /* Sample single scattering. */
+  float theta = d_to_theta(d, O);
+  float2 skyRenderCoordSS = mapSkyRenderCoordinate(r, mu, theta, _atmosphereRadius,
+    _planetRadius, t_hit, intersection.groundHit, _resSS.x, _resSS.y);
+  float3 ss = t_hit * sampleSSTexture(skyRenderCoordSS);
+  // float3 ss = t_hit * computeSS(startPoint, d, t_hit, intersection.groundHit).shadows;
 
-    /* Now, compute sky color at correct LOD. */
-    skyColor = computeAerialPerspectiveColor(r, mu, depthR, depthMu, startPoint,
-      depthSamplePoint, d, t_hit, depth, intersection.groundHit, blendTransmittance);
-  }
+  return float4(ss + transmittance * directLight, 0);
 
-  /* Compute light pollution. */
-  float3 lightPollution = float3(0, 0, 0);
-  if (!geoHit || cubemap) {
-    float2 coord2DLP = mapSky2DCoord(r, mu, _atmosphereRadius, _planetRadius,
-      t_hit, intersection.groundHit, _resLP.y);
-    lightPollution = computeLightPollutionColor(coord2DLP, t_hit);
-  }
-
-  /* Compute star scattering. */
-  float3 starScattering = float3(0, 0, 0);
-  if (!geoHit || cubemap) {
-    starScattering = computeStarScatteringColor(r, mu,
-      directLightNightSky, t_hit, intersection.groundHit);
-  }
-
-  /* Final result. */
-  return float4(directLight * transmittance + skyColor + lightPollution
-    + starScattering, dot(blendTransmittance, blendTransmittance)/3.0);
+  // /* Precompute 2D texture coordinate. */
+  // float r = length(startPoint);
+  // float mu = dot(normalize(startPoint), d);
+  // float2 coord2D = mapSky2DCoord(r, mu, _atmosphereRadius, _planetRadius,
+  //   t_hit, intersection.groundHit, _resT.y);
+  //
+  // /* Compute transmittance. */
+  // float3 transmittanceRaw = computeSkyTransmittanceRaw(coord2D);
+  // float3 transmittance = exp(transmittanceRaw);
+  //
+  // /* Compute sky color and blend transmittance for aerial perspective. */
+  // float3 skyColor = float3(0, 0, 0);
+  // float3 blendTransmittance = float3(0, 0, 0);
+  // if (!geoHit || cubemap) {
+  //   /* Just render the sky normally. */
+  //   skyColor = computeSkyColor(r, mu, startPoint, d, t_hit,
+  //     intersection.groundHit, t_hit);
+  // } else {
+  //   /* We have to compute aerial perspective. First, compute blend
+  //    * transmittance. */
+  //   float3 depthSamplePoint = startPoint + d * depth;
+  //   float depthR = length(depthSamplePoint);
+  //   float depthMu = dot(normalize(depthSamplePoint), d);
+  //   float2 depthCoord2D = mapSky2DCoord(depthR,
+  //     depthMu, _atmosphereRadius, _planetRadius,
+  //     t_hit-depth, intersection.groundHit, _resT.y);
+  //   float3 aerialPerspectiveTransmittanceRaw = computeSkyTransmittanceRaw(depthCoord2D);
+  //   blendTransmittance = saturate(exp(transmittanceRaw - aerialPerspectiveTransmittanceRaw));
+  //
+  //   /* Now, compute sky color at correct LOD. */
+  //   skyColor = computeAerialPerspectiveColor(r, mu, depthR, depthMu, startPoint,
+  //     depthSamplePoint, d, t_hit, depth, intersection.groundHit, blendTransmittance);
+  // }
+  //
+  // /* Compute light pollution. */
+  // float3 lightPollution = float3(0, 0, 0);
+  // if (!geoHit || cubemap) {
+  //   float2 coord2DLP = mapSky2DCoord(r, mu, _atmosphereRadius, _planetRadius,
+  //     t_hit, intersection.groundHit, _resLP.y);
+  //   lightPollution = computeLightPollutionColor(coord2DLP, t_hit);
+  // }
+  //
+  // /* Compute star scattering. */
+  // float3 starScattering = float3(0, 0, 0);
+  // if (!geoHit || cubemap) {
+  //   starScattering = computeStarScatteringColor(r, mu,
+  //     directLightNightSky, t_hit, intersection.groundHit);
+  // }
+  //
+  // /* Final result. */
+  // return float4(directLight * transmittance + skyColor + lightPollution
+  //   + starScattering, dot(blendTransmittance, blendTransmittance)/3.0);
 }
 
 float4 SkyCubemap(Varyings input) : SV_Target {
   /* Compute origin point and sample direction. */
-  float3 O = _WorldSpaceCameraPos1 - float3(0, -_planetRadius, 0);
+  float3 O = GetCameraPositionPlanetSpace();
   float3 d = -GetSkyViewDirWS(input.positionCS.xy);
   return RenderSky(input, O, d, true);
 }
@@ -829,7 +778,7 @@ float4 SkyFullscreen(Varyings input) : SV_Target {
   UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
   /* Compute origin point and sample direction. */
-  float3 O = _WorldSpaceCameraPos1 - float3(0, -_planetRadius, 0);
+  float3 O = GetCameraPositionPlanetSpace();
   float3 d = -GetSkyViewDirWS(input.positionCS.xy);
 
   /* If we aren't using anti-aliasing, just render. */

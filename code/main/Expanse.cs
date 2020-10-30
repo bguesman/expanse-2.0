@@ -328,8 +328,6 @@ public MinFloatParameter twinkleSmoothAmplitude = new MinFloatParameter(1, 0);
 public MinFloatParameter twinkleChaoticAmplitude = new MinFloatParameter(1, 0);
 
 /* Aerial Perspective. */
-[Tooltip("Expanse computes aerial perspective at 3 different LOD levels to reduce artifacts. This parameter controls the max distance used for each of the two closer LODs---the furthest LOD is unbounded. Typically a value of 1000-5000 is good for the closest LOD, and 10000-50000 for the furthest. If you are using a heavy fog layer and a lower texture quality setting, it may be necessary to tweak these values to avoid artifacts.")]
-public FloatRangeParameter aerialPerspectiveTableDistances = new FloatRangeParameter(new Vector2(8000, 15000), 0, 100000);
 [Tooltip("This parameter controls how aggressively aerial perspective due to Rayleigh and Isotropic (\"uniform\") layers is attenuated as a consequence of approximate volumetric shadowing. To see the effect, put the sun behind a big piece of geometry (like a mountain) and play around with this parameter. Expanse does not accurately model atmospheric volumetric shadows due to the performance cost, and instead uses this approximation to avoid visual artifacts.")]
 public MinFloatParameter aerialPerspectiveOcclusionPowerUniform = new MinFloatParameter(0.5f, 0);
 [Tooltip("This parameter is a way of offsetting the attenuation of aerial perspective as a consequence of approximate volumetric shadowing (for Rayleigh and Isotropic (\"uniform\") layers). To see the effect, put the sun behind a big piece of geometry (like a mountain) and play around with this parameter. Expanse does not accurately model atmospheric volumetric shadows due to the performance cost, and instead uses this approximation to avoid visual artifacts.")]
@@ -581,7 +579,6 @@ public override int GetHashCode() {
     hash = hash * 23 + nightSkyScatterIntensity.value.GetHashCode();
 
     /* Aerial Perspective. */
-    hash = hash * 23 + aerialPerspectiveTableDistances.value.GetHashCode();
     hash = hash * 23 + aerialPerspectiveOcclusionPowerUniform.value.GetHashCode();
     hash = hash * 23 + aerialPerspectiveOcclusionBiasUniform.value.GetHashCode();
     hash = hash * 23 + aerialPerspectiveOcclusionPowerDirectional.value.GetHashCode();
@@ -635,10 +632,7 @@ public int GetSkyHashCode() {
       hash = hash * 23 + ((ColorParameter) this.GetType().GetField("layerTint" + i).GetValue(this)).value.GetHashCode();
     }
 
-    /* Night Sky. TODO */
-
     /* Aerial Perspective. */
-    hash = hash * 23 + aerialPerspectiveTableDistances.value.GetHashCode();
 
     /* Quality. */
     hash = hash * 23 + skyTextureQuality.value.GetHashCode();

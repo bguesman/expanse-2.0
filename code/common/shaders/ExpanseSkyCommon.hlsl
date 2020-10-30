@@ -36,6 +36,13 @@ bool _layerUseDensityAttenuation[MAX_LAYERS];
 float _layerAttenuationDistance[MAX_LAYERS];
 float _layerAttenuationBias[MAX_LAYERS];
 float4 _layerTint[MAX_LAYERS];
+float _layerMultipleScatteringMultiplier[MAX_LAYERS];
+
+/* Celestial Bodies. */
+#define MAX_BODIES 8
+int _numActiveBodies;
+float4 _bodyLightColor[MAX_BODIES];
+float3 _bodyDirection[MAX_BODIES];
 
 /* Quality. */
 int _numTSamples;
@@ -45,6 +52,13 @@ int _numGISamples;
 int _numMSSamples;
 int _numMSAccumulationSamples;
 bool _useImportanceSampling;
+bool _useAntiAliasing;
+float _ditherAmount;
+
+float3 _WorldSpaceCameraPos1;
+float4x4 _ViewMatrix1;
+#undef UNITY_MATRIX_V
+#define UNITY_MATRIX_V _ViewMatrix1
 
 /* Precomputed sky tables. */
 
@@ -54,19 +68,12 @@ TEXTURE2D(_T);
 
 /* Light Pollution. */
 float4 _resLP; /* Table resolution. */
-TEXTURE2D_ARRAY(_LP);
+TEXTURE2D(_LP);
 
 /* Single scattering, with and without shadows. */
 float4 _resSS; /* Table resolution. */
-TEXTURE2D_ARRAY(_SS);
-TEXTURE2D_ARRAY(_SSNoShadow);
-TEXTURE2D_ARRAY(_SSAerialPerspectiveLOD0);
-TEXTURE2D_ARRAY(_SSAerialPerspectiveLOD1);
-float _aerialPerspectiveTableDistanceLOD0;
-float _aerialPerspectiveTableDistanceLOD1;
-#define AERIAL_PERPSECTIVE_LOD0 0
-#define AERIAL_PERPSECTIVE_LOD1 1
-#define AERIAL_PERPSECTIVE_LOD2 2
+TEXTURE2D(_SS);
+TEXTURE2D(_SSNoShadow);
 
 /* Multiple scattering. */
 float4 _resMS; /* Table resolution. */
@@ -74,11 +81,15 @@ TEXTURE2D(_MS);
 
 /* Multiple scattering accumulation. */
 float4 _resMSAcc; /* Table resolution. */
-TEXTURE2D_ARRAY(_MSAcc);
+TEXTURE2D(_MSAcc);
+
+/* Aerial perspective. */
+float4 _resAP; /* Table resolution. */
+TEXTURE2D(_AP);
 
 /* Ground Irradiance. */
 int _resGI; /* Table resolution. */
-TEXTURE2D_ARRAY(_GI);
+TEXTURE2D(_GI);
 
 CBUFFER_END // Expanse Sky
 
@@ -92,6 +103,9 @@ CBUFFER_END // Expanse Sky
     SAMPLER(s_trilinear_clamp_sampler);
     SAMPLER(s_point_clamp_sampler);
 #endif
+
+/* Time tick variable for random seeding. */
+float _tick;
 
 /******************************************************************************/
 /*************************** END GLOBAL VARIABLES *****************************/
@@ -135,13 +149,6 @@ bool floatLT(float a, float b) {
 }
 bool floatLT(float a, float b, float eps) {
   return a < b + eps;
-}
-
-#define EXP_LERP_A 1
-#define EXP_LERP_B 1 / (exp(EXP_LERP_A) - 1)
-float3 expLerp(float3 v0, float3 vf, float t) {
-  t = exp(EXP_LERP_A * t) * EXP_LERP_B - EXP_LERP_B;
-  return lerp(v0, vf, t);
 }
 
 /******************************************************************************/
@@ -233,6 +240,19 @@ SkyIntersectionData traceSkyVolume(float3 O, float3 d, float planetRadius,
 /**************************** END GEOMETRY TESTS ******************************/
 /******************************************************************************/
 
+
+
+/******************************************************************************/
+/***************************** COORDINATE SYSTEM ******************************/
+/******************************************************************************/
+
+float3 GetCameraPositionPlanetSpace() {
+  return _WorldSpaceCameraPos1 - float3(0, -_planetRadius, 0);
+}
+
+/******************************************************************************/
+/*************************** END COORDINATE SYSTEM ****************************/
+/******************************************************************************/
 
 
 /******************************************************************************/
@@ -393,111 +413,26 @@ float computePhase(float dot_L_d, float anisotropy, int type) {
 /***************************** TEXTURE SAMPLERS *******************************/
 /******************************************************************************/
 
-/* The following implements the strategy used in physically based sky
- * to lerp between 2 4D texture lookups to solve the issue of uv-mapping for
- * a deep texture. */
-
-struct DeepTexCoord {
-  float coord_00;
-  float coord_01;
-  float coord_10;
-  float coord_11;
-  float ax; // blend for x
-  float ay; // blend for y
-};
-
-struct TexCoord4D {
-  float x;
-  DeepTexCoord d;
-};
-
-// TODO: manually lerp and clamp 0.5's instead of using linear clamp sampler.
-float3 sampleSSTexture(TexCoord4D uv, int i) {
-  float2 uvw00 = float2(uv.x, uv.d.coord_00);
-  float2 uvw01 = float2(uv.x, uv.d.coord_01);
-  float2 uvw10 = float2(uv.x, uv.d.coord_10);
-  float2 uvw11 = float2(uv.x, uv.d.coord_11);
-  float3 contrib00 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw00, i, 0).xyz;
-  float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw01, i, 0).xyz;
-  float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw10, i, 0).xyz;
-  float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SS, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  float3 result0 = expLerp(contrib00, contrib01, uv.d.ay);
-  float3 result1 = expLerp(contrib10, contrib11, uv.d.ay);
-  return lerp(result0, result1, uv.d.ax);
-  // return result0;
+/* Given uv coodinate representing direction, computes sky transmittance. */
+float3 computeSkyTransmittance(float2 uv) {
+  return exp(SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler, uv, 0).xyz);
 }
 
-float3 sampleAerialPerspectiveLOD0Texture(TexCoord4D uv, int i) {
-  // float2 uvw00 = float2(uv.x, uv.z);
-  // float2 uvw01 = float2(uv.x, uv.w);
-  // float2 uvw10 = float2(uv.y, uv.z);
-  // float2 uvw11 = float2(uv.y, uv.w);
-  // float3 contrib00 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD0, s_linear_clamp_sampler, uvw00, i, 0).xyz;
-  // float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD0, s_linear_clamp_sampler, uvw01, i, 0).xyz;
-  // float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD0, s_linear_clamp_sampler, uvw10, i, 0).xyz;
-  // float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD0, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  // float3 result0 = lerp(contrib00, contrib01, uv.b);
-  // float3 result1 = lerp(contrib10, contrib11, uv.b);
-  // return lerp(result0, result1, uv.a);
+/* Given uv coodinate representing direction, computes sky transmittance. */
+float3 computeSkyTransmittanceRaw(float2 uv) {
+  return SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler, uv, 0).xyz;
+}
+
+float3 sampleSSTexture(float2 uv) {
+  return SAMPLE_TEXTURE2D_LOD(_SS, s_linear_clamp_sampler, uv, 0).xyz;
+}
+
+float3 sampleSSNoShadowTexture(float2 uv) {
   return float3(0, 0, 0);
 }
 
-float3 sampleAerialPerspectiveLOD1Texture(TexCoord4D uv, int i) {
-  // float2 uvw00 = float2(uv.x, uv.z);
-  // float2 uvw01 = float2(uv.x, uv.w);
-  // float2 uvw10 = float2(uv.y, uv.z);
-  // float2 uvw11 = float2(uv.y, uv.w);
-  // float3 contrib00 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD1, s_linear_clamp_sampler, uvw00, i, 0).xyz;
-  // float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD1, s_linear_clamp_sampler, uvw01, i, 0).xyz;
-  // float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD1, s_linear_clamp_sampler, uvw10, i, 0).xyz;
-  // float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSAerialPerspectiveLOD1, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  // float3 result0 = lerp(contrib00, contrib01, uv.b);
-  // float3 result1 = lerp(contrib10, contrib11, uv.b);
-  // return lerp(result0, result1, uv.a);
+float3 sampleMSAccTexture(float2 uv) {
   return float3(0, 0, 0);
-}
-
-float3 sampleAerialPerspectiveTexture(TexCoord4D uv, int i, int LOD) {
-  switch (LOD) {
-    case AERIAL_PERPSECTIVE_LOD0: {
-      return sampleAerialPerspectiveLOD0Texture(uv, i);
-    }
-    case AERIAL_PERPSECTIVE_LOD1: {
-      return sampleAerialPerspectiveLOD1Texture(uv, i);
-    }
-    case AERIAL_PERPSECTIVE_LOD2:
-      return sampleSSTexture(uv, i);
-    default:
-      return float3(0, 0, 0);
-  }
-}
-
-float3 sampleSSNoShadowTexture(TexCoord4D uv, int i) {
-  float2 uvw00 = float2(uv.x, uv.d.coord_00);
-  float2 uvw01 = float2(uv.x, uv.d.coord_01);
-  float2 uvw10 = float2(uv.x, uv.d.coord_10);
-  float2 uvw11 = float2(uv.x, uv.d.coord_11);
-  float3 contrib00 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw00, i, 0).xyz;
-  float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw01, i, 0).xyz;
-  float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw10, i, 0).xyz;
-  float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_SSNoShadow, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  float3 result0 = expLerp(contrib00, contrib01, uv.d.ay);
-  float3 result1 = expLerp(contrib10, contrib11, uv.d.ay);
-  return lerp(result0, result1, uv.d.ax);
-}
-
-float3 sampleMSAccTexture(TexCoord4D uv, int i) {
-  float2 uvw00 = float2(uv.x, uv.d.coord_00);
-  float2 uvw01 = float2(uv.x, uv.d.coord_01);
-  float2 uvw10 = float2(uv.x, uv.d.coord_10);
-  float2 uvw11 = float2(uv.x, uv.d.coord_11);
-  float3 contrib00 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw00, i, 0).xyz;
-  float3 contrib01 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw01, i, 0).xyz;
-  float3 contrib10 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw10, i, 0).xyz;
-  float3 contrib11 = SAMPLE_TEXTURE2D_ARRAY_LOD(_MSAcc, s_linear_clamp_sampler, uvw11, i, 0).xyz;
-  float3 result0 = expLerp(contrib00, contrib01, uv.d.ay);
-  float3 result1 = expLerp(contrib10, contrib11, uv.d.ay);
-  return lerp(result0, result1, uv.d.ax);
 }
 
 float3 sampleGITexture(float2 uv, int i) {

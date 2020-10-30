@@ -11,7 +11,7 @@
 RW_TEXTURE2D_ARRAY(float4, _Star_RW);
 RW_TEXTURE2D_ARRAY(float4, _Nebulae_RW);
 
-[numthreads(8,8,1)]
+[numthreads(8,8,6)]
 void STAR(uint3 id : SV_DispatchThreadID) {
   /* Get the uv coordinate. */
   float2 uv = (id.xy + 0.5) / _resStar.xy;
@@ -42,7 +42,8 @@ void STAR(uint3 id : SV_DispatchThreadID) {
     float3 nebulaeColor = SAMPLE_TEXTURE2D_ARRAY_LOD(_proceduralNebulae,
       s_linear_clamp_sampler, uv, id.z, 0).xyz;
       nebulaeDensityModifier += _starNebulaFollowAmount * pow(dot(saturate(nebulaeColor), saturate(nebulaeColor))/3, _starNebulaFollowSpread);
-  } else if (_hasNebulaeTexture) {
+  }
+  else if (_hasNebulaeTexture) {
     float3 nebulaeColor = SAMPLE_TEXTURECUBE_LOD(_nebulaeTexture,
       s_linear_clamp_sampler, d, 0);
       nebulaeDensityModifier += _starNebulaFollowAmount * pow(dot(saturate(nebulaeColor), saturate(nebulaeColor))/3, _starNebulaFollowSpread);

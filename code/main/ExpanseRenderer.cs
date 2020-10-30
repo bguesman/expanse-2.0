@@ -26,17 +26,20 @@ public static readonly int _PixelCoordToViewDirWS = Shader.PropertyToID("_PixelC
 /************************** SKY PRECOMPUTATION TABLES *************************/
 /******************************************************************************/
 
-private RTHandle m_TTable;                            /* Transmittance. */
-private Texture2D m_TTableCPU;
-private bool m_TTableCPUNeedsUpdate;
-private RTHandle m_SSTableArray;                      /* Single Scattering. */
-private RTHandle m_SSNoShadowTableArray;              /* Single Scattering. */
-private RTHandle m_SSAerialPerspectiveTableLOD0Array; /* AerialPerspective. */
-private RTHandle m_SSAerialPerspectiveTableLOD1Array; /* AerialPerspective. */
-private RTHandle m_MSTable;                           /* Multiple Scattering. */
-private RTHandle m_MSAccumulationTableArray;          /* Multiple Scattering. */
-private RTHandle m_LPTableArray;                      /* Light Pollution. */
-private RTHandle m_GITableArray;                      /* Ground Irradiance. */
+/* LUTs. */
+private RTHandle m_skyT;                              /* Transmittance. */
+private Texture2D m_skyTCPU;
+private bool m_skyTNeedsUpdate;
+private RTHandle m_skyMS;                             /* Multiple Scattering. */
+private RTHandle m_skyGI;                             /* Ground Irradiance. */
+private RTHandle m_skyLP;                             /* Light Pollution. */
+
+/* Textures. */
+private RTHandle m_skySS;                             /* Single Scattering. */
+private RTHandle m_skySSNoShadow;                     /* Single Scattering. */
+private RTHandle m_skyMSAcc;                          /* Multiple Scattering. */
+private RTHandle m_skyAP;                             /* Aerial Perspective. */
+
 /* For checking if table reallocation is required. */
 private ExpanseCommon.SkyTextureResolution m_skyTextureResolution;
 private int m_numAtmosphereLayersEnabled = 0;
@@ -67,44 +70,41 @@ void allocateSkyPrecomputationTables(Expanse sky) {
     ExpanseCommon.SkyTextureResolution res =
       ExpanseCommon.skyQualityToSkyTextureResolution(quality);
 
-    m_TTable = allocateSky2DTable(res.T, 0, "SkyT");
-    m_MSTable = allocateSky2DTable(res.MS, 0, "SkyMS");
+    m_skyT = allocateSky2DTable(res.T, 0, "SkyT");
+    m_skyMS = allocateSky2DTable(res.MS, 0, "SkyMS");
+    m_skyGI = allocateSky1DTable(res.GI, 0, "SkyGI");
+    m_skyLP = allocateSky2DTable(res.LP, 0, "SkyLP");
 
-    m_SSTableArray = allocateSky4DArrayTable(res.SS, numEnabled, "SkySS");
-    m_SSNoShadowTableArray = allocateSky4DArrayTable(res.SS, numEnabled, "SkySSNoShadow");
-    m_SSAerialPerspectiveTableLOD0Array = allocateSky4DArrayTable(res.SS, numEnabled, "SkySSAerialPerspectiveLOD0");
-    m_SSAerialPerspectiveTableLOD1Array = allocateSky4DArrayTable(res.SS, numEnabled, "SkySSAerialPerspectiveLOD1");
-    m_MSAccumulationTableArray = allocateSky4DArrayTable(res.MSAccumulation, numEnabled, "SkyMSAcc");
-    m_GITableArray = allocateSky1DArrayTable(res.GI, numEnabled, "SkyGI");
-    m_LPTableArray = allocateSky2DArrayTable(res.LP, numEnabled, "SkyLP");
+    m_skySS = allocateSky2DTable(res.SS, 0, "SkySS");
+    m_skySSNoShadow = allocateSky2DTable(res.SS, 0, "SkySSNoShadow");
+    m_skyMSAcc = allocateSky2DTable(res.MSAccumulation, 0, "SkyMSAcc");
+    m_skyAP = allocateSky3DTable(res.AP, 0, "SkyAP");
 
     m_numAtmosphereLayersEnabled = numEnabled;
     m_skyTextureResolution = res;
 
     /* Resize CPU copy of transmittance table. */
-    m_TTableCPU = new Texture2D((int) res.T.x, (int) res.T.y, TextureFormat.RGBAFloat, false);
+    m_skyTCPU = new Texture2D((int) res.T.x, (int) res.T.y, TextureFormat.RGBAFloat, false);
   }
 }
 
 void cleanupSkyTables() {
-  RTHandles.Release(m_TTable);
-  m_TTable = null;
-  RTHandles.Release(m_MSTable);
-  m_MSTable = null;
-  RTHandles.Release(m_GITableArray);
-  m_GITableArray = null;
-  RTHandles.Release(m_LPTableArray);
-  m_LPTableArray = null;
-  RTHandles.Release(m_SSTableArray);
-  m_SSTableArray = null;
-  RTHandles.Release(m_SSNoShadowTableArray);
-  m_SSNoShadowTableArray = null;
-  RTHandles.Release(m_SSAerialPerspectiveTableLOD0Array);
-  m_SSAerialPerspectiveTableLOD0Array = null;
-  RTHandles.Release(m_SSAerialPerspectiveTableLOD1Array);
-  m_SSAerialPerspectiveTableLOD1Array = null;
-  RTHandles.Release(m_MSAccumulationTableArray);
-  m_MSAccumulationTableArray = null;
+  RTHandles.Release(m_skyT);
+  m_skyT = null;
+  RTHandles.Release(m_skyMS);
+  m_skyMS = null;
+  RTHandles.Release(m_skyGI);
+  m_skyGI = null;
+  RTHandles.Release(m_skyLP);
+  m_skyLP = null;
+  RTHandles.Release(m_skySS);
+  m_skySS = null;
+  RTHandles.Release(m_skySSNoShadow);
+  m_skySSNoShadow = null;
+  RTHandles.Release(m_skyMSAcc);
+  m_skyMSAcc = null;
+  RTHandles.Release(m_skyAP);
+  m_skyAP = null;
 }
 
 /* Allocates 1D sky precomputation table. */
@@ -115,9 +115,7 @@ RTHandle allocateSky1DTable(int resolution, int index, string name) {
                               colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                               enableRandomWrite: true,
                               name: string.Format(name + "{0}", index));
-
   Debug.Assert(table != null);
-
   return table;
 }
 
@@ -129,72 +127,23 @@ RTHandle allocateSky2DTable(Vector2 resolution, int index, string name) {
                               colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                               enableRandomWrite: true,
                               name: string.Format(name + "{0}", index));
-
   Debug.Assert(table != null);
-
   return table;
 }
 
-/* Allocates 2D sky precomputation table. */
-RTHandle allocateSky2DArrayTable(Vector2 resolution, int depth, string name) {
+/* Allocates 3D sky precomputation table. */
+RTHandle allocateSky3DTable(Vector3 resolution, int index, string name) {
   var table = RTHandles.Alloc((int) resolution.x,
                               (int) resolution.y,
-                              depth,
-                              dimension: TextureDimension.Tex2DArray,
-                              colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
-                              enableRandomWrite: true,
-                              name: name);
-
-  Debug.Assert(table != null);
-
-  return table;
-}
-
-
-/* Allocates 2D sky precomputation table. */
-RTHandle allocateSky1DArrayTable(int resolution, int depth, string name) {
-  var table = RTHandles.Alloc(resolution,
-                              1,
-                              depth,
-                              dimension: TextureDimension.Tex2DArray,
-                              colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
-                              enableRandomWrite: true,
-                              name: name);
-
-  Debug.Assert(table != null);
-
-  return table;
-}
-
-/* Allocates 4D sky precomputation table. */
-RTHandle allocateSky4DTable(Vector4 resolution, int index, string name) {
-  var table = RTHandles.Alloc((int) resolution.x,
-                              (int) resolution.y,
-                              ((int) resolution.z) * ((int) resolution.w),
+                              (int) resolution.z,
                               dimension: TextureDimension.Tex3D,
                               colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                               enableRandomWrite: true,
                               name: string.Format(name + "{0}", index));
-
   Debug.Assert(table != null);
-
   return table;
 }
 
-/* Allocates 4D sky precomputation table. */
-RTHandle allocateSky4DArrayTable(Vector4 resolution, int depth, string name) {
-  var table = RTHandles.Alloc(((int) resolution.y),
-                              ((int) resolution.x) * ((int) resolution.z) * ((int) resolution.w),
-                              depth,
-                              dimension: TextureDimension.Tex2DArray,
-                              colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
-                              enableRandomWrite: true,
-                              name: name);
-
-  Debug.Assert(table != null);
-
-  return table;
-}
 
 /******************************************************************************/
 /************************ END SKY PRECOMPUTATION TABLES ***********************/
@@ -444,7 +393,7 @@ private void setLightingData(Vector4 cameraPos, float planetRadius, float atmosp
       float d = (skyIntersection.x > 0) ? (skyIntersection.y > 0 ? Mathf.Min(skyIntersection.x, skyIntersection.y) : skyIntersection.x) : skyIntersection.y;
       Vector2 uv = ExpanseCommon.map_r_mu(r, mu, atmosphereRadius, planetRadius,
         d, false);
-      Vector4 transmittance = m_TTableCPU.GetPixelBilinear(uv.x, uv.y);
+      Vector4 transmittance = m_skyTCPU.GetPixelBilinear(uv.x, uv.y);
       ExpanseCommon.bodyTransmittances[i] = new Vector3(Mathf.Exp(transmittance.x), Mathf.Exp(transmittance.y), Mathf.Exp(transmittance.z));
     }
   }
@@ -456,10 +405,7 @@ private Vector4 computeAverageNightSkyColor(Expanse sky) {
     /* Use an analytical hack to allow for realtime editing. */
     return sky.nightSkyIntensity.value * sky.nightSkyTint.value;
   } else if (sky.nightSkyTexture.value != null) {
-    /* Actually compute the average. TODO: make more efficient. It's tough
-     * because star textures are sparse, so there's no guarantee that
-     * using a uniform sphere sample with a reasonable amount of samples
-     * would give a good estimate. */
+    /* Actually compute the average. TODO: make more efficient. */
     Vector4 averageColor = new Vector4(0, 0, 0, 0);
     for (int i = 0; i < 6; i++) {
       Vector4 faceColor = new Vector4(0, 0, 0, 0);
@@ -479,47 +425,34 @@ private Vector4 computeAverageNightSkyColor(Expanse sky) {
 
 protected override bool Update(BuiltinSkyParameters builtinParams)
 {
-  if (m_TTableCPUNeedsUpdate) {
-    Debug.Log("Updating T Table");
-    RenderTexture.active = m_TTable;
-    m_TTableCPU.ReadPixels(new Rect(0, 0, m_TTable.rt.width, m_TTable.rt.height), 0, 0);
-    m_TTableCPU.Apply();
+  if (m_skyTNeedsUpdate) {
+    RenderTexture.active = m_skyT;
+    m_skyTCPU.ReadPixels(new Rect(0, 0, m_skyT.rt.width, m_skyT.rt.height), 0, 0);
+    m_skyTCPU.Apply();
     RenderTexture.active = null;
-    m_TTableCPUNeedsUpdate = false;
+    m_skyTNeedsUpdate = false;
   }
 
   var sky = builtinParams.skySettings as Expanse;
 
-  /* Allocate the tables and update info about atmosphere layers that are
-   * active. This will not reallocate if the table sizes have remained the
-   * same and no atmosphere layers have been added or removed. */
   allocateSkyPrecomputationTables(sky);
-
-  /* Allocate star textures if necessary. */
   allocateStarTextures(sky);
-
-  /* Set everything in the material property block. */
   setMaterialPropertyBlock(builtinParams);
-
-  /* Set everything in the global constant buffer. */
   setGlobalCBuffer(builtinParams);
 
-  /* TODO: reallocate cloud noises. */
-
-  /* Check the sky hash. */
+  /* Check the sky hash and recompute if necessary. */
   int currentSkyHash = sky.GetSkyHashCode();
   if (currentSkyHash != m_LastSkyHash) {
-    /* Update the sky precomputation tables. */
-    setSkyRWTextures();
-
-    /* Run the compute shader kernels. */
-    DispatchSkyCompute(builtinParams.commandBuffer);
-
-    /* Update the CPU copy of the transmittance table. */
-    m_TTableCPUNeedsUpdate = true;
-
+    setSkyPrecomputateTables();
+    DispatchSkyPrecompute(builtinParams.commandBuffer);
+    m_skyTNeedsUpdate = true;
     m_LastSkyHash = currentSkyHash;
   }
+
+  /* Render the single scattering, multiple scattering, and aerial perspective
+   * textures. */
+  setSkyRealtimeTables();
+  DispatchSkyRealtimeCompute(builtinParams.commandBuffer);
 
   int currentCloudHash = sky.GetCloudHashCode();
   if (currentCloudHash != m_LastCloudHash) {
@@ -649,12 +582,9 @@ private void checkAndResizeFramebuffers(BuiltinSkyParameters builtinParams, bool
 public override void RenderSky(BuiltinSkyParameters builtinParams, bool renderForCubemap, bool renderSunDisk) {
   using (new ProfilingSample(builtinParams.commandBuffer, "Draw sky"))
   {
-
     /* Check whether or not we have to resize the framebuffers, and do it
      * if we have to. */
     checkAndResizeFramebuffers(builtinParams, renderForCubemap);
-
-    /* Set the depth buffer to use when computing transmittance. */
 
     /* Render sky pass. */
     RenderSkyPass(builtinParams, renderForCubemap);
@@ -664,7 +594,6 @@ public override void RenderSky(BuiltinSkyParameters builtinParams, bool renderFo
 
     /* Composite the two together. */
     RenderCompositePass(builtinParams, renderForCubemap);
-
   }
 }
 
@@ -678,17 +607,14 @@ public override void RenderSky(BuiltinSkyParameters builtinParams, bool renderFo
 /************************** COMPUTE SHADER FUNCTIONS **************************/
 /******************************************************************************/
 
-private void DispatchSkyCompute(CommandBuffer cmd) {
+private void DispatchSkyPrecompute(CommandBuffer cmd) {
   using (new ProfilingSample(cmd, "Precompute Expanse Sky Tables"))
   {
     if (m_numAtmosphereLayersEnabled > 0) {
       int handle_T = m_skyCS.FindKernel("T");
       int handle_LP = m_skyCS.FindKernel("LP");
-      int handle_GI = m_skyCS.FindKernel("GI");
-      int handle_SS = m_skyCS.FindKernel("SS");
-      int handle_SSAerialPerspective = m_skyCS.FindKernel("SSAerialPerspective");
       int handle_MS = m_skyCS.FindKernel("MS");
-      int handle_MSAcc = m_skyCS.FindKernel("MSAcc");
+      int handle_GI = m_skyCS.FindKernel("GI");
 
       cmd.DispatchCompute(m_skyCS, handle_T,
         (int) m_skyTextureResolution.T.x / 8,
@@ -698,24 +624,36 @@ private void DispatchSkyCompute(CommandBuffer cmd) {
         (int) m_skyTextureResolution.LP.x / 8,
         (int) m_skyTextureResolution.LP.y / 8, 1);
 
-      cmd.DispatchCompute(m_skyCS, handle_SS,
-        ((int) (m_skyTextureResolution.SS.y)) / 8,
-        ((int) (m_skyTextureResolution.SS.x * m_skyTextureResolution.SS.z * m_skyTextureResolution.SS.w)) / 32, 1);
-
-      cmd.DispatchCompute(m_skyCS, handle_SSAerialPerspective,
-        ((int) (m_skyTextureResolution.SS.y)) / 8,
-        ((int) (m_skyTextureResolution.SS.x * m_skyTextureResolution.SS.z * m_skyTextureResolution.SS.w)) / 32, 1);
-
       cmd.DispatchCompute(m_skyCS, handle_MS,
         (int) m_skyTextureResolution.MS.x / 8,
         (int) m_skyTextureResolution.MS.y / 8, 1);
 
-      cmd.DispatchCompute(m_skyCS, handle_MSAcc,
-        ((int) (m_skyTextureResolution.MSAccumulation.y)) / 8,
-        ((int) (m_skyTextureResolution.MSAccumulation.x * m_skyTextureResolution.MSAccumulation.z * m_skyTextureResolution.MSAccumulation.z)) / 32, 1);
-
       cmd.DispatchCompute(m_skyCS, handle_GI,
         (int) m_skyTextureResolution.GI / 8, 1, 1);
+    }
+  }
+}
+
+private void DispatchSkyRealtimeCompute(CommandBuffer cmd) {
+  using (new ProfilingSample(cmd, "Compute Realtime Expanse Sky Tables"))
+  {
+    if (m_numAtmosphereLayersEnabled > 0) {
+      int handle_SS = m_skyCS.FindKernel("SS");
+      int handle_MSAcc = m_skyCS.FindKernel("MSAcc");
+      int handle_AP = m_skyCS.FindKernel("AP");
+
+      cmd.DispatchCompute(m_skyCS, handle_SS,
+        (int) (m_skyTextureResolution.SS.x) / 8,
+        (int) (m_skyTextureResolution.SS.y) / 8, 1);
+
+      cmd.DispatchCompute(m_skyCS, handle_MSAcc,
+        (int) (m_skyTextureResolution.MSAccumulation.x) / 8,
+        (int) (m_skyTextureResolution.MSAccumulation.y) / 8, 1);
+
+      cmd.DispatchCompute(m_skyCS, handle_AP,
+        (int) (m_skyTextureResolution.AP.x) / 8,
+        (int) (m_skyTextureResolution.AP.y) / 8,
+        (int) (m_skyTextureResolution.AP.z) / 8);
     }
   }
 }
@@ -750,30 +688,33 @@ private void DispatchNebulaeCompute(CommandBuffer cmd) {
 /****************************** RW TEXTURE SETTERS ****************************/
 /******************************************************************************/
 
-private void setSkyRWTextures() {
+private void setSkyPrecomputateTables() {
   int handle_T = m_skyCS.FindKernel("T");
   int handle_LP = m_skyCS.FindKernel("LP");
   int handle_GI = m_skyCS.FindKernel("GI");
-  int handle_SS = m_skyCS.FindKernel("SS");
-  int handle_SSAerialPerspective = m_skyCS.FindKernel("SSAerialPerspective");
   int handle_MS = m_skyCS.FindKernel("MS");
-  int handle_MSAcc = m_skyCS.FindKernel("MSAcc");
   if (m_numAtmosphereLayersEnabled > 0) {
-    m_skyCS.SetTexture(handle_T, "_T_RW", m_TTable);
-    m_skyCS.SetTexture(handle_MS, "_MS_RW", m_MSTable);
-    m_skyCS.SetTexture(handle_GI, "_GI_RW", m_GITableArray);
-    m_skyCS.SetTexture(handle_LP, "_LP_RW", m_LPTableArray);
-    m_skyCS.SetTexture(handle_SS, "_SS_RW", m_SSTableArray);
-    m_skyCS.SetTexture(handle_SS, "_SSNoShadow_RW", m_SSNoShadowTableArray);
-    m_skyCS.SetTexture(handle_SSAerialPerspective, "_SSAerialPerspectiveLOD0_RW", m_SSAerialPerspectiveTableLOD0Array);
-    m_skyCS.SetTexture(handle_SSAerialPerspective, "_SSAerialPerspectiveLOD1_RW", m_SSAerialPerspectiveTableLOD1Array);
-    m_skyCS.SetTexture(handle_MSAcc, "_MSAcc_RW", m_MSAccumulationTableArray);
+    m_skyCS.SetTexture(handle_T, "_T_RW", m_skyT);
+    m_skyCS.SetTexture(handle_MS, "_MS_RW", m_skyMS);
+    m_skyCS.SetTexture(handle_GI, "_GI_RW", m_skyGI);
+    m_skyCS.SetTexture(handle_LP, "_LP_RW", m_skyLP);
+  }
+}
+
+private void setSkyRealtimeTables() {
+  int handle_SS = m_skyCS.FindKernel("SS");
+  int handle_MSAcc = m_skyCS.FindKernel("MSAcc");
+  int handle_AP = m_skyCS.FindKernel("AP");
+  if (m_numAtmosphereLayersEnabled > 0) {
+    m_skyCS.SetTexture(handle_SS, "_SS_RW", m_skySS);
+    m_skyCS.SetTexture(handle_SS, "_SSNoShadow_RW", m_skySSNoShadow);
+    m_skyCS.SetTexture(handle_MSAcc, "_MSAcc_RW", m_skyMSAcc);
+    m_skyCS.SetTexture(handle_AP, "_AP_RW", m_skyAP);
   }
 }
 
 private void setStarRWTextures() {
   int handle_Star = m_starCS.FindKernel("STAR");
-  int handle_Nebulae = m_starCS.FindKernel("STAR");
   m_starCS.SetTexture(handle_Star, "_Star_RW", m_proceduralStarTexture);
 }
 
@@ -805,6 +746,9 @@ private void setGlobalCBuffer(BuiltinSkyParameters builtinParams) {
   /* Atmosphere. */
   setGlobalCBufferAtmosphereLayers(builtinParams.commandBuffer, sky);
 
+  /* Celestial bodies. */
+  setGlobalCBufferCelestialBodies(builtinParams.commandBuffer, sky);
+
   /* Night Sky. */
   setGlobalCBufferNightSky(builtinParams.commandBuffer, sky);
 
@@ -813,6 +757,13 @@ private void setGlobalCBuffer(BuiltinSkyParameters builtinParams) {
 
   /* Quality. */
   setGlobalCBufferQuality(builtinParams.commandBuffer, sky);
+
+  /* Camera params. */
+  builtinParams.commandBuffer.SetGlobalVector(_WorldSpaceCameraPos1ID, builtinParams.worldSpaceCameraPos);
+  builtinParams.commandBuffer.SetGlobalMatrix(_PixelCoordToViewDirWS, builtinParams.pixelCoordToViewDirMatrix);
+
+  /* Time tick variable. */
+  builtinParams.commandBuffer.SetGlobalFloat("_tick", Time.realtimeSinceStartup);
 }
 
 private void setGlobalCBufferPlanet(CommandBuffer cmd, Expanse sky) {
@@ -856,6 +807,7 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, Expanse sky) {
   float[] layerAttenuationDistance = new float[n];
   float[] layerAttenuationBias = new float[n];
   Vector4[] layerTint = new Vector4[n];
+  float[] layerMultipleScatteringMultiplier = new float[n];
 
   int numActiveLayers = 0;
   for (int i = 0; i < n; i++) {
@@ -879,6 +831,7 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, Expanse sky) {
       layerAttenuationDistance[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationDistance" + i).GetValue(sky)).value;
       layerAttenuationBias[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationBias" + i).GetValue(sky)).value;
       layerTint[numActiveLayers] = ((ColorParameter) sky.GetType().GetField("layerTint" + i).GetValue(sky)).value;
+        layerMultipleScatteringMultiplier[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerMultipleScatteringMultiplier" + i).GetValue(sky)).value;
 
       numActiveLayers++;
     }
@@ -897,24 +850,68 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, Expanse sky) {
   cmd.SetGlobalFloatArray("_layerAttenuationDistance", layerAttenuationDistance);
   cmd.SetGlobalFloatArray("_layerAttenuationBias", layerAttenuationBias);
   cmd.SetGlobalVectorArray("_layerTint", layerTint);
+  cmd.SetGlobalFloatArray("_layerMultipleScatteringMultiplier", layerMultipleScatteringMultiplier);
+}
+
+
+private void setGlobalCBufferCelestialBodies(CommandBuffer cmd, Expanse sky) {
+
+    int n = (int) ExpanseCommon.kMaxCelestialBodies;
+
+    /* Set up arrays to pass to shader. */
+    Vector4[] bodyDirection = new Vector4[n];
+    Vector4[] bodyLightColor = new Vector4[n];
+
+    int numActiveBodies = 0;
+    for (int i = 0; i < ExpanseCommon.kMaxCelestialBodies; i++) {
+      bool enabled = (((BoolParameter) sky.GetType().GetField("bodyEnabled" + i).GetValue(sky)).value);
+      if (enabled) {
+        /* Only set up remaining properties if this body is enabled. */
+
+        Vector3 angles = ((Vector3Parameter) sky.GetType().GetField("bodyDirection" + i).GetValue(sky)).value;
+        Quaternion bodyLightRotation = Quaternion.Euler(angles.x, angles.y, angles.z);
+        Vector3 direction = bodyLightRotation * (new Vector3(0, 0, -1));
+        bodyDirection[numActiveBodies] = new Vector4(direction.x, direction.y, direction.z, 0);
+
+        bool useTemperature = ((BoolParameter) sky.GetType().GetField("bodyUseTemperature" + i).GetValue(sky)).value;
+        float lightIntensity = ((MinFloatParameter) sky.GetType().GetField("bodyLightIntensity" + i).GetValue(sky)).value;
+        Vector4 lightColor = ((ColorParameter) sky.GetType().GetField("bodyLightColor" + i).GetValue(sky)).value;
+        if (useTemperature) {
+          float temperature = ((ClampedFloatParameter) sky.GetType().GetField("bodyLightTemperature" + i).GetValue(sky)).value;
+          Vector4 temperatureColor = ExpanseCommon.blackbodyTempToColor(temperature);
+          bodyLightColor[numActiveBodies] = lightIntensity * (new Vector4(temperatureColor.x * lightColor.x,
+            temperatureColor.y * lightColor.y,
+            temperatureColor.z * lightColor.z,
+            temperatureColor.w * lightColor.w));
+        } else {
+          bodyLightColor[numActiveBodies] = lightColor * lightIntensity;
+        }
+
+        numActiveBodies++;
+      }
+    }
+
+    cmd.SetGlobalInt("_numActiveBodies", numActiveBodies);
+    cmd.SetGlobalVectorArray("_bodyDirection", bodyDirection);
+    cmd.SetGlobalVectorArray("_bodyLightColor", bodyLightColor);
 }
 
 private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, Expanse sky) {
   if (m_numAtmosphereLayersEnabled > 0) {
-    cmd.SetGlobalTexture("_GI", m_GITableArray);
+    cmd.SetGlobalTexture("_GI", m_skyGI);
     cmd.SetGlobalInt("_resGI", m_skyTextureResolution.GI);
-    cmd.SetGlobalTexture("_T", m_TTable);
+    cmd.SetGlobalTexture("_T", m_skyT);
     cmd.SetGlobalVector("_resT", m_skyTextureResolution.T);
-    cmd.SetGlobalTexture("_MS", m_MSTable);
+    cmd.SetGlobalTexture("_MS", m_skyMS);
     cmd.SetGlobalVector("_resMS", m_skyTextureResolution.MS);
-    cmd.SetGlobalTexture("_LP", m_LPTableArray);
+    cmd.SetGlobalTexture("_LP", m_skyLP);
     cmd.SetGlobalVector("_resLP", m_skyTextureResolution.LP);
-    cmd.SetGlobalTexture("_SS", m_SSTableArray);
+    cmd.SetGlobalTexture("_SS", m_skySS);
+    cmd.SetGlobalTexture("_SSNoShadow", m_skySSNoShadow);
     cmd.SetGlobalVector("_resSS", m_skyTextureResolution.SS);
-    cmd.SetGlobalTexture("_SSNoShadow", m_SSNoShadowTableArray);
-    cmd.SetGlobalTexture("_SSAerialPerspectiveLOD0", m_SSAerialPerspectiveTableLOD0Array);
-    cmd.SetGlobalTexture("_SSAerialPerspectiveLOD1", m_SSAerialPerspectiveTableLOD1Array);
-    cmd.SetGlobalTexture("_MSAcc", m_MSAccumulationTableArray);
+    cmd.SetGlobalTexture("_AP", m_skyAP);
+    cmd.SetGlobalVector("_resAP", m_skyTextureResolution.AP);
+    cmd.SetGlobalTexture("_MSAcc", m_skyMSAcc);
     cmd.SetGlobalVector("_resMSAcc", m_skyTextureResolution.MSAccumulation);
   }
 }
@@ -942,12 +939,13 @@ private void setGlobalCBufferNightSky(CommandBuffer cmd, Expanse sky) {
     cmd.SetGlobalFloat("_useProceduralNebulae", (sky.useProceduralNebulae.value) ? 1 : 0);
     cmd.SetGlobalFloat("_starNebulaFollowAmount", sky.starNebulaFollowAmount.value);
     cmd.SetGlobalFloat("_starNebulaFollowSpread", sky.starNebulaFollowSpread.value);
-    if (!sky.useProceduralNebulae.value) {
-      cmd.SetGlobalFloat("_hasNebulaeTexture", (sky.nebulaeTexture.value == null) ? 0 : 1);
-      if (sky.nebulaeTexture.value != null) {
-        cmd.SetGlobalTexture("_nebulaeTexture", sky.nebulaeTexture.value);
-      }
-    } else {
+
+    cmd.SetGlobalFloat("_hasNebulaeTexture", (sky.nebulaeTexture.value == null) ? 0 : 1);
+    // Set either way so that star precompute can be used. But be diligent
+    // about only sampling it when _hasNebulaTexture is true.
+    cmd.SetGlobalTexture("_nebulaeTexture", sky.nebulaeTexture.value);
+    
+    if (sky.useProceduralNebulae.value) {
       cmd.SetGlobalVector("_resNebulae", m_nebulaeTextureResolution.Star);
       cmd.SetGlobalFloat("_nebulaOverallDefinition", sky.nebulaOverallDefinition.value);
       cmd.SetGlobalFloat("_nebulaOverallIntensity", sky.nebulaOverallIntensity.value);
@@ -1010,8 +1008,7 @@ private void setGlobalCBufferNightSky(CommandBuffer cmd, Expanse sky) {
 }
 
 private void setGlobalCBufferAerialPerspective(CommandBuffer cmd, Expanse sky) {
-  cmd.SetGlobalFloat("_aerialPerspectiveTableDistanceLOD0", sky.aerialPerspectiveTableDistances.value.x);
-  cmd.SetGlobalFloat("_aerialPerspectiveTableDistanceLOD1", sky.aerialPerspectiveTableDistances.value.y);
+  // TODO: empty now but may have params later so keeping it
 }
 
 private void setGlobalCBufferQuality(CommandBuffer cmd, Expanse sky) {
@@ -1022,6 +1019,8 @@ private void setGlobalCBufferQuality(CommandBuffer cmd, Expanse sky) {
   cmd.SetGlobalInt("_numMSSamples", sky.numberOfMultipleScatteringSamples.value);
   cmd.SetGlobalInt("_numMSAccumulationSamples", sky.numberOfMultipleScatteringAccumulationSamples.value);
   cmd.SetGlobalFloat("_useImportanceSampling", sky.useImportanceSampling.value ? 1 : 0);
+  cmd.SetGlobalFloat("_useAntiAliasing", sky.useAntiAliasing.value ? 1 : 0);
+  cmd.SetGlobalFloat("_ditherAmount", sky.ditherAmount.value);
 }
 
 /******************************************************************************/
@@ -1038,9 +1037,6 @@ private void setMaterialPropertyBlock(BuiltinSkyParameters builtinParams) {
   /* Get sky object. */
   var sky = builtinParams.skySettings as Expanse;
 
-  /* Atmosphere Layers. */
-  setMaterialPropertyBlockAtmosphereLayers(sky);
-
   /* Celestial bodies. */
   setMaterialPropertyBlockCelestialBodies(sky);
 
@@ -1049,32 +1045,6 @@ private void setMaterialPropertyBlock(BuiltinSkyParameters builtinParams) {
 
   /* Aerial Perspective. */
   setMaterialPropertyBlockAerialPerspective(sky);
-
-  /* Quality. */
-  setMaterialPropertyBlockQuality(sky);
-
-  m_PropertyBlock.SetVector(_WorldSpaceCameraPos1ID, builtinParams.worldSpaceCameraPos);
-  m_PropertyBlock.SetMatrix(_PixelCoordToViewDirWS, builtinParams.pixelCoordToViewDirMatrix);
-}
-
-private void setMaterialPropertyBlockAtmosphereLayers(Expanse sky) {
-
-  int n = (int) ExpanseCommon.kMaxCelestialBodies;
-
-  /* Set up arrays to pass to shader. */
-  float[] layerMultipleScatteringMultiplier = new float[n];
-
-  int numActiveLayers = 0;
-  for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
-    bool enabled = (((BoolParameter) sky.GetType().GetField("layerEnabled" + i).GetValue(sky)).value);
-    if (enabled) {
-      layerMultipleScatteringMultiplier[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerMultipleScatteringMultiplier" + i).GetValue(sky)).value;
-      numActiveLayers++;
-    }
-  }
-
-  /* Actually set everything in the property block. */
-  m_PropertyBlock.SetFloatArray("_layerMultipleScatteringMultiplier", layerMultipleScatteringMultiplier);
 }
 
 private void setMaterialPropertyBlockCelestialBodies(Expanse sky) {
@@ -1082,14 +1052,12 @@ private void setMaterialPropertyBlockCelestialBodies(Expanse sky) {
   int n = (int) ExpanseCommon.kMaxCelestialBodies;
 
   /* Set up arrays to pass to shader. */
-  Vector4[] bodyDirection = new Vector4[n];
   float[] bodyAngularRadius = new float[n];
   float[] bodyDistance = new float[n];
   float[] bodyReceivesLight = new float[n];
   Matrix4x4[] bodyAlbedoTextureRotation = new Matrix4x4[n];
   Vector4[] bodyAlbedoTint = new Vector4[n];
   float[] bodyEmissive = new float[n];
-  Vector4[] bodyLightColor = new Vector4[n];
   float[] bodyLimbDarkening = new float[n];
   Matrix4x4[] bodyEmissionTextureRotation = new Matrix4x4[n];
   Vector4[] bodyEmissionTint = new Vector4[n];
@@ -1103,12 +1071,6 @@ private void setMaterialPropertyBlockCelestialBodies(Expanse sky) {
     if (enabled) {
       /* Only set up remaining properties if this body is enabled. */
 
-      /* TODO: this mapping could use work. */
-      Vector3 angles = ((Vector3Parameter) sky.GetType().GetField("bodyDirection" + i).GetValue(sky)).value;
-      Quaternion bodyLightRotation = Quaternion.Euler(angles.x, angles.y, angles.z);
-      Vector3 direction = bodyLightRotation * (new Vector3(0, 0, -1));
-      bodyDirection[numActiveBodies] = new Vector4(direction.x, direction.y, direction.z, 0);
-
       bodyAngularRadius[numActiveBodies] = Mathf.PI * (((ClampedFloatParameter) sky.GetType().GetField("bodyAngularRadius" + i).GetValue(sky)).value / 180);
       bodyDistance[numActiveBodies] = ((MinFloatParameter) sky.GetType().GetField("bodyDistance" + i).GetValue(sky)).value;
       bodyReceivesLight[numActiveBodies] = (((BoolParameter) sky.GetType().GetField("bodyReceivesLight" + i).GetValue(sky)).value) ? 1 : 0;
@@ -1121,20 +1083,6 @@ private void setMaterialPropertyBlockCelestialBodies(Expanse sky) {
 
       bodyAlbedoTint[numActiveBodies] = ((ColorParameter) sky.GetType().GetField("bodyAlbedoTint" + i).GetValue(sky)).value;
       bodyEmissive[numActiveBodies] = (((BoolParameter) sky.GetType().GetField("bodyEmissive" + i).GetValue(sky)).value) ? 1 : 0;
-
-      bool useTemperature = ((BoolParameter) sky.GetType().GetField("bodyUseTemperature" + i).GetValue(sky)).value;
-      float lightIntensity = ((MinFloatParameter) sky.GetType().GetField("bodyLightIntensity" + i).GetValue(sky)).value;
-      Vector4 lightColor = ((ColorParameter) sky.GetType().GetField("bodyLightColor" + i).GetValue(sky)).value;
-      if (useTemperature) {
-        float temperature = ((ClampedFloatParameter) sky.GetType().GetField("bodyLightTemperature" + i).GetValue(sky)).value;
-        Vector4 temperatureColor = ExpanseCommon.blackbodyTempToColor(temperature);
-        bodyLightColor[numActiveBodies] = lightIntensity * (new Vector4(temperatureColor.x * lightColor.x,
-          temperatureColor.y * lightColor.y,
-          temperatureColor.z * lightColor.z,
-          temperatureColor.w * lightColor.w));
-      } else {
-        bodyLightColor[numActiveBodies] = lightColor * lightIntensity;
-      }
 
       bodyLimbDarkening[numActiveBodies] = ((MinFloatParameter) sky.GetType().GetField("bodyLimbDarkening" + i).GetValue(sky)).value;
 
@@ -1166,16 +1114,12 @@ private void setMaterialPropertyBlockCelestialBodies(Expanse sky) {
   }
 
   /* Actually set everything in the property block. */
-
-  m_PropertyBlock.SetInt("_numActiveBodies", numActiveBodies);
-  m_PropertyBlock.SetVectorArray("_bodyDirection", bodyDirection);
   m_PropertyBlock.SetFloatArray("_bodyAngularRadius", bodyAngularRadius);
   m_PropertyBlock.SetFloatArray("_bodyDistance", bodyDistance);
   m_PropertyBlock.SetFloatArray("_bodyReceivesLight", bodyReceivesLight);
   m_PropertyBlock.SetMatrixArray("_bodyAlbedoTextureRotation", bodyAlbedoTextureRotation);
   m_PropertyBlock.SetVectorArray("_bodyAlbedoTint", bodyAlbedoTint);
   m_PropertyBlock.SetFloatArray("_bodyEmissive", bodyEmissive);
-  m_PropertyBlock.SetVectorArray("_bodyLightColor", bodyLightColor);
   m_PropertyBlock.SetFloatArray("_bodyLimbDarkening", bodyLimbDarkening);
   m_PropertyBlock.SetMatrixArray("_bodyEmissionTextureRotation", bodyEmissionTextureRotation);
   m_PropertyBlock.SetVectorArray("_bodyEmissionTint", bodyEmissionTint);
@@ -1223,11 +1167,6 @@ private void setMaterialPropertyBlockAerialPerspective(Expanse sky) {
   m_PropertyBlock.SetFloat("_aerialPerspectiveOcclusionPowerUniform", sky.aerialPerspectiveOcclusionPowerUniform.value);
     m_PropertyBlock.SetFloat("_aerialPerspectiveOcclusionBiasDirectional", sky.aerialPerspectiveOcclusionBiasDirectional.value);
     m_PropertyBlock.SetFloat("_aerialPerspectiveOcclusionPowerDirectional", sky.aerialPerspectiveOcclusionPowerDirectional.value);
-}
-
-private void setMaterialPropertyBlockQuality(Expanse sky) {
-  m_PropertyBlock.SetFloat("_useAntiAliasing", sky.useAntiAliasing.value ? 1 : 0);
-  m_PropertyBlock.SetFloat("_ditherAmount", sky.ditherAmount.value);
 }
 
 /******************************************************************************/
