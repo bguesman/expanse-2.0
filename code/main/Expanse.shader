@@ -660,13 +660,13 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   float t_hit = intersection.endT - intersection.startT;
 
   /* Sample the depth buffer and figure out if we hit anything. */
-  float depth = LoadCameraDepth(input.positionCS.xy);
-  depth = Linear01Depth(depth, _ZBufferParams) * _ProjectionParams.z;
+  float linearDepth = LoadCameraDepth(input.positionCS.xy);
+  linearDepth = Linear01Depth(linearDepth, _ZBufferParams) * _ProjectionParams.z;
   /* Get camera center, and angle between direction and center. */
   float3 cameraCenterD = -GetSkyViewDirWS(float2(_ScreenParams.x/2, _ScreenParams.y/2));
   float cosTheta = dot(cameraCenterD, d);
   /* Divide depth through by cos theta. */
-  depth /= max(cosTheta, 0.00001);
+  float depth = linearDepth / max(cosTheta, 0.00001);
   float farClip = _ProjectionParams.z / cosTheta;
 
   bool geoHit = depth < t_hit && depth < farClip - 0.001;
@@ -700,18 +700,52 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   float2 coord2D = mapSky2DCoord(r, mu, _atmosphereRadius, _planetRadius,
     t_hit, intersection.groundHit, _resT.y);
 
+  /* BEGIN FRUSTUM DEBUG. */
+  // float3 color = float3(0, 0, 0);
+  //
+  // float3 apUV = mapFrustumCoordinate(input.positionCS.xy, linearDepth);
+  // float4 colorAndTransmittance = sampleAPTexture(apUV);
+  // // skyColor = depth * colorAndTransmittance.xyz;
+  // // blendTransmittance = saturate(exp(colorAndTransmittance.w));
+  //
+  // // return float4(input.positionCS.x, input.positionCS.y, 0, 1);
+  // return float4(1 * sqrt(colorAndTransmittance.xyz), 1);
+  // /* END FRUSTUM DEBUG. */
+
   /* Compute transmittance. */
   float3 transmittanceRaw = computeSkyTransmittanceRaw(coord2D);
   float3 transmittance = exp(transmittanceRaw);
 
-  /* Sample single scattering. */
-  float theta = d_to_theta(d, O);
-  float2 skyRenderCoordSS = mapSkyRenderCoordinate(r, mu, theta, _atmosphereRadius,
-    _planetRadius, t_hit, intersection.groundHit, _resSS.x, _resSS.y);
-  float3 ss = t_hit * sampleSSTexture(skyRenderCoordSS);
-  // float3 ss = t_hit * computeSS(startPoint, d, t_hit, intersection.groundHit).shadows;
+  float3 skyColor = float3(0, 0, 0);
+  float blendTransmittance = 0;
+  if (geoHit) {
+    /* Sample aerial perspective. */
+    // float3 apUV = mapFrustumCoordinate(input.positionCS.xy, linearDepth);
+    // float4 colorAndTransmittance = sampleAPTexture(apUV);
+    // skyColor = depth * colorAndTransmittance.xyz;
+    // blendTransmittance = saturate(exp(colorAndTransmittance.w));
+    skyColor = depth * computeSS(O, d, depth, intersection.endT, intersection.groundHit).shadows;
+    blendTransmittance = 1;
+  } else {
+    /* Sample rendered sky tables. */
+    /* Single scattering. */
+    float theta = d_to_theta(d, O);
+    float2 skyRenderCoordSS = mapSkyRenderCoordinate(r, mu, theta, _atmosphereRadius,
+      _planetRadius, t_hit, intersection.groundHit, _resSS.x, _resSS.y);
+    float3 ss = t_hit * sampleSSTexture(skyRenderCoordSS);
+    // float3 ss = t_hit * computeSS(startPoint, d, t_hit, intersection.groundHit).shadows;
 
-  return float4(ss + transmittance * directLight, 0);
+    /* Multiple scattering. */
+    float2 skyRenderCoordMS = mapSkyRenderCoordinate(r, mu, theta, _atmosphereRadius,
+      _planetRadius, t_hit, intersection.groundHit, _resMS.x, _resMS.y);
+    float3 ms = t_hit * sampleMSAccTexture(skyRenderCoordMS);
+
+    skyColor = ss + ms;
+  }
+
+  return float4(skyColor + transmittance * directLight, blendTransmittance);
+
+
 
   // /* Precompute 2D texture coordinate. */
   // float r = length(startPoint);
@@ -949,7 +983,7 @@ SubShader
   {
     ZWrite Off
     ZTest Always
-    Blend One SrcAlpha
+    Blend One SrcAlpha//Blend One Zero //TODO: FRUSTUM DEBUG //Blend One SrcAlpha
     Cull Off
 
     HLSLPROGRAM

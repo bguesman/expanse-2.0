@@ -1,3 +1,6 @@
+#ifndef EXPANSE_SKY_MAPPING_INCLUDED
+#define EXPANSE_SKY_MAPPING_INCLUDED
+
 #include "../common/shaders/ExpanseSkyCommon.hlsl"
 
 float fromUnitToSubUVs(float u, float resolution) {
@@ -10,6 +13,14 @@ float fromSubUVsToUnit(float u, float resolution) {
   return (u * (resolution + 1) - j) / (resolution + 1 - 2 * j);
 }
 
+float map_r_naive(float r, float atmosphereRadius, float planetRadius) {
+  return (r - planetRadius) / (atmosphereRadius - planetRadius);
+}
+
+float unmap_r_naive(float u_r, float atmosphereRadius, float planetRadius) {
+  return planetRadius + u_r * (atmosphereRadius - planetRadius);
+}
+
 float map_r(float r, float atmosphereRadius, float planetRadius) {
   return safeSqrt((r - planetRadius) / (atmosphereRadius - planetRadius));
 }
@@ -20,6 +31,55 @@ float unmap_r(float u_r, float atmosphereRadius, float planetRadius) {
   return planetRadius + ((u_r * u_r) * (atmosphereRadius - planetRadius));
 }
 
+float2 map_r_mu_transmittance(float r, float mu, float atmosphereRadius, float planetRadius,
+  float d, bool groundHit, float resMu) {
+  float u_mu = 0.0;
+  float muStep = 1/resMu;
+  float h = r - planetRadius;
+  float cos_h = -safeSqrt(h * (2 * planetRadius + h)) / (planetRadius + h);
+  if (groundHit) {
+    mu = clamp(mu, -1, cos_h);
+    u_mu = 0.5 * pow((cos_h - mu) / (1 + cos_h), 0.2);
+    // KEEP FOR GROUND.
+    if (floatGT(u_mu, 0.5-muStep/2)) {
+      u_mu = 0.5 - muStep/2;
+    }
+    // if (floatLT(u_mu, muStep/2)) {
+    //   u_mu = muStep/2;
+    // }
+  } else {
+    mu = clamp(mu, cos_h, 1);
+    u_mu = 0.5 * pow((mu - cos_h) / (1 - cos_h), 0.2) + 0.5;
+    // KEEP FOR SKY.
+    if (floatLT(u_mu, 0.5 + muStep/2)) {
+      u_mu = 0.5 + muStep/2;
+    }
+    // if (floatGT(u_mu, 1 - muStep/2)) {
+    //   u_mu = 1 - muStep/2;
+    // }
+  }
+
+  float u_r = safeSqrt((r - planetRadius) / (atmosphereRadius - planetRadius));
+
+  return float2(u_r, fromUnitToSubUVs(u_mu, resMu));
+}
+
+float2 unmap_r_mu_transmittance(float u_r, float u_mu, float atmosphereRadius,
+  float planetRadius, float resMu) {
+  u_mu = fromSubUVsToUnit(u_mu, resMu);
+  float r = planetRadius + ((u_r * u_r) * (atmosphereRadius - planetRadius));
+
+  float mu = 0.0;
+  float h = r - planetRadius;
+  float cos_h = -safeSqrt(h * (2 * planetRadius + h)) / (planetRadius + h);
+  if (floatLT(u_mu, 0.5)) {
+    mu = clampCosine(cos_h - pow(u_mu * 2, 5) * (1 + cos_h));
+  } else {
+    mu = clampCosine(pow(2 * (u_mu - 0.5), 5) * (1 - cos_h) + cos_h);
+  }
+
+  return float2(r, mu);
+}
 
 /* Maps mu, the cosine of the viewing angle, into range 0-1. Uses
  * mapping from bruneton and neyer. */
@@ -103,7 +163,7 @@ float2 map_r_mu(float r, float mu, float atmosphereRadius, float planetRadius,
   float h = r - planetRadius;
   float cos_h = -safeSqrt(h * (2 * planetRadius + h)) / (planetRadius + h);
   if (groundHit) {
-    mu = min(mu, cos_h);
+    mu = clamp(mu, -1, cos_h);
     u_mu = 0.5 * pow((cos_h - mu) / (1 + cos_h), 0.5);
     // KEEP FOR GROUND.
     if (floatGT(u_mu, 0.5-muStep/2)) {
@@ -113,7 +173,7 @@ float2 map_r_mu(float r, float mu, float atmosphereRadius, float planetRadius,
     //   u_mu = muStep/2;
     // }
   } else {
-    mu = max(mu, cos_h);
+    mu = clamp(mu, cos_h, 1);
     u_mu = 0.5 * pow((mu - cos_h) / (1 - cos_h), 0.5) + 0.5;
     // KEEP FOR SKY.
     if (floatLT(u_mu, 0.5 + muStep/2)) {
@@ -239,13 +299,15 @@ float2 unmapSky1DCoord(float u_mu_l, float _planetRadius) {
 /* Returns u_r, u_mu. */
 float2 mapSky2DCoord(float r, float mu, float atmosphereRadius,
   float planetRadius, float d, bool groundHit, float resMu) {
-  return map_r_mu(r, mu, atmosphereRadius, planetRadius, d, groundHit, resMu);
+  return map_r_mu_transmittance(r, mu, atmosphereRadius, planetRadius, d, groundHit, resMu);
+  // return float2(map_r_naive(r, atmosphereRadius, planetRadius), map_mu_naive(mu, resMu));
 }
 
 /* Returns r, mu. */
 float2 unmapSky2DCoord(float u_r, float u_mu,
   float atmosphereRadius, float planetRadius, float resMu) {
-  return unmap_r_mu(u_r, u_mu, atmosphereRadius, planetRadius, resMu);
+  return unmap_r_mu_transmittance(u_r, u_mu, atmosphereRadius, planetRadius, resMu);
+  // return float2(unmap_r_naive(u_r, atmosphereRadius, planetRadius), unmap_mu_naive(u_mu, resMu));
 }
 
 /* This parameterization was taken from Hillaire's 2020 model. */
@@ -308,3 +370,30 @@ float d_to_theta(float3 d, float3 O) {
   }
   return theta;
 }
+
+/* Returns xyzw, where
+ *  -xyz: world space direction.
+ *  -z: depth, scaled according to clip space to ensure that we have a
+ *  view-aligned plane. */
+float4 unmapFrustumCoordinate(float3 uvw) {
+  /* Clip space xy coordinate. */
+  float2 xy = uvw.xy * _currentScreenSize.xy;
+  float3 clipSpaceD = -normalize(mul(float4(xy.x, xy.y, 1, 1), _pCoordToViewDir));
+
+  /* Get camera center, and angle between direction and center. */
+    /* Depth. TODO: non-linearize if necessary. */
+  float depth = uvw.z * _farClip;
+  float3 cameraCenterD = -normalize(mul(float4(_currentScreenSize.xy/2.0, 1, 1), _pCoordToViewDir));
+  float cosTheta = dot(cameraCenterD, clipSpaceD);
+  /* Divide depth through by cos theta. */
+  depth /= max(cosTheta, 0.00001);
+
+  return float4(clipSpaceD, depth);
+}
+
+/* Maps linear depth to frustum coordinate. */
+float3 mapFrustumCoordinate(float2 positionCS, float linearDepth) {
+  return float3(positionCS/_currentScreenSize.xy, linearDepth / _farClip);
+}
+
+#endif // EXPANSE_SKY_MAPPING_INCLUDED

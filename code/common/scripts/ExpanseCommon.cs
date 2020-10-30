@@ -80,12 +80,12 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
          * I don't think you can get more optimized than this without looking
          * so bad it would be impossible to put in the game. */
         quality = quality,
-        T = new Vector2(16, 128),
+        T = new Vector2(128, 512),
         MS = new Vector2(8, 8),
         GI = 32,
         LP = new Vector2(8, 8),
-        SS = new Vector2(32, 32),
-        MSAccumulation = new Vector2(8, 8),
+        SS = new Vector2(64, 32),
+        MSAccumulation = new Vector2(64, 32),
         AP = new Vector3(32, 32, 32)
       };
     case SkyTextureQuality.Low:
@@ -96,7 +96,7 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
         GI = 32,
         LP = new Vector2(32, 32),
         SS = new Vector2(128, 32),
-        MSAccumulation = new Vector2(64, 256),
+        MSAccumulation = new Vector2(128, 32),
         AP = new Vector3(32, 32, 32)
       };
     case SkyTextureQuality.Medium:
@@ -107,19 +107,19 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
         GI = 32,
         LP = new Vector2(32, 32),
         SS = new Vector2(128, 64),
-        MSAccumulation = new Vector2(64, 256),
+        MSAccumulation = new Vector2(128, 64),
         AP = new Vector3(32, 32, 32)
       };
     case SkyTextureQuality.High:
       return new SkyTextureResolution() {
         quality = quality,
-        T = new Vector2(64, 256),
+        T = new Vector2(128, 256),
         MS = new Vector2(32, 32),
         GI = 32,
         LP = new Vector2(32, 32),
         SS = new Vector2(256, 64),
-        MSAccumulation = new Vector2(64, 256),
-        AP = new Vector3(32, 32, 32)
+        MSAccumulation = new Vector2(256, 64),
+        AP = new Vector3(32, 32, 64)
       };
     case SkyTextureQuality.Ultra:
       return new SkyTextureResolution() {

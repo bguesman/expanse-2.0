@@ -56,7 +56,10 @@ bool _useAntiAliasing;
 float _ditherAmount;
 
 float3 _WorldSpaceCameraPos1;
+float4 _currentScreenSize;
 float4x4 _ViewMatrix1;
+float4x4 _pCoordToViewDir;
+float _farClip;
 #undef UNITY_MATRIX_V
 #define UNITY_MATRIX_V _ViewMatrix1
 
@@ -73,7 +76,6 @@ TEXTURE2D(_LP);
 /* Single scattering, with and without shadows. */
 float4 _resSS; /* Table resolution. */
 TEXTURE2D(_SS);
-TEXTURE2D(_SSNoShadow);
 
 /* Multiple scattering. */
 float4 _resMS; /* Table resolution. */
@@ -85,7 +87,7 @@ TEXTURE2D(_MSAcc);
 
 /* Aerial perspective. */
 float4 _resAP; /* Table resolution. */
-TEXTURE2D(_AP);
+TEXTURE3D(_AP);
 
 /* Ground Irradiance. */
 int _resGI; /* Table resolution. */
@@ -415,7 +417,7 @@ float computePhase(float dot_L_d, float anisotropy, int type) {
 
 /* Given uv coodinate representing direction, computes sky transmittance. */
 float3 computeSkyTransmittance(float2 uv) {
-  return exp(SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler, uv, 0).xyz);
+  return exp(SAMPLE_TEXTURE2D_LOD(_T, s_point_clamp_sampler, uv, 0).xyz);
 }
 
 /* Given uv coodinate representing direction, computes sky transmittance. */
@@ -427,12 +429,12 @@ float3 sampleSSTexture(float2 uv) {
   return SAMPLE_TEXTURE2D_LOD(_SS, s_linear_clamp_sampler, uv, 0).xyz;
 }
 
-float3 sampleSSNoShadowTexture(float2 uv) {
-  return float3(0, 0, 0);
+float3 sampleMSAccTexture(float2 uv) {
+  return SAMPLE_TEXTURE2D_LOD(_MSAcc, s_linear_clamp_sampler, uv, 0).xyz;
 }
 
-float3 sampleMSAccTexture(float2 uv) {
-  return float3(0, 0, 0);
+float4 sampleAPTexture(float3 uv) {
+  return SAMPLE_TEXTURE3D_LOD(_AP, s_linear_clamp_sampler, uv, 0);
 }
 
 float3 sampleGITexture(float2 uv, int i) {

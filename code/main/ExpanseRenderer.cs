@@ -36,13 +36,14 @@ private RTHandle m_skyLP;                             /* Light Pollution. */
 
 /* Textures. */
 private RTHandle m_skySS;                             /* Single Scattering. */
-private RTHandle m_skySSNoShadow;                     /* Single Scattering. */
 private RTHandle m_skyMSAcc;                          /* Multiple Scattering. */
 private RTHandle m_skyAP;                             /* Aerial Perspective. */
 
 /* For checking if table reallocation is required. */
 private ExpanseCommon.SkyTextureResolution m_skyTextureResolution;
 private int m_numAtmosphereLayersEnabled = 0;
+private int m_numBodiesEnabled = 0;
+private Vector4[] m_bodyDirections = new Vector4[ExpanseCommon.kMaxCelestialBodies];
 
 /* Allocates all sky precomputation tables for all atmosphere layers at a
  * specified quality level. */
@@ -76,7 +77,6 @@ void allocateSkyPrecomputationTables(Expanse sky) {
     m_skyLP = allocateSky2DTable(res.LP, 0, "SkyLP");
 
     m_skySS = allocateSky2DTable(res.SS, 0, "SkySS");
-    m_skySSNoShadow = allocateSky2DTable(res.SS, 0, "SkySSNoShadow");
     m_skyMSAcc = allocateSky2DTable(res.MSAccumulation, 0, "SkyMSAcc");
     m_skyAP = allocateSky3DTable(res.AP, 0, "SkyAP");
 
@@ -99,8 +99,6 @@ void cleanupSkyTables() {
   m_skyLP = null;
   RTHandles.Release(m_skySS);
   m_skySS = null;
-  RTHandles.Release(m_skySSNoShadow);
-  m_skySSNoShadow = null;
   RTHandles.Release(m_skyMSAcc);
   m_skyMSAcc = null;
   RTHandles.Release(m_skyAP);
@@ -372,29 +370,30 @@ public override void Cleanup()
   cleanupStarTextures();
 }
 
-private void setLightingData(Vector4 cameraPos, float planetRadius, float atmosphereRadius) {
+private void setLightingData(CommandBuffer cmd, Vector4 cameraPos, float planetRadius,
+  float atmosphereRadius) {
   /* Use data from the property block, so that we don't go out of
    * sync. */
-  int numActiveBodies = m_PropertyBlock.GetInt("_numActiveBodies");
-  Vector4[] directions = m_PropertyBlock.GetVectorArray("_bodyDirection");
+  /* TODO: mapping is now different. need to update in here. */
   Vector4 O = cameraPos - (new Vector4(0, -planetRadius, 0, 0));
   Vector3 O3 = new Vector3(O.x, O.y, O.z);
-  for (int i = 0; i < numActiveBodies; i++) {
+  for (int i = 0; i < m_numBodiesEnabled; i++) {
     /* Check if the body is occluded by the planet. */
-    Vector3 L = new Vector3(directions[i].x, directions[i].y, directions[i].z);
+    Vector3 L = new Vector3(m_bodyDirections[i].x, m_bodyDirections[i].y, m_bodyDirections[i].z);
     Vector3 intersection = ExpanseCommon.intersectSphere(O3, L, planetRadius);
     if (intersection.z >= 0 && (intersection.x >= 0 || intersection.y >= 0)) {
       ExpanseCommon.bodyTransmittances[i] = new Vector3(0, 0, 0);
     } else {
-      /* Sample transmittance. */
-      Vector3 skyIntersection = ExpanseCommon.intersectSphere(O3, L, atmosphereRadius);
-      float r = O3.magnitude;
-      float mu = Vector3.Dot(Vector3.Normalize(O3), L);
-      float d = (skyIntersection.x > 0) ? (skyIntersection.y > 0 ? Mathf.Min(skyIntersection.x, skyIntersection.y) : skyIntersection.x) : skyIntersection.y;
-      Vector2 uv = ExpanseCommon.map_r_mu(r, mu, atmosphereRadius, planetRadius,
-        d, false);
-      Vector4 transmittance = m_skyTCPU.GetPixelBilinear(uv.x, uv.y);
-      ExpanseCommon.bodyTransmittances[i] = new Vector3(Mathf.Exp(transmittance.x), Mathf.Exp(transmittance.y), Mathf.Exp(transmittance.z));
+      ExpanseCommon.bodyTransmittances[i] = new Vector3(1, 1, 1);
+    //   /* Sample transmittance. */
+    //   Vector3 skyIntersection = ExpanseCommon.intersectSphere(O3, L, atmosphereRadius);
+    //   float r = O3.magnitude;
+    //   float mu = Vector3.Dot(Vector3.Normalize(O3), L);
+    //   float d = (skyIntersection.x > 0) ? (skyIntersection.y > 0 ? Mathf.Min(skyIntersection.x, skyIntersection.y) : skyIntersection.x) : skyIntersection.y;
+    //   Vector2 uv = ExpanseCommon.map_r_mu(r, mu, atmosphereRadius, planetRadius,
+    //     d, false);
+    //   Vector4 transmittance = m_skyTCPU.GetPixelBilinear(uv.x, uv.y);
+    //   ExpanseCommon.bodyTransmittances[i] = new Vector3(Mathf.Exp(transmittance.x), Mathf.Exp(transmittance.y), Mathf.Exp(transmittance.z));
     }
   }
 }
@@ -479,7 +478,7 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
 
   /* Set lighting properties so that light scripts can use them to affect
    * the directional lights in the scene. */
-  setLightingData(builtinParams.worldSpaceCameraPos, sky.planetRadius.value,
+  setLightingData(builtinParams.commandBuffer, builtinParams.worldSpaceCameraPos, sky.planetRadius.value,
     sky.planetRadius.value + sky.atmosphereThickness.value);
 
   return false;
@@ -651,9 +650,9 @@ private void DispatchSkyRealtimeCompute(CommandBuffer cmd) {
         (int) (m_skyTextureResolution.MSAccumulation.y) / 8, 1);
 
       cmd.DispatchCompute(m_skyCS, handle_AP,
-        (int) (m_skyTextureResolution.AP.x) / 8,
-        (int) (m_skyTextureResolution.AP.y) / 8,
-        (int) (m_skyTextureResolution.AP.z) / 8);
+        (int) (m_skyTextureResolution.AP.x) / 4,
+        (int) (m_skyTextureResolution.AP.y) / 4,
+        (int) (m_skyTextureResolution.AP.z) / 4);
     }
   }
 }
@@ -707,7 +706,6 @@ private void setSkyRealtimeTables() {
   int handle_AP = m_skyCS.FindKernel("AP");
   if (m_numAtmosphereLayersEnabled > 0) {
     m_skyCS.SetTexture(handle_SS, "_SS_RW", m_skySS);
-    m_skyCS.SetTexture(handle_SS, "_SSNoShadow_RW", m_skySSNoShadow);
     m_skyCS.SetTexture(handle_MSAcc, "_MSAcc_RW", m_skyMSAcc);
     m_skyCS.SetTexture(handle_AP, "_AP_RW", m_skyAP);
   }
@@ -761,6 +759,9 @@ private void setGlobalCBuffer(BuiltinSkyParameters builtinParams) {
   /* Camera params. */
   builtinParams.commandBuffer.SetGlobalVector(_WorldSpaceCameraPos1ID, builtinParams.worldSpaceCameraPos);
   builtinParams.commandBuffer.SetGlobalMatrix(_PixelCoordToViewDirWS, builtinParams.pixelCoordToViewDirMatrix);
+  builtinParams.commandBuffer.SetGlobalMatrix("_pCoordToViewDir", builtinParams.pixelCoordToViewDirMatrix);
+  builtinParams.commandBuffer.SetGlobalVector("_currentScreenSize", builtinParams.hdCamera.screenSize);
+  builtinParams.commandBuffer.SetGlobalFloat("_farClip", builtinParams.hdCamera.frustum.planes[5].distance);
 
   /* Time tick variable. */
   builtinParams.commandBuffer.SetGlobalFloat("_tick", Time.realtimeSinceStartup);
@@ -859,7 +860,6 @@ private void setGlobalCBufferCelestialBodies(CommandBuffer cmd, Expanse sky) {
     int n = (int) ExpanseCommon.kMaxCelestialBodies;
 
     /* Set up arrays to pass to shader. */
-    Vector4[] bodyDirection = new Vector4[n];
     Vector4[] bodyLightColor = new Vector4[n];
 
     int numActiveBodies = 0;
@@ -871,7 +871,7 @@ private void setGlobalCBufferCelestialBodies(CommandBuffer cmd, Expanse sky) {
         Vector3 angles = ((Vector3Parameter) sky.GetType().GetField("bodyDirection" + i).GetValue(sky)).value;
         Quaternion bodyLightRotation = Quaternion.Euler(angles.x, angles.y, angles.z);
         Vector3 direction = bodyLightRotation * (new Vector3(0, 0, -1));
-        bodyDirection[numActiveBodies] = new Vector4(direction.x, direction.y, direction.z, 0);
+        m_bodyDirections[numActiveBodies] = new Vector4(direction.x, direction.y, direction.z, 0);
 
         bool useTemperature = ((BoolParameter) sky.GetType().GetField("bodyUseTemperature" + i).GetValue(sky)).value;
         float lightIntensity = ((MinFloatParameter) sky.GetType().GetField("bodyLightIntensity" + i).GetValue(sky)).value;
@@ -891,8 +891,12 @@ private void setGlobalCBufferCelestialBodies(CommandBuffer cmd, Expanse sky) {
       }
     }
 
+    // For our own internal bookkeeping, used for things like updating the
+    // directional light transmittances.
+    m_numBodiesEnabled = numActiveBodies;
+
     cmd.SetGlobalInt("_numActiveBodies", numActiveBodies);
-    cmd.SetGlobalVectorArray("_bodyDirection", bodyDirection);
+    cmd.SetGlobalVectorArray("_bodyDirection", m_bodyDirections);
     cmd.SetGlobalVectorArray("_bodyLightColor", bodyLightColor);
 }
 
@@ -907,7 +911,6 @@ private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, Expanse sky) {
     cmd.SetGlobalTexture("_LP", m_skyLP);
     cmd.SetGlobalVector("_resLP", m_skyTextureResolution.LP);
     cmd.SetGlobalTexture("_SS", m_skySS);
-    cmd.SetGlobalTexture("_SSNoShadow", m_skySSNoShadow);
     cmd.SetGlobalVector("_resSS", m_skyTextureResolution.SS);
     cmd.SetGlobalTexture("_AP", m_skyAP);
     cmd.SetGlobalVector("_resAP", m_skyTextureResolution.AP);
@@ -944,7 +947,7 @@ private void setGlobalCBufferNightSky(CommandBuffer cmd, Expanse sky) {
     // Set either way so that star precompute can be used. But be diligent
     // about only sampling it when _hasNebulaTexture is true.
     cmd.SetGlobalTexture("_nebulaeTexture", sky.nebulaeTexture.value);
-    
+
     if (sky.useProceduralNebulae.value) {
       cmd.SetGlobalVector("_resNebulae", m_nebulaeTextureResolution.Star);
       cmd.SetGlobalFloat("_nebulaOverallDefinition", sky.nebulaOverallDefinition.value);
