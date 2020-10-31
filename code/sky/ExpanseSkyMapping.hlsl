@@ -39,7 +39,7 @@ float2 map_r_mu_transmittance(float r, float mu, float atmosphereRadius, float p
   float cos_h = -safeSqrt(h * (2 * planetRadius + h)) / (planetRadius + h);
   if (groundHit) {
     mu = clamp(mu, -1, cos_h);
-    u_mu = 0.5 * pow((cos_h - mu) / (1 + cos_h), 0.2);
+    u_mu = 0.5 * pow(abs((cos_h - mu) / (1 + cos_h)), 0.2);
     // KEEP FOR GROUND.
     if (floatGT(u_mu, 0.5-muStep/2)) {
       u_mu = 0.5 - muStep/2;
@@ -49,7 +49,7 @@ float2 map_r_mu_transmittance(float r, float mu, float atmosphereRadius, float p
     // }
   } else {
     mu = clamp(mu, cos_h, 1);
-    u_mu = 0.5 * pow((mu - cos_h) / (1 - cos_h), 0.2) + 0.5;
+    u_mu = 0.5 * pow(abs((mu - cos_h) / (1 - cos_h)), 0.2) + 0.5;
     // KEEP FOR SKY.
     if (floatLT(u_mu, 0.5 + muStep/2)) {
       u_mu = 0.5 + muStep/2;

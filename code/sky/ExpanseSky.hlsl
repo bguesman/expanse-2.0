@@ -147,7 +147,7 @@ SSResult computeSS(float3 O, float3 d, float dist, float t_hit, bool groundHit) 
   result.shadows = float3(0, 0, 0);
   result.noShadows = float3(0, 0, 0);
   for (int i = 0; i < _numActiveBodies; i++) {
-    SSResult bodySS = computeSSBody(O, d, dist, t_hit, groundHit, _bodyDirection[i], _bodyLightColor[i]);
+    SSResult bodySS = computeSSBody(O, d, dist, t_hit, groundHit, _bodyDirection[i], _bodyLightColor[i].xyz);
     result.shadows += bodySS.shadows;
     result.noShadows += bodySS.noShadows;
   }
@@ -220,7 +220,7 @@ float3 computeMSBody(float3 O, float3 d, float dist, float t_hit, bool groundHit
 float3 computeMS(float3 O, float3 d, float dist, float t_hit, bool groundHit) {
   float3 result = float3(0, 0, 0);
   for (int i = 0; i < _numActiveBodies; i++) {
-    result += computeMSBody(O, d, dist, t_hit, groundHit, _bodyDirection[i], _bodyLightColor[i]);
+    result += computeMSBody(O, d, dist, t_hit, groundHit, _bodyDirection[i], _bodyLightColor[i].xyz);
   }
   return result;
 }

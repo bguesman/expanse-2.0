@@ -443,6 +443,40 @@ float computePhase(float dot_L_d, float anisotropy, int type) {
 
 
 /******************************************************************************/
+/************************* CELESTIAL BODY UTILITIES ***************************/
+/******************************************************************************/
+
+/* Compute the luminance multiplier of a celestial body given the illuminance
+ * and the cosine of half the angular extent. */
+float3 computeCelestialBodyLuminanceMultiplier(float cosTheta) {
+  /* Compute solid angle. */
+  float solidAngle = 2.0 * PI * (1.0 - cosTheta);
+  return 1.0 / solidAngle;
+}
+
+float3 limbDarkening(float dot_L_d, float cosTheta, float amount) {
+  float centerToEdge = 1.0 - abs((dot_L_d - cosTheta) / (1.0 - cosTheta));
+  float mu = safeSqrt(1.0 - centerToEdge * centerToEdge);
+  float mu2 = mu * mu;
+  float mu3 = mu2 * mu;
+  float mu4 = mu2 * mu2;
+  float mu5 = mu3 * mu2;
+  float3 a0 = float3 (0.34685, 0.26073, 0.15248);
+  float3 a1 = float3 (1.37539, 1.27428, 1.38517);
+  float3 a2 = float3 (-2.04425, -1.30352, -1.49615);
+  float3 a3 = float3 (2.70493, 1.47085, 1.99886);
+  float3 a4 = float3 (-1.94290, -0.96618, -1.48155);
+  float3 a5 = float3 (0.55999, 0.26384, 0.44119);
+  return max(0.0, pow(abs(a0 + a1 * mu + a2 * mu2 + a3 * mu3 + a4 * mu4 + a5 * mu5), amount));
+}
+
+/******************************************************************************/
+/*********************** END CELESTIAL BODY UTILITIES *************************/
+/******************************************************************************/
+
+
+
+/******************************************************************************/
 /***************************** TEXTURE SAMPLERS *******************************/
 /******************************************************************************/
 
@@ -471,11 +505,13 @@ float4 sampleSkyAPTexture(float3 uv) {
 }
 
 float3 sampleSkyGITexture(float2 uv, int i) {
-  return SAMPLE_TEXTURE2D_ARRAY_LOD(_GI, s_linear_clamp_sampler, uv, i, 0).xyz;
+  // return SAMPLE_TEXTURE2D_ARRAY_LOD(_GI, s_linear_clamp_sampler, uv, i, 0).xyz;
+  return float3(0, 0, 0);
 }
 
 float3 sampleSkyLPTexture(float2 uv, int i) {
-  return SAMPLE_TEXTURE2D_ARRAY_LOD(_LP, s_linear_clamp_sampler, uv, i, 0).xyz;
+  // return SAMPLE_TEXTURE2D_ARRAY_LOD(_LP, s_linear_clamp_sampler, uv, i, 0).xyz;
+  return float3(0, 0, 0);
 }
 
 /******************************************************************************/

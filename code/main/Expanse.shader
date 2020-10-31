@@ -46,7 +46,8 @@ bool _bodyEmissive[MAX_BODIES];
 float _bodyLimbDarkening[MAX_BODIES];
 float4x4 _bodyEmissionTextureRotation[MAX_BODIES];
 float4 _bodyEmissionTint[MAX_BODIES];
-// Textures can't be array, so declare them individually.
+// Textures can't be array, since they could be different resolutions,
+// so declare them individually.
 bool _bodyAlbedoTextureEnabled[MAX_BODIES];
 TEXTURECUBE(_bodyAlbedoTexture0);
 TEXTURECUBE(_bodyAlbedoTexture1);
@@ -225,7 +226,7 @@ float3 shadeGround(float3 endPoint) {
   float3 endPointNormalized = normalize(endPoint);
 
   /* Compute albedo, emission. */
-  float3 albedo = _groundTint;
+  float3 albedo = _groundTint.xyz;
   float3 uv = mul(endPointNormalized, (float3x3) _planetRotation).xyz;
   if (_groundAlbedoTextureEnabled) {
     albedo *= 2.0 *
@@ -244,7 +245,7 @@ float3 shadeGround(float3 endPoint) {
    * celestial bodies. */
   for (int i = 0; i < _numActiveBodies; i++) {
     float3 L = _bodyDirection[i];
-    float3 lightColor = _bodyLightColor[i];
+    float3 lightColor = _bodyLightColor[i].xyz;
     float3 cosTheta = dot(endPointNormalized, L);
 
     /* Loop over all the layers to accumulate ground irradiance. */
@@ -259,30 +260,6 @@ float3 shadeGround(float3 endPoint) {
     color += albedo * (giAcc * lightColor + cosTheta * lightColor) + emission;
   }
   return color;
-}
-
-/* Compute the luminance multiplier of a celestial body given the illuminance
- * and the cosine of half the angular extent. */
-float3 computeCelestialBodyLuminanceMultiplier(float cosTheta) {
-  /* Compute solid angle. */
-  float solidAngle = 2.0 * PI * (1.0 - cosTheta);
-  return 1.0 / solidAngle;
-}
-
-float3 limbDarkening(float dot_L_d, float cosTheta, float amount) {
-  float centerToEdge = 1.0 - abs((dot_L_d - cosTheta) / (1.0 - cosTheta));
-  float mu = safeSqrt(1.0 - centerToEdge * centerToEdge);
-  float mu2 = mu * mu;
-  float mu3 = mu2 * mu;
-  float mu4 = mu2 * mu2;
-  float mu5 = mu3 * mu2;
-  float3 a0 = float3 (0.34685, 0.26073, 0.15248);
-  float3 a1 = float3 (1.37539, 1.27428, 1.38517);
-  float3 a2 = float3 (-2.04425, -1.30352, -1.49615);
-  float3 a3 = float3 (2.70493, 1.47085, 1.99886);
-  float3 a4 = float3 (-1.94290, -0.96618, -1.48155);
-  float3 a5 = float3 (0.55999, 0.26384, 0.44119);
-  return max(0.0, pow(a0 + a1 * mu + a2 * mu2 + a3 * mu3 + a4 * mu4 + a5 * mu5, amount));
 }
 
 /* Given direction to sample in, shades closest celestial body. Returns
@@ -391,7 +368,7 @@ float3 shadeNightSky(float3 d) {
       proceduralTextureCoordinate.xy, proceduralTextureCoordinate.z, 0);
     float3 starColor = colorAndSeed.xyz;
     float starSeed = colorAndSeed.w;
-    float3 directionSeed = random_3_1(textureCoordinate);
+    float directionSeed = random_3_1(textureCoordinate);
     float twinkleCoarse = 1;
     float twinkleFine = 1;
     if (_useTwinkle) {
@@ -415,7 +392,7 @@ float3 shadeNightSky(float3 d) {
     if (_useProceduralNebulae) {
       float4 nebulaeColorAndAlpha = SAMPLE_TEXTURE2D_ARRAY_LOD(_proceduralNebulae,
         s_linear_clamp_sampler, proceduralTextureCoordinate.xy, proceduralTextureCoordinate.z, 0);
-      nebulaeColor = pow(nebulaeColorAndAlpha.xyz, _nebulaOverallDefinition) * _nebulaOverallIntensity;
+      nebulaeColor = pow(abs(nebulaeColorAndAlpha.xyz), _nebulaOverallDefinition) * _nebulaOverallIntensity;
       float nebulaeAlpha = nebulaeColorAndAlpha.w;
       nebulaeColor *= nebulaeAlpha;
       // Blend probabilistically.
@@ -424,7 +401,7 @@ float3 shadeNightSky(float3 d) {
     } else {
       if (_hasNebulaeTexture) {
         nebulaeColor = _nebulaOverallIntensity * SAMPLE_TEXTURECUBE_LOD(_nebulaeTexture,
-          s_linear_clamp_sampler, textureCoordinate, 0);
+          s_linear_clamp_sampler, textureCoordinate, 0).xyz;
       }
     }
     return ((twinkleCoarse + twinkleFine) * starColor + nebulaeColor) * _nightSkyTint.xyz;
@@ -434,7 +411,7 @@ float3 shadeNightSky(float3 d) {
     }
     float3 starColor = SAMPLE_TEXTURECUBE_LOD(_nightSkyTexture,
       s_linear_clamp_sampler, textureCoordinate, 0).xyz;
-    float3 directionSeed = random_3_1(textureCoordinate);
+    float directionSeed = random_3_1(textureCoordinate);
     float twinkle = 1;
     if (_useTwinkle) {
       float magnitude = dot(starColor, starColor) / 3.0;
@@ -498,7 +475,8 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   float t_hit = intersection.endT - intersection.startT;
 
   /* Get the depth and see if we hit any geometry. */
-  float linearDepth = Linear01Depth(LoadCameraDepth(input.positionCS.xy), _ZBufferParams) * _ProjectionParams.z;
+  float linearDepth = Linear01Depth(LoadCameraDepth(input.positionCS.xy),
+    _ZBufferParams) * _ProjectionParams.z;
   /* Make sure depth is distance to view aligned plane. */
   float3 cameraCenterD = -GetSkyViewDirWS(float2(_ScreenParams.x/2, _ScreenParams.y/2));
   float cosTheta = dot(cameraCenterD, d);
@@ -551,7 +529,6 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     float2 skyRenderCoordSS = mapSkyRenderCoordinate(r, mu, theta, _atmosphereRadius,
       _planetRadius, t_hit, intersection.groundHit, _resSS.x, _resSS.y);
     float3 ss = sampleSkySSTexture(skyRenderCoordSS);
-    // float3 ss = t_hit * computeSS(startPoint, d, t_hit, intersection.groundHit).shadows;
 
     /* Multiple scattering. */
     float2 skyRenderCoordMS = mapSkyRenderCoordinate(r, mu, theta, _atmosphereRadius,
@@ -583,9 +560,8 @@ float4 SkyFullscreen(Varyings input) : SV_Target {
       return RenderSky(input, O, d, false);
   }
 
-  /* Otherwise, see how close we are to the planet's edge, and if we are
-   * close, then use MSAA 8x. TODO: do this. TODO: doesn't seem to work
-   * for planet edge when close to ground---clue to why atmo is weird there too? */
+  /* Otherwise, see how close we are to the planet or celestial body's edge,
+   * and if we are close, then use MSAA 8x. TODO: do this. */
   bool closeToEdge = true;
   if (closeToEdge) {
     float MSAA_8X_OFFSETS_X[8] = {1.0/16.0, -1.0/16.0, 5.0/16.0, -3.0/16.0, -5.0/16.0, -7.0/16.0, 3.0/16.0, 7.0/16.0};

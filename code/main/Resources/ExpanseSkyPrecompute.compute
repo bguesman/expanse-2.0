@@ -194,7 +194,7 @@ void AP(uint3 id : SV_DispatchThreadID) {
   float2 oToSample = mapSky2DCoord(length(O),  dot(normalize(O), d), _atmosphereRadius,
     _planetRadius, intersection.endT, intersection.groundHit, _resT.y);
   float3 T = sampleSkyTTextureRaw(oToSample);
-  float depthSample = O + d * depth;
+  float3 depthSample = O + d * depth;
   float2 sampleOut = mapSky2DCoord(length(depthSample), dot(normalize(depthSample), d), _atmosphereRadius,
     _planetRadius, intersection.endT - depth, intersection.groundHit, _resT.y);
   T -= sampleSkyTTextureRaw(sampleOut);
