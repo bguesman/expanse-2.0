@@ -730,13 +730,13 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     float theta = d_to_theta(d, O);
     float2 skyRenderCoordSS = mapSkyRenderCoordinate(r, mu, theta, _atmosphereRadius,
       _planetRadius, t_hit, intersection.groundHit, _resSS.x, _resSS.y);
-    float3 ss = t_hit * sampleSSTexture(skyRenderCoordSS);
+    float3 ss = sampleSSTexture(skyRenderCoordSS);
     // float3 ss = t_hit * computeSS(startPoint, d, t_hit, intersection.groundHit).shadows;
 
     /* Multiple scattering. */
     float2 skyRenderCoordMS = mapSkyRenderCoordinate(r, mu, theta, _atmosphereRadius,
       _planetRadius, t_hit, intersection.groundHit, _resMS.x, _resMS.y);
-    float3 ms = t_hit * sampleMSAccTexture(skyRenderCoordMS);
+    float3 ms = sampleMSAccTexture(skyRenderCoordMS);
 
     skyColor = ss + ms;
   }

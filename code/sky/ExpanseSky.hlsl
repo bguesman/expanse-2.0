@@ -158,8 +158,8 @@ SSResult computeSSBody(float3 O, float3 d, float dist, float t_hit, bool groundH
     result.shadows += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz) * (ssLayers.shadows[i] * phase);
     result.noShadows += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz) * (ssLayers.noShadows[i] * phase);
   }
-  result.shadows *= lightColor;
-  result.noShadows *= lightColor;
+  result.shadows *= lightColor * dist;
+  result.noShadows *= lightColor * dist;
   return result;
 }
 
@@ -239,7 +239,7 @@ float3 computeMSBody(float3 O, float3 d, float dist, float t_hit, bool groundHit
   float3 result = float3(0, 0, 0);
   for (int i = 0; i < _numActiveLayers; i++) {
     result += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz)
-      * (msLayers.shadows[i] * _layerMultipleScatteringMultiplier[i]);
+      * (msLayers.shadows[i] * _layerMultipleScatteringMultiplier[i]) * dist;
   }
   return result *= lightColor;
 }

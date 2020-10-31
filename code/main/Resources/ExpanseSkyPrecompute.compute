@@ -265,7 +265,7 @@ void AP(uint3 id : SV_DispatchThreadID) {
     s_linear_clamp_sampler, sampleOut, 0).xyz;
   T_oToSample -= T_sampleOut;
 
-  _AP_RW[id] = float4(depth * (ss.shadows + ms), dot(float3(1, 1, 1)/3, T_oToSample));
+  _AP_RW[id] = float4(ss.shadows + ms, dot(float3(1, 1, 1)/3, T_oToSample));
   // TODO: FRUSTUM DEBUG
   // _AP_RW[id] = float4(depth, depth, depth, 1);
 }
