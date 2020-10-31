@@ -222,7 +222,14 @@ void AP(uint3 id : SV_DispatchThreadID) {
   /* Get the uv for this id and unwrap it to frustum coordinates. */
   float3 uvw = (id + 0.5) / _resAP.xyz;
   float4 xyz = unmapFrustumCoordinate(uvw);
-  float3 d = xyz.xyz;
+  float3 d = normalize(xyz.xyz); // TODO: normalize not necessary
+  // HACK
+  // if (d.y > 0.0 && d.y < 0.05) {
+  //   d.y = 0.05;
+  // }
+  // if (d.y < 0.0 && d.y > -0.05) {
+  //   d.y = -0.05;
+  // }
   float depth = xyz.w;
 
   /* Compute SS between origin and depth in direction d. */
@@ -231,10 +238,14 @@ void AP(uint3 id : SV_DispatchThreadID) {
    * angle? Hm. TODO: need to case out above atmo. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
+  depth = min(depth, intersection.endT);
 
   /* TODO: make samples tweakable? */
-  SSResult ss = computeSS(O, d, min(depth, intersection.endT), intersection.endT, intersection.groundHit);
-  float3 ms = computeMS(O, d, min(depth, intersection.endT), intersection.endT, intersection.groundHit);
+  // SSResult ss = computeSS(O, d, min(depth, intersection.endT), intersection.endT, intersection.groundHit);
+  // float3 ms = computeMS(O, d, min(depth, intersection.endT), intersection.endT, intersection.groundHit);
+
+  SSResult ss = computeSS(O, d, depth, intersection.endT, intersection.groundHit);
+  float3 ms = computeMS(O, d, depth, intersection.endT, intersection.groundHit);
   //
   // SSResult ss = computeSS(O, d, depth, intersection.groundHit);
   // float3 ms = computeMS(O, d, depth, intersection.groundHit);
@@ -254,7 +265,7 @@ void AP(uint3 id : SV_DispatchThreadID) {
     s_linear_clamp_sampler, sampleOut, 0).xyz;
   T_oToSample -= T_sampleOut;
 
-  _AP_RW[id] = float4(ss.shadows + ms, 1);//dot(float3(1, 1, 1)/3, T_oToSample));
+  _AP_RW[id] = float4(depth * (ss.shadows + ms), dot(float3(1, 1, 1)/3, T_oToSample));
   // TODO: FRUSTUM DEBUG
   // _AP_RW[id] = float4(depth, depth, depth, 1);
 }

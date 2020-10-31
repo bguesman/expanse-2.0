@@ -113,7 +113,7 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
     case SkyTextureQuality.High:
       return new SkyTextureResolution() {
         quality = quality,
-        T = new Vector2(128, 256),
+        T = new Vector2(64, 512),
         MS = new Vector2(32, 32),
         GI = 32,
         LP = new Vector2(32, 32),
@@ -124,7 +124,7 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
     case SkyTextureQuality.Ultra:
       return new SkyTextureResolution() {
         quality = quality,
-        T = new Vector2(64, 256),
+        T = new Vector2(64, 1024),
         MS = new Vector2(32, 32),
         GI = 32,
         LP = new Vector2(32, 32),

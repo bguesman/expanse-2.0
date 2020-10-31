@@ -720,12 +720,10 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   float blendTransmittance = 0;
   if (geoHit) {
     /* Sample aerial perspective. */
-    // float3 apUV = mapFrustumCoordinate(input.positionCS.xy, linearDepth);
-    // float4 colorAndTransmittance = sampleAPTexture(apUV);
-    // skyColor = depth * colorAndTransmittance.xyz;
-    // blendTransmittance = saturate(exp(colorAndTransmittance.w));
-    skyColor = depth * computeSS(O, d, depth, intersection.endT, intersection.groundHit).shadows;
-    blendTransmittance = 1;
+    float3 apUV = mapFrustumCoordinate(input.positionCS.xy, linearDepth);
+    float4 colorAndTransmittance = sampleAPTexture(apUV);
+    skyColor = colorAndTransmittance.xyz;
+    blendTransmittance = saturate(exp(colorAndTransmittance.w));
   } else {
     /* Sample rendered sky tables. */
     /* Single scattering. */
@@ -983,7 +981,7 @@ SubShader
   {
     ZWrite Off
     ZTest Always
-    Blend One SrcAlpha//Blend One Zero //TODO: FRUSTUM DEBUG //Blend One SrcAlpha
+    Blend One SrcAlpha// //TODO: FRUSTUM DEBUG //Blend One SrcAlpha
     Cull Off
 
     HLSLPROGRAM
