@@ -174,24 +174,27 @@ void AP(uint3 id : SV_DispatchThreadID) {
   float4 xyz = unmapFrustumCoordinate(uvw);
   float3 d = xyz.xyz;
   float depth = xyz.w;
+  float3 O = GetCameraPositionPlanetSpace();
+  float r = length(O);
 
   // HACK: Hack where we make sure we don't sample directly on the horizon
-  // line fixes remaining tiny artifacts. TODO: make this depend on the
-  // actual horizon and actual texture resolution.
-  d.y = (d.y > 0) ? clamp(d.y, 0.005, 1) : clamp(d.y, -0.005, 1);
+  // line fixes remaining tiny artifacts.
+  float h = r - _planetRadius;
+  float cosHorizon = -safeSqrt(h * (2 * _planetRadius + h)) / (_planetRadius + h);
+  float step = max(1.0/_resMSAcc.x, 1.0/_resSS.x);
+  d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
 
   /* Compute SS between origin and depth in direction d. */
-  float3 O = GetCameraPositionPlanetSpace();
   /* TODO: need to case out above atmo. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
   depth = min(depth, intersection.endT);
   // TODO: make samples tweakable?
-  SSResult ss = computeSS(O, d, min(depth, intersection.endT), intersection.endT, intersection.groundHit);
-  float3 ms = computeMS(O, d, min(depth, intersection.endT), intersection.endT, intersection.groundHit);
+  SSResult ss = computeSS(O, d, depth, intersection.endT, intersection.groundHit);
+  float3 ms = computeMS(O, d, depth, intersection.endT, intersection.groundHit);
 
   /* Compute the transmittance between the 2 points. */
-  float2 oToSample = mapSky2DCoord(length(O),  dot(normalize(O), d), _atmosphereRadius,
+  float2 oToSample = mapSky2DCoord(r, dot(normalize(O), d), _atmosphereRadius,
     _planetRadius, intersection.endT, intersection.groundHit, _resT.y);
   float3 T = sampleSkyTTextureRaw(oToSample);
   float3 depthSample = O + d * depth;

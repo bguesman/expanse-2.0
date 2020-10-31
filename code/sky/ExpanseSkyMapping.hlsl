@@ -381,11 +381,10 @@ float4 unmapFrustumCoordinate(float3 uvw) {
   float3 clipSpaceD = -normalize(mul(float4(xy.x, xy.y, 1, 1), _pCoordToViewDir).xyz);
 
   /* Get camera center, and angle between direction and center. */
-    /* Depth. TODO: non-linearize if necessary. */
+  /* Depth. TODO: non-linearize if necessary. */
   float depth = uvw.z * _farClip;
   float3 cameraCenterD = -normalize(mul(float4(_currentScreenSize.xy/2.0, 1, 1), _pCoordToViewDir).xyz);
   float cosTheta = dot(cameraCenterD, clipSpaceD);
-  /* Divide depth through by cos theta. */
   depth /= max(cosTheta, 0.00001);
 
   return float4(clipSpaceD, depth);

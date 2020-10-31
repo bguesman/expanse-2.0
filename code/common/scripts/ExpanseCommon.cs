@@ -119,7 +119,7 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
         LP = new Vector2(32, 32),
         SS = new Vector2(256, 64),
         MSAccumulation = new Vector2(256, 64),
-        AP = new Vector3(32, 32, 64)
+        AP = new Vector3(32, 32, 32)
       };
     case SkyTextureQuality.Ultra:
       return new SkyTextureResolution() {
