@@ -39,31 +39,20 @@ RW_TEXTURE2D(float3, _GI_RW);
 void T(uint3 id : SV_DispatchThreadID) {
   /* Get the uv for this id and unwrap it to a viewing angle and a
    * height. */
-  float u_r = (id.x + 0.5f) / float(_resT.x);
-  float u_mu = (id.y + 0.5f) / float(_resT.y);
-
-  float2 r_mu = unmapSky2DCoord(u_r, u_mu, _atmosphereRadius, _planetRadius, _resT.y);
-
+  float2 u_r_mu = (id.xy + 0.5f) / _resT.xy;
+  float2 r_mu = unmapSky2DCoord(u_r_mu.x, u_r_mu.y, _atmosphereRadius,
+    _planetRadius, _resT.y);
   float r = r_mu.x;
   float mu = r_mu.y;
 
   float3 O = float3(0, r, 0);
   float3 d = normalize(float3(safeSqrt(1 - mu * mu), mu, 0));
 
-  /* Trace a ray to see what we hit. */
-  SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
+  /* Trace a ray to see what we hit. We can use traceSkyVolumeValid() since
+   * our UV mapping guarantees that O will always be within the sky
+   * volume. */
+  SkyIntersectionData intersection = traceSkyVolumeValid(O, d, _planetRadius,
     _atmosphereRadius);
-
-  // /* Compute optical depth for all enabled atmosphere layers. */
-  //
-  // float3 power = float3(0, 0, 0);
-  // for (int i = 0; i < _numActiveLayers; i++) {
-  //   float opticalDepth = computeOpticalDepth(_layerDensityDistribution[i],
-  //     O, endPoint, _layerHeight[i], _layerThickness[i], _layerDensity[i],
-  //     _layerAttenuationBias[i], _layerAttenuationDistance[i],
-  //     _layerUseDensityAttenuation[i], _numTSamples);
-  //   power += opticalDepth * _layerCoefficientsA[i].xyz;
-  // }
 
   /* Compute transmittance from optical depth. */
   _T_RW[id.xy] = computeTransmittance(O, d, intersection.endT);
@@ -162,112 +151,55 @@ void LP(uint3 id : SV_DispatchThreadID) {
 void SS(uint3 id : SV_DispatchThreadID) {
   /* Get the uv for this id and unwrap it to a viewing angle and a
    * radial angle. */
-  float u_mu = (id.x + 0.5) / float(_resSS.x);
-  float u_theta = (id.y + 0.5) / float(_resSS.y);
-
+  float2 u_mu_theta = (id.xy + 0.5f) / _resSS.xy;
   float3 O = GetCameraPositionPlanetSpace();
   float r = length(O);
-
-  float2 mu_theta = unmapSkyRenderCoordinate(r, u_mu, u_theta,
+  float2 mu_theta = unmapSkyRenderCoordinate(r, u_mu_theta.x, u_mu_theta.y,
     _atmosphereRadius, _planetRadius, _resSS.x, _resSS.y);
-
   float3 d = mu_theta_to_d(mu_theta.x, mu_theta.y, O);
 
-  /* Check if we hit the ground. TODO: maybe just check against horizon
-   * angle? Hm. TODO: need to case out above atmo. */
   /* Trace a ray to see what we hit. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
 
+  /* Compute single scattering and store the shadowed result. */
   SSResult ss = computeSS(O, d, intersection.endT, intersection.endT, intersection.groundHit);
-
-  // _SS_RW[id.xy] = 0.99 * _SS_RW[id.xy] + 0.01 * ss.shadows;
   _SS_RW[id.xy] = ss.shadows;
 }
 
 [numthreads(4,4,4)]
 void AP(uint3 id : SV_DispatchThreadID) {
-  // TODO: diff between ground and sky is causing artifacts I think.
-  // need to clamp, or do some kind of thing like that? not sure.
-  // other thing though is that they follow the texture. when you look
-  // right at the horizon, there's a vertical line that sweep across
-  // with the vertical coordinate. and then there's the horizon coordinates.
-  // It's definitely some kind of mini-aliasing issue.
-  // The reason it's so big is because the AP texture is so low res. If I
-  // up the AP texture res, it gets thinner and thinner. It's probably only
-  // a pixel wide, again suggesting the aliasing issue.
-  // The other weird thing is that it seems to deal with thin atmo layers
-  // weirdly. I create a really thin layer, and then I point the camera at
-  // the ground, and somehow it creates fog at the top of the camera but
-  // not at the bottom? It creates fog on the mountain, where it shouldn't
-  // be. interesting. This suggests something with the frustum mapping
-  // for sure. Plus the resolution issue with the AP texture points to the
-  // fact that it's an issue there, not with the sky mapping.
-
-  // It's like, when I'm pointed up, it looks right, but it has the artifacts.
-  // And when I'm pointed down, it looks clearly wrong.
-
-  // Adjusting to a high FOV makes it easier to observe.
-
-  // A thin, dense, tent layer makes it extremely obvious that the frustum
-  // map is f-ed in some way as well.
-
-  // As a final note for tonight, changing the screen resolution just by
-  // dragging it changes how it fucks up. So there's 100% something fishy
-  // going on.
-
-  // A possible good place to start tomorrow would be manually displaying
-  // the frustum uv's at a fixed depth.
-
   /* Get the uv for this id and unwrap it to frustum coordinates. */
   float3 uvw = (id + 0.5) / _resAP.xyz;
   float4 xyz = unmapFrustumCoordinate(uvw);
-  float3 d = normalize(xyz.xyz); // TODO: normalize not necessary
-  // HACK
-  // if (d.y > 0.0 && d.y < 0.05) {
-  //   d.y = 0.05;
-  // }
-  // if (d.y < 0.0 && d.y > -0.05) {
-  //   d.y = -0.05;
-  // }
+  float3 d = xyz.xyz;
   float depth = xyz.w;
+
+  // HACK: Hack where we make sure we don't sample directly on the horizon
+  // line fixes remaining tiny artifacts. TODO: make this depend on the
+  // actual horizon and actual texture resolution.
+  d.y = (d.y > 0) ? clamp(d.y, 0.005, 1) : clamp(d.y, -0.005, 1);
 
   /* Compute SS between origin and depth in direction d. */
   float3 O = GetCameraPositionPlanetSpace();
-  /* Check if we hit the ground. TODO: maybe just check against horizon
-   * angle? Hm. TODO: need to case out above atmo. */
+  /* TODO: need to case out above atmo. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
   depth = min(depth, intersection.endT);
-
-  /* TODO: make samples tweakable? */
-  // SSResult ss = computeSS(O, d, min(depth, intersection.endT), intersection.endT, intersection.groundHit);
-  // float3 ms = computeMS(O, d, min(depth, intersection.endT), intersection.endT, intersection.groundHit);
-
-  SSResult ss = computeSS(O, d, depth, intersection.endT, intersection.groundHit);
-  float3 ms = computeMS(O, d, depth, intersection.endT, intersection.groundHit);
-  //
-  // SSResult ss = computeSS(O, d, depth, intersection.groundHit);
-  // float3 ms = computeMS(O, d, depth, intersection.groundHit);
+  // TODO: make samples tweakable?
+  SSResult ss = computeSS(O, d, min(depth, intersection.endT), intersection.endT, intersection.groundHit);
+  float3 ms = computeMS(O, d, min(depth, intersection.endT), intersection.endT, intersection.groundHit);
 
   /* Compute the transmittance between the 2 points. */
-  float muO = dot(normalize(O), d);
-  float2 oToSample = mapSky2DCoord(length(O), muO, _atmosphereRadius,
+  float2 oToSample = mapSky2DCoord(length(O),  dot(normalize(O), d), _atmosphereRadius,
     _planetRadius, intersection.endT, intersection.groundHit, _resT.y);
-  float3 T_oToSample = SAMPLE_TEXTURE2D_LOD(_T,
-    s_linear_clamp_sampler, oToSample, 0).xyz;
-
+  float3 T = sampleSkyTTextureRaw(oToSample);
   float depthSample = O + d * depth;
-  float muSample = dot(normalize(depthSample), d);
-  float2 sampleOut = mapSky2DCoord(length(depthSample), muSample, _atmosphereRadius,
+  float2 sampleOut = mapSky2DCoord(length(depthSample), dot(normalize(depthSample), d), _atmosphereRadius,
     _planetRadius, intersection.endT - depth, intersection.groundHit, _resT.y);
-  float3 T_sampleOut = SAMPLE_TEXTURE2D_LOD(_T,
-    s_linear_clamp_sampler, sampleOut, 0).xyz;
-  T_oToSample -= T_sampleOut;
+  T -= sampleSkyTTextureRaw(sampleOut);
 
-  _AP_RW[id] = float4(ss.shadows + ms, dot(float3(1, 1, 1)/3, T_oToSample));
-  // TODO: FRUSTUM DEBUG
-  // _AP_RW[id] = float4(depth, depth, depth, 1);
+  _AP_RW[id] = float4(ss.shadows + ms, dot(float3(1.0, 1.0, 1.0)/3.0, T));
 }
 
 [numthreads(8,1,1)]
@@ -324,14 +256,10 @@ void GI(uint3 id : SV_DispatchThreadID) {
 [numthreads(8,8,1)]
 void MS(uint3 id : SV_DispatchThreadID) {
   /* Unmap the uv coordinates to get the light direction and sample point. */
-  float u_r = (id.x + 0.5f) / float(_resMS.x);
-  float u_mu_l = (id.y + 0.5f) / float(_resMS.y);
-
-  float2 r_mu_l = unmapMSCoordinate(u_r, u_mu_l, _atmosphereRadius, _planetRadius);
-
+  float2 u_r_mu_l = (id.xy + 0.5f) / _resMS.xy;
+  float2 r_mu_l = unmapMSCoordinate(u_r_mu_l.x, u_r_mu_l.y, _atmosphereRadius, _planetRadius);
   float r = r_mu_l.x;
   float mu_l = r_mu_l.y;
-
   float3 O = float3(0, r, 0);
   float3 O_normalized = float3(0, 1, 0);
   float3 L = float3(safeSqrt(1 - mu_l * mu_l), mu_l, 0);
@@ -351,12 +279,12 @@ void MS(uint3 id : SV_DispatchThreadID) {
     float3 hitPoint = O + t_hit * d;
 
     /* Add ground albedo times the transmittance to the second order
-     * reflections if we hit the ground. */
+     * reflections if we hit the ground. TODO: still valid? */
     if (intersection.groundHit) {
       float mu = d.y;
       float2 groundUV = mapSky2DCoord(r, mu, _atmosphereRadius,
         _planetRadius, t_hit, true, _resT.y);
-      float3 groundTransmittance = computeSkyTransmittance(groundUV);
+      float3 groundTransmittance = sampleSkyTTexture(groundUV);
       float3 groundAlbedo = 2 * _groundTint.xyz / PI;
       secondOrder += groundTransmittance * groundAlbedo
         * saturate(dot(L, normalize(hitPoint)));
@@ -381,19 +309,14 @@ void MS(uint3 id : SV_DispatchThreadID) {
 void MSAcc(uint3 id : SV_DispatchThreadID) {
   /* Get the uv for this id and unwrap it to a viewing angle and a
    * radial angle. */
-  float u_mu = (id.x + 0.5) / float(_resSS.x);
-  float u_theta = (id.y + 0.5) / float(_resSS.y);
-
+  float2 u_mu_theta = (id.xy + 0.5f) / _resMSAcc.xy;
   float3 O = GetCameraPositionPlanetSpace();
-  float r = length(O);
-
-  float2 mu_theta = unmapSkyRenderCoordinate(r, u_mu, u_theta,
-    _atmosphereRadius, _planetRadius, _resSS.x, _resSS.y);
+  float2 mu_theta = unmapSkyRenderCoordinate(length(O), u_mu_theta.x, u_mu_theta.y,
+    _atmosphereRadius, _planetRadius, _resMSAcc.x, _resMSAcc.y);
 
   float3 d = mu_theta_to_d(mu_theta.x, mu_theta.y, O);
 
-  /* Check if we hit the ground. TODO: maybe just check against horizon
-   * angle? Hm. TODO: need to case out above atmo. */
+  /* TODO: Need to case out above atmo. */
   /* Trace a ray to see what we hit. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);

@@ -35,19 +35,16 @@ struct SSLayersResult {
 };
 
 SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit, bool groundHit, float3 L) {
-  SSLayersResult result; // final result
 
-  float mu = dot(normalize(O), d);
+  /* Final result */
+  SSLayersResult result;
 
-  float2 oToSample = mapSky2DCoord(length(O), mu, _atmosphereRadius,
-    _planetRadius, t_hit, groundHit, _resT.y);
+  /* Precompute transmittance in direction d to edge of atmosphere. */
+  float2 oToSample = mapSky2DCoord(length(O), dot(normalize(O), d),
+  _atmosphereRadius, _planetRadius, t_hit, groundHit, _resT.y);
+  float3 T_oOut = sampleSkyTTextureRaw(oToSample);
 
-  /* Compute transmittance from O to sample point, and then from sample
-   * point through to the light hit. */
-  // float3 T_oOut = computeTransmittance(O, d, t_hit);
-  float3 T_oOut = SAMPLE_TEXTURE2D_LOD(_T,
-    s_linear_clamp_sampler, oToSample, 0).xyz;
-
+  /* Initialize accumulators to zero. */
   float scaledDensity[MAX_LAYERS];
   for (int j = 0; j < _numActiveLayers; j++) {
     scaledDensity[j] = 0;
@@ -56,19 +53,15 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit, bool
   }
 
   for (int i = 0; i < _numSSSamples; i++) {
-    float sampleT = 0.0;
-    float ds = 0.0;
+    /* Generate the sample. */
+    float2 t_ds;
     if (_useImportanceSampling) {
-      float2 t_ds = generateCubicSampleFromIndex(i, _numSSSamples);
-      sampleT = t_ds.x * dist;
-      ds = t_ds.y;
+      t_ds = generateCubicSampleFromIndex(i, _numSSSamples);
     } else {
-      /* Distribute linearly. */
-      float2 t_ds = generateLinearSampleFromIndex(i, _numSSSamples);
-      sampleT = t_ds.x * dist;
-      ds = t_ds.y;
+      t_ds = generateLinearSampleFromIndex(i, _numSSSamples);
     }
-
+    float sampleT = t_ds.x * dist;
+    float ds = t_ds.y;
     float3 samplePoint = O + d * sampleT;
     float3 normalizedSamplePoint = normalize(samplePoint);
 
@@ -82,14 +75,11 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit, bool
 
     /* Our transmittance value for O to the sample point is too large---we
      * need to divide out the transmittance from the sample point to the
-     * atmosphere, or ground, depending on what we hit. */
+     * atmosphere edge (or ground). */
     float2 sampleOut = mapSky2DCoord(length(samplePoint),
       clampCosine(dot(normalizedSamplePoint, d)), _atmosphereRadius,
       _planetRadius, t_hit - sampleT, groundHit, _resT.y);
-    float3 T_sampleOut = SAMPLE_TEXTURE2D_LOD(_T,
-      s_linear_clamp_sampler, sampleOut, 0).xyz;
-    // float3 T_sampleOut = computeTransmittance(samplePoint, d, t_hit - sampleT);
-    float3 T_oToSample = T_oOut - T_sampleOut;
+    float3 T_oToSample = T_oOut - sampleSkyTTextureRaw(sampleOut);
 
     for (int j = 0; j < _numActiveLayers; j++) {
       result.noShadows[j] += scaledDensity[j] * saturate(exp(T_oToSample));
@@ -98,25 +88,14 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit, bool
     /* Trace a ray from the sample point to the light to check visibility. */
     SkyIntersectionData lightIntersection = traceSkyVolume(samplePoint,
       L, _planetRadius, _atmosphereRadius);
-
-      // DEBUG
-    // for (int j = 0; j < _numActiveLayers; j++) {
-    //   result.shadows[j] += scaledDensity[j] * saturate(exp(T_oToSample));
-    // }
-
     if (!lightIntersection.groundHit) {
-      float3 lightEndPoint = samplePoint + L * lightIntersection.endT;
-      float t_light_hit = lightIntersection.endT;
-
-      /* Compute the light transmittance to the sample point. */
+      /* Compute transmittance from the sample to the light hit point and add
+       * it to the total transmittance. */
       float2 sampleToL = mapSky2DCoord(length(samplePoint),
         clampCosine(dot(normalizedSamplePoint, L)), _atmosphereRadius,
-        _planetRadius, t_light_hit, lightIntersection.groundHit, _resT.y);
-      /* Compute transmittance through sample to light hit point. */
-      float3 T_sampleToL = SAMPLE_TEXTURE2D_LOD(_T,
-        s_linear_clamp_sampler, sampleToL, 0).xyz;
+        _planetRadius, lightIntersection.endT, lightIntersection.groundHit, _resT.y);
+      float3 T = exp(T_oToSample + sampleSkyTTextureRaw(sampleToL));
 
-      float3 T = saturate(exp(T_oToSample + T_sampleToL));
       for (int j = 0; j < _numActiveLayers; j++) {
         result.shadows[j] += scaledDensity[j] * T;
       }
@@ -124,6 +103,7 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit, bool
   }
 
   return result;
+
 }
 
 struct SSResult {
@@ -131,11 +111,10 @@ struct SSResult {
   float3 noShadows;
 };
 
-// Doesn't use phase function or light color. TODO: pass in # of samples
-// to computeSSLayers and make tweakable.
+/* Doesn't use phase function or light color. TODO: pass in # of samples
+ * to computeSSLayers and make tweakable. */
 SSResult computeSSForMS(float3 O, float3 d, float dist, float t_hit, bool groundHit, float3 L) {
   SSLayersResult ssLayers = computeSSLayers(O, d, dist, t_hit, groundHit, L);
-  float dot_L_d = dot(L, d);
   SSResult result;
   result.shadows = float3(0, 0, 0);
   result.noShadows = float3(0, 0, 0);
@@ -170,7 +149,6 @@ SSResult computeSS(float3 O, float3 d, float dist, float t_hit, bool groundHit) 
   for (int i = 0; i < _numActiveBodies; i++) {
     SSResult bodySS = computeSSBody(O, d, dist, t_hit, groundHit, _bodyDirection[i], _bodyLightColor[i]);
     result.shadows += bodySS.shadows;
-    // result.shadows += 500 * (d+1); // DEBUG
     result.noShadows += bodySS.noShadows;
   }
   return result;
@@ -198,28 +176,23 @@ MSLayersResult computeMSLayers(float3 O, float3 d, float dist, float t_hit, bool
   }
 
   for (int i = 0; i < _numMSAccumulationSamples; i++) {
-    float sampleT = 0.0;
-    float ds = 0.0;
+    /* Get the sample point. */
+    float2 t_ds;
     if (_useImportanceSampling) {
-      float2 t_ds = generateCubicSampleFromIndex(i, _numMSAccumulationSamples);
-      sampleT = dist * t_ds.x;
-      ds = t_ds.y;
+      t_ds = generateCubicSampleFromIndex(i, _numMSAccumulationSamples);
     } else {
-      /* Distribute linearly. */
-      float2 t_ds = generateLinearSampleFromIndex(i, _numMSAccumulationSamples);
-      sampleT = dist * t_ds.x;
-      ds = t_ds.y;
+      t_ds = generateLinearSampleFromIndex(i, _numMSAccumulationSamples);
     }
+    float sampleT = dist * t_ds.x;
+    float ds = t_ds.y;
 
+    /* Sample multiple scattering table. */
     float3 samplePoint = O + d * sampleT;
+    float2 msUV = mapMSCoordinate(length(samplePoint),
+      dot(normalize(samplePoint), L), _atmosphereRadius, _planetRadius);
+    float3 msContrib = sampleSkyMSTexture(msUV);
 
-    float r_sample = length(samplePoint);
-    float mu_l_sample = dot(normalize(samplePoint), L);
-    float2 msUV = mapMSCoordinate(r_sample, mu_l_sample,
-      _atmosphereRadius, _planetRadius);
-    float3 msContrib = SAMPLE_TEXTURE2D_LOD(_MS, s_linear_clamp_sampler, msUV, 0).xyz;
-
-    /* Compute the scaled density of the layer at the sample point. test */
+    /* Compute the scaled density of the layer at the sample point. */
     for (int j = 0; j < _numActiveLayers; j++) {
       float scaledDensity = ds * computeDensity(_layerDensityDistribution[j],
         samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
@@ -235,13 +208,12 @@ MSLayersResult computeMSLayers(float3 O, float3 d, float dist, float t_hit, bool
 float3 computeMSBody(float3 O, float3 d, float dist, float t_hit, bool groundHit, float3 L,
   float3 lightColor) {
   MSLayersResult msLayers = computeMSLayers(O, d, dist, t_hit, groundHit, L);
-  float dot_L_d = dot(L, d);
   float3 result = float3(0, 0, 0);
   for (int i = 0; i < _numActiveLayers; i++) {
     result += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz)
       * (msLayers.shadows[i] * _layerMultipleScatteringMultiplier[i]) * dist;
   }
-  return result *= lightColor;
+  return result * lightColor;
 }
 
 

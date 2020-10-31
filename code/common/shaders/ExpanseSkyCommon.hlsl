@@ -184,7 +184,6 @@ struct SkyIntersectionData {
   bool groundHit, atmoHit;
 };
 
-
 /* Traces a ray starting at point O in direction d. Returns information
  * about where the ray hit on the ground/on the boundary of the atmosphere. */
 SkyIntersectionData traceSkyVolume(float3 O, float3 d, float planetRadius,
@@ -233,6 +232,38 @@ SkyIntersectionData traceSkyVolume(float3 O, float3 d, float planetRadius,
     }
     /* If we haven't hit the atmosphere, we leave everything uninitialized,
      * since this ray just goes out into space. */
+  }
+
+  return toRet;
+}
+
+/* Traces a ray starting at point O in direction d. Returns information
+ * about where the ray hit on the ground/on the boundary of the atmosphere.
+ * This is an acceleration for the case when it is known that O is within
+ * the sky volume. */
+SkyIntersectionData traceSkyVolumeValid(float3 O, float3 d, float planetRadius,
+  float atmosphereRadius) {
+  /* Perform raw sphere intersections. */
+  float3 t_ground = intersectSphere(O, d, planetRadius);
+  float3 t_atmo = intersectSphere(O, d, atmosphereRadius);
+
+  SkyIntersectionData toRet = {0, 0, false, false};
+
+  /* We have a hit if the intersection was succesful and if either point
+   * is greater than zero (meaning we are in front of the ray, and not
+   * behind it). */
+  toRet.groundHit = t_ground.z >= 0.0 && (t_ground.x >= 0.0 || t_ground.y >= 0.0);
+  toRet.atmoHit = t_atmo.z >= 0.0 && (t_atmo.x >= 0.0 || t_atmo.y >= 0.0);
+
+  /* We are below the atmosphere boundary, and we will start our raymarch
+   * at the origin point, which is already set. */
+  if (toRet.groundHit) {
+    /* We have hit the ground, and will end our raymarch at the first
+     * positive ground hit. */
+    toRet.endT = minNonNegative(t_ground.x, t_ground.y);
+  } else {
+    /* We will end our raymarch at the first positive atmosphere hit. */
+    toRet.endT = minNonNegative(t_atmo.x, t_atmo.y);
   }
 
   return toRet;
@@ -415,33 +446,35 @@ float computePhase(float dot_L_d, float anisotropy, int type) {
 /***************************** TEXTURE SAMPLERS *******************************/
 /******************************************************************************/
 
-/* Given uv coodinate representing direction, computes sky transmittance. */
-float3 computeSkyTransmittance(float2 uv) {
+float3 sampleSkyTTexture(float2 uv) {
   return exp(SAMPLE_TEXTURE2D_LOD(_T, s_point_clamp_sampler, uv, 0).xyz);
 }
 
-/* Given uv coodinate representing direction, computes sky transmittance. */
-float3 computeSkyTransmittanceRaw(float2 uv) {
+float3 sampleSkyTTextureRaw(float2 uv) {
   return SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler, uv, 0).xyz;
 }
 
-float3 sampleSSTexture(float2 uv) {
+float3 sampleSkySSTexture(float2 uv) {
   return SAMPLE_TEXTURE2D_LOD(_SS, s_linear_clamp_sampler, uv, 0).xyz;
 }
 
-float3 sampleMSAccTexture(float2 uv) {
+float3 sampleSkyMSTexture(float2 uv) {
+  return SAMPLE_TEXTURE2D_LOD(_MS, s_linear_clamp_sampler, uv, 0).xyz;
+}
+
+float3 sampleSkyMSAccTexture(float2 uv) {
   return SAMPLE_TEXTURE2D_LOD(_MSAcc, s_linear_clamp_sampler, uv, 0).xyz;
 }
 
-float4 sampleAPTexture(float3 uv) {
+float4 sampleSkyAPTexture(float3 uv) {
   return SAMPLE_TEXTURE3D_LOD(_AP, s_linear_clamp_sampler, uv, 0);
 }
 
-float3 sampleGITexture(float2 uv, int i) {
+float3 sampleSkyGITexture(float2 uv, int i) {
   return SAMPLE_TEXTURE2D_ARRAY_LOD(_GI, s_linear_clamp_sampler, uv, i, 0).xyz;
 }
 
-float3 sampleLPTexture(float2 uv, int i) {
+float3 sampleSkyLPTexture(float2 uv, int i) {
   return SAMPLE_TEXTURE2D_ARRAY_LOD(_LP, s_linear_clamp_sampler, uv, i, 0).xyz;
 }
 
