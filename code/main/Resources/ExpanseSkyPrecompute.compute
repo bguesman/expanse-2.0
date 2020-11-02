@@ -74,7 +74,7 @@ void SS(uint3 id : SV_DispatchThreadID) {
     _atmosphereRadius);
 
   /* Compute single scattering and store the shadowed result. */
-  SSResult ss = computeSS(O, d, intersection.endT, intersection.endT, intersection.groundHit, 1.0, false);
+  SSResult ss = computeSS(O, d, intersection.endT, intersection.endT, intersection.groundHit, 1.0, false, _numSSSamples, _useImportanceSampling);
   _SS_RW[id.xy] = ss.shadows;
 }
 
@@ -102,9 +102,9 @@ void AP(uint3 id : SV_DispatchThreadID) {
   depth = min(depth, intersection.endT);
   // TODO: make samples tweakable?
   SSResult ss = computeSS(O, d, depth, intersection.endT, intersection.groundHit,
-    _aerialPerspectiveNightScatteringMultiplier, true);
+    _aerialPerspectiveNightScatteringMultiplier, true, _numAPSamples, _aerialPerspectiveUseImportanceSampling);
   float3 ms = computeMS(O, d, depth, intersection.endT, intersection.groundHit,
-    _aerialPerspectiveNightScatteringMultiplier);
+    _aerialPerspectiveNightScatteringMultiplier, _numAPSamples, _aerialPerspectiveUseImportanceSampling);
 
   /* Compute the transmittance between the 2 points. */
   float2 oToSample = mapSky2DCoord(r, dot(normalize(O), d), _atmosphereRadius,
@@ -156,7 +156,7 @@ void MS(uint3 id : SV_DispatchThreadID) {
     }
 
     /* Compute single scattering. */
-    SSResult ss = computeSSForMS(O, d, t_hit, t_hit, intersection.groundHit, L);
+    SSResult ss = computeSSForMS(O, d, t_hit, t_hit, intersection.groundHit, L, _numMSAccumulationSamples, _useImportanceSampling);
     secondOrder += ss.shadows / (4 * PI);
     transferFunction += ss.noShadows;
   }
@@ -195,5 +195,5 @@ void MSAcc(uint3 id : SV_DispatchThreadID) {
     _atmosphereRadius);
 
   // TODO: tweakable
-  _MSAcc_RW[id.xy] = computeMS(O, d, intersection.endT, intersection.endT, intersection.groundHit, 1.0);
+  _MSAcc_RW[id.xy] = computeMS(O, d, intersection.endT, intersection.endT, intersection.groundHit, 1.0, _numMSAccumulationSamples, _useImportanceSampling);
 }

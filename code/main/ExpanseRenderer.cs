@@ -719,7 +719,7 @@ private void setGlobalCBuffer(BuiltinSkyParameters builtinParams) {
   setGlobalCBufferPlanet(builtinParams.commandBuffer, sky);
 
   /* Atmosphere. */
-  setGlobalCBufferAtmosphereLayers(builtinParams.commandBuffer, sky);
+  setGlobalCBufferAtmosphereLayers(builtinParams.commandBuffer, sky, builtinParams.worldSpaceCameraPos);
 
   /* Celestial bodies. */
   setGlobalCBufferCelestialBodies(builtinParams.commandBuffer, sky);
@@ -769,7 +769,7 @@ private void setGlobalCBufferPlanet(CommandBuffer cmd, Expanse sky) {
   }
 }
 
-private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, Expanse sky) {
+private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, Expanse sky, Vector3 cameraPos) {
 
   int n = (int) ExpanseCommon.kMaxAtmosphereLayers;
 
@@ -781,7 +781,7 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, Expanse sky) {
   float[] layerPhaseFunction = new float[n]; /* Should be int, but unity can only set float arrays. */
   float[] layerAnisotropy = new float[n];
   float[] layerDensity = new float[n];
-  float[] layerUseDensityAttenuation = new float[n];
+  Vector4[] layerDensityAttenuationOrigin = new Vector4[n];
   float[] layerAttenuationDistance = new float[n];
   float[] layerAttenuationBias = new float[n];
   Vector4[] layerTint = new Vector4[n];
@@ -805,11 +805,17 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, Expanse sky) {
       layerPhaseFunction[numActiveLayers] = (float) ((EnumParameter<ExpanseCommon.PhaseFunction>) sky.GetType().GetField("layerPhaseFunction" + i).GetValue(sky)).value;
       layerAnisotropy[numActiveLayers] = ((ClampedFloatParameter) sky.GetType().GetField("layerAnisotropy" + i).GetValue(sky)).value;
       layerDensity[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerDensity" + i).GetValue(sky)).value;
-      layerUseDensityAttenuation[numActiveLayers] = ((BoolParameter) sky.GetType().GetField("layerUseDensityAttenuation" + i).GetValue(sky)).value ? 1 : 0;
+      if (((BoolParameter) sky.GetType().GetField("layerDensityAttenuationPlayerOrigin" + i).GetValue(sky)).value) {
+        layerDensityAttenuationOrigin[numActiveLayers] = cameraPos;
+      } else {
+        layerDensityAttenuationOrigin[numActiveLayers] = ((Vector3Parameter) sky.GetType().GetField("layerDensityAttenuationOrigin" + i).GetValue(sky)).value;
+      }
+      // Conver to planet space.
+      layerDensityAttenuationOrigin[numActiveLayers] += new Vector4(0, sky.planetRadius.value, 0, 0);
       layerAttenuationDistance[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationDistance" + i).GetValue(sky)).value;
       layerAttenuationBias[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationBias" + i).GetValue(sky)).value;
       layerTint[numActiveLayers] = ((ColorParameter) sky.GetType().GetField("layerTint" + i).GetValue(sky)).value;
-        layerMultipleScatteringMultiplier[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerMultipleScatteringMultiplier" + i).GetValue(sky)).value;
+      layerMultipleScatteringMultiplier[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerMultipleScatteringMultiplier" + i).GetValue(sky)).value;
 
       numActiveLayers++;
     }
@@ -824,7 +830,7 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, Expanse sky) {
   cmd.SetGlobalFloatArray("_layerPhaseFunction", layerPhaseFunction);
   cmd.SetGlobalFloatArray("_layerAnisotropy", layerAnisotropy);
   cmd.SetGlobalFloatArray("_layerDensity", layerDensity);
-  cmd.SetGlobalFloatArray("_layerUseDensityAttenuation", layerUseDensityAttenuation);
+  cmd.SetGlobalVectorArray("_layerDensityAttenuationOrigin", layerDensityAttenuationOrigin);
   cmd.SetGlobalFloatArray("_layerAttenuationDistance", layerAttenuationDistance);
   cmd.SetGlobalFloatArray("_layerAttenuationBias", layerAttenuationBias);
   cmd.SetGlobalVectorArray("_layerTint", layerTint);
@@ -1027,7 +1033,9 @@ private void setGlobalCBufferQuality(CommandBuffer cmd, Expanse sky) {
   cmd.SetGlobalInt("_numSSSamples", sky.numberOfSingleScatteringSamples.value);
   cmd.SetGlobalInt("_numMSSamples", sky.numberOfMultipleScatteringSamples.value);
   cmd.SetGlobalInt("_numMSAccumulationSamples", sky.numberOfMultipleScatteringAccumulationSamples.value);
+  cmd.SetGlobalInt("_numAPSamples", sky.numberOfAerialPerspectiveSamples.value);
   cmd.SetGlobalFloat("_useImportanceSampling", sky.useImportanceSampling.value ? 1 : 0);
+  cmd.SetGlobalFloat("_aerialPerspectiveUseImportanceSampling", sky.aerialPerspectiveUseImportanceSampling.value ? 1 : 0);
   cmd.SetGlobalFloat("_useAntiAliasing", sky.useAntiAliasing.value ? 1 : 0);
   cmd.SetGlobalFloat("_aerialPerspectiveDepthSkew", sky.aerialPerspectiveDepthSkew.value);
   cmd.SetGlobalFloat("_ditherAmount", sky.ditherAmount.value);
@@ -1107,13 +1115,13 @@ private void setMaterialPropertyBlockCelestialBodies(Expanse sky) {
       Texture albedoTexture = ((CubemapParameter) sky.GetType().GetField("bodyAlbedoTexture" + i).GetValue(sky)).value;
       bodyAlbedoTextureEnabled[numActiveBodies] = (albedoTexture == null) ? 0 : 1;
       if (albedoTexture != null) {
-        m_PropertyBlock.SetTexture("_bodyAlbedoTexture" + i, albedoTexture);
+        m_PropertyBlock.SetTexture("_bodyAlbedoTexture" + numActiveBodies, albedoTexture);
       }
 
       Texture emissionTexture = ((CubemapParameter) sky.GetType().GetField("bodyEmissionTexture" + i).GetValue(sky)).value;
       bodyEmissionTextureEnabled[numActiveBodies] = (emissionTexture == null) ? 0 : 1;
       if (emissionTexture != null) {
-        m_PropertyBlock.SetTexture("_bodyEmissionTexture" + i, emissionTexture);
+        m_PropertyBlock.SetTexture("_bodyEmissionTexture" + numActiveBodies, emissionTexture);
       }
 
       numActiveBodies++;

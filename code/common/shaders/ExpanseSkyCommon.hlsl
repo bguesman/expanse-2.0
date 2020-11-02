@@ -32,7 +32,7 @@ float _layerThickness[MAX_LAYERS];
 float _layerPhaseFunction[MAX_LAYERS];
 float _layerAnisotropy[MAX_LAYERS];
 float _layerDensity[MAX_LAYERS];
-bool _layerUseDensityAttenuation[MAX_LAYERS];
+float4 _layerDensityAttenuationOrigin[MAX_LAYERS];
 float _layerAttenuationDistance[MAX_LAYERS];
 float _layerAttenuationBias[MAX_LAYERS];
 float4 _layerTint[MAX_LAYERS];
@@ -62,7 +62,9 @@ int _numLPSamples;
 int _numSSSamples;
 int _numMSSamples;
 int _numMSAccumulationSamples;
+int _numAPSamples;
 bool _useImportanceSampling;
+bool _aerialPerspectiveUseImportanceSampling;
 bool _useAntiAliasing;
 float _aerialPerspectiveDepthSkew;
 float _ditherAmount;
@@ -371,6 +373,10 @@ float2 generateCubicSampleFromIndex(int i, int numberOfSamples) {
 /************************** DENSITY DISTRIBUTIONS *****************************/
 /******************************************************************************/
 
+bool useDensityAttenuation(int densityDistribution) {
+  return densityDistribution == 2;
+}
+
 /* Computes density at a point for exponentially distributed atmosphere.
  * Assumes the planet is centered at the origin. */
 float computeDensityExponential(float3 p, float thickness, float density) {
@@ -397,16 +403,16 @@ float computeDensityTent(float3 p, float height, float thickness, float density)
 }
 
 float computeDensity(int densityDistribution, float3 p, float height,
-  float thickness, float density, bool useAtten, float dist, float attenBias, float attenDistance) {
-  float atten = 1.0;
-  if (useAtten) {
-    atten = saturate(exp(-(dist - attenBias)/attenDistance));
-  }
+  float thickness, float density, float dist, float attenBias, float attenDistance) {
   switch (densityDistribution) {
     case 0:
-      return atten * computeDensityExponential(p, thickness, density);
+      return computeDensityExponential(p, thickness, density);
     case 1:
-      return atten * computeDensityTent(p, height, thickness, density);
+      return computeDensityTent(p, height, thickness, density);
+    case 2: {
+      float atten = saturate(exp(-(dist - attenBias)/attenDistance));
+      return atten * computeDensityExponential(p, thickness, density);
+    }
     default:
       return 0;
   }
@@ -414,7 +420,7 @@ float computeDensity(int densityDistribution, float3 p, float height,
 
 float computeOpticalDepth(int densityDistribution, float3 O, float3 endPoint,
   float height, float thickness, float density, float attenBias,
-  float attenDistance, bool useAtten, float3 attenuationPoint, int samples) {
+  float attenDistance, float3 attenuationPoint, int samples) {
   /* Only use importance sampling if we use exponential distribution. */
   bool importanceSample = _useImportanceSampling && (densityDistribution == 0);
   // Evaluate integral over curved planet with a midpoint integrator.
@@ -432,7 +438,7 @@ float computeOpticalDepth(int densityDistribution, float3 O, float3 endPoint,
 
     /* Accumulate the density at that point. */
     acc += computeDensity(densityDistribution, pt, height, thickness,
-      density, useAtten, length(attenuationPoint - pt), attenBias, attenDistance)
+      density, length(attenuationPoint - pt), attenBias, attenDistance)
       * t_ds.y * length_d;
   }
   return acc;

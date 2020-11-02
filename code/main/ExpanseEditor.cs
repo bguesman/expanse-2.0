@@ -70,7 +70,9 @@ SerializedDataParameter[] layerPhaseFunction
   = new SerializedDataParameter[ExpanseCommon.kMaxAtmosphereLayers];
 SerializedDataParameter[] layerAnisotropy
   = new SerializedDataParameter[ExpanseCommon.kMaxAtmosphereLayers];
-SerializedDataParameter[] layerUseDensityAttenuation
+SerializedDataParameter[] layerDensityAttenuationPlayerOrigin
+  = new SerializedDataParameter[ExpanseCommon.kMaxAtmosphereLayers];
+SerializedDataParameter[] layerDensityAttenuationOrigin
   = new SerializedDataParameter[ExpanseCommon.kMaxAtmosphereLayers];
 SerializedDataParameter[] layerDensity
   = new SerializedDataParameter[ExpanseCommon.kMaxAtmosphereLayers];
@@ -466,18 +468,21 @@ private void atmosphereLayer(UnityEngine.GUIStyle titleStyle,
     }
     PropertyField(layerThickness[atmosphereSelectIndex], new UnityEngine.GUIContent("Thickness"));
 
+    if ((ExpanseCommon.DensityDistribution) layerDensityDistribution[atmosphereSelectIndex].value.enumValueIndex == ExpanseCommon.DensityDistribution.ExponentialAttenuated) {
+      PropertyField(layerDensityAttenuationPlayerOrigin[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuate From Camera Position"));
+      if (!layerDensityAttenuationPlayerOrigin[atmosphereSelectIndex].value.boolValue) {
+        PropertyField(layerDensityAttenuationOrigin[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuation Origin"));
+      }
+      /* Only display density attenuation parameters if we use density attenuation. */
+      PropertyField(layerAttenuationDistance[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuation Distance"));
+      PropertyField(layerAttenuationBias[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuation Bias"));
+    }
+
     /* Phase function selection dropdown. */
     PropertyField(layerPhaseFunction[atmosphereSelectIndex], new UnityEngine.GUIContent("Layer Phase Function"));
     if ((ExpanseCommon.PhaseFunction) layerPhaseFunction[atmosphereSelectIndex].value.enumValueIndex == ExpanseCommon.PhaseFunction.Mie) {
       /* Only display anisotropy control if Mie scattering is enabled. */
       PropertyField(layerAnisotropy[atmosphereSelectIndex], new UnityEngine.GUIContent("Anisotropy"));
-    }
-
-    PropertyField(layerUseDensityAttenuation[atmosphereSelectIndex], new UnityEngine.GUIContent("Density Attenuation"));
-    if (layerUseDensityAttenuation[atmosphereSelectIndex].value.boolValue) {
-      /* Only display density attenuation parameters if we use density attenuation. */
-      PropertyField(layerAttenuationDistance[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuation Distance"));
-      PropertyField(layerAttenuationBias[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuation Bias"));
     }
 
     PropertyField(layerTint[atmosphereSelectIndex], new UnityEngine.GUIContent("Tint"));
@@ -829,7 +834,8 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     layerPhaseFunction[i] = Unpack(o.Find("layerPhaseFunction" + i));
     layerAnisotropy[i] = Unpack(o.Find("layerAnisotropy" + i));
     layerDensity[i] = Unpack(o.Find("layerDensity" + i));
-    layerUseDensityAttenuation[i] = Unpack(o.Find("layerUseDensityAttenuation" + i));
+    layerDensityAttenuationPlayerOrigin[i] = Unpack(o.Find("layerDensityAttenuationPlayerOrigin" + i));
+    layerDensityAttenuationOrigin[i] = Unpack(o.Find("layerDensityAttenuationOrigin" + i));
     layerAttenuationDistance[i] = Unpack(o.Find("layerAttenuationDistance" + i));
     layerAttenuationBias[i] = Unpack(o.Find("layerAttenuationBias" + i));
     layerTint[i] = Unpack(o.Find("layerTint" + i));

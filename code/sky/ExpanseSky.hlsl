@@ -10,11 +10,10 @@ float3 computeTransmittance(float3 O, float3 d, float endT) {
   float3 endPoint = O + d * endT;
   float3 power = float3(0, 0, 0);
   for (int i = 0; i < _numActiveLayers; i++) {
-    if (!_layerUseDensityAttenuation[i]) {
+    if (!useDensityAttenuation(_layerDensityDistribution[i])) {
       float opticalDepth = computeOpticalDepth(_layerDensityDistribution[i],
         O, endPoint, _layerHeight[i], _layerThickness[i], _layerDensity[i],
-        _layerAttenuationBias[i], _layerAttenuationDistance[i],
-        _layerUseDensityAttenuation[i], O, _numTSamples);
+        _layerAttenuationBias[i], _layerAttenuationDistance[i], O, _numTSamples);
       power += opticalDepth * _layerCoefficientsA[i].xyz;
     }
   }
@@ -22,14 +21,15 @@ float3 computeTransmittance(float3 O, float3 d, float endT) {
 }
 
 /* P is the point to compute distance to attenuate from. */
-float3 computeTransmittanceDensityAttenuation(float3 O, float3 d, float endT, float P) {
+float3 computeTransmittanceDensityAttenuation(float3 O, float3 d, float endT) {
   /* Integrate analytically. TODO: doesn't work for tent function yet. */
   float3 power = float3(0, 0, 0);
   for (int i = 0; i < _numActiveLayers; i++) {
-    if (_layerUseDensityAttenuation[i]) {
+    if (useDensityAttenuation(_layerDensityDistribution[i])) {
       float m = _layerAttenuationDistance[i];
       float k = _layerAttenuationBias[i];
       float H = _layerThickness[i];
+      float3 P = _layerDensityAttenuationOrigin[i];
       float3 deltaPO = O - P;
       float a = 1 / (m * m);
       float b = ((-2 * dot(deltaPO, d)) / (m * m)) - (dot(d, normalize(O)) / H);
@@ -39,6 +39,7 @@ float3 computeTransmittanceDensityAttenuation(float3 O, float3 d, float endT, fl
       float erf_0 = erf((-b) / (2 * safeSqrt(a)));
       float opticalDepth = _layerDensity[i] * prefactor * (erf_f - erf_0);
 
+      /* The max here should be unnecessary, but it's a good sanity check. */
       power += max(opticalDepth * _layerCoefficientsA[i].xyz, 0);
     }
   }
@@ -66,7 +67,7 @@ struct SSLayersResult {
 // and for the rest of the sky, since frequently importance sampling for
 // aerial perspective is a bad idea.
 SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
-  bool groundHit, float3 L, bool useOcclusionMultiplier) {
+  bool groundHit, float3 L, bool useOcclusionMultiplier, int numSamples, bool useImportanceSampling) {
 
   /* Final result */
   SSLayersResult result;
@@ -84,13 +85,13 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
     result.noShadows[j] = float3(0, 0, 0);
   }
 
-  for (int i = 0; i < _numSSSamples; i++) {
+  for (int i = 0; i < numSamples; i++) {
     /* Generate the sample. */
     float2 t_ds;
-    if (_useImportanceSampling) {
-      t_ds = generateCubicSampleFromIndex(i, _numSSSamples);
+    if (useImportanceSampling) {
+      t_ds = generateCubicSampleFromIndex(i, numSamples);
     } else {
-      t_ds = generateLinearSampleFromIndex(i, _numSSSamples);
+      t_ds = generateLinearSampleFromIndex(i, numSamples);
     }
     float sampleT = t_ds.x * dist;
     float ds = t_ds.y;
@@ -101,8 +102,7 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
     for (int j = 0; j < _numActiveLayers; j++) {
       scaledDensity[j] = ds * computeDensity(_layerDensityDistribution[j],
         samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
-        _layerUseDensityAttenuation[j], sampleT, _layerAttenuationBias[j],
-        _layerAttenuationDistance[j]);
+        length(samplePoint - _layerDensityAttenuationOrigin[j]), _layerAttenuationBias[j], _layerAttenuationDistance[j]);
     }
 
     /* Our transmittance value for O to the sample point is too large---we
@@ -113,7 +113,7 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
       _planetRadius, t_hit - sampleT, groundHit, _resT.y);
     // float3 T_oToSample = T_oOut - sampleSkyTTextureRaw(sampleOut);
     float3 T_oToSample = T_oOut - sampleSkyTTextureRaw(sampleOut) +
-      computeTransmittanceDensityAttenuation(O, d, sampleT, O);
+      computeTransmittanceDensityAttenuation(O, d, sampleT);
 
     for (int j = 0; j < _numActiveLayers; j++) {
       result.noShadows[j] += scaledDensity[j] * saturate(exp(T_oToSample));
@@ -130,7 +130,7 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
         _planetRadius, lightIntersection.endT, lightIntersection.groundHit, _resT.y);
       // float3 T = exp(T_oToSample + sampleSkyTTextureRaw(sampleToL));
       float3 T = exp(T_oToSample + sampleSkyTTextureRaw(sampleToL) +
-        computeTransmittanceDensityAttenuation(samplePoint, L, lightIntersection.endT, O));
+        computeTransmittanceDensityAttenuation(samplePoint, L, lightIntersection.endT));
 
       for (int j = 0; j < _numActiveLayers; j++) {
         result.shadows[j] += scaledDensity[j] * T;
@@ -167,8 +167,9 @@ struct SSResult {
 };
 
 SSResult computeSSBody(float3 O, float3 d, float dist, float t_hit, bool groundHit, float3 L,
-  float3 lightColor, bool useOcclusionMultiplier) {
-  SSLayersResult ssLayers = computeSSLayers(O, d, dist, t_hit, groundHit, L, useOcclusionMultiplier);
+  float3 lightColor, bool useOcclusionMultiplier, int numSamples, bool useImportanceSampling) {
+  SSLayersResult ssLayers = computeSSLayers(O, d, dist, t_hit, groundHit, L,
+    useOcclusionMultiplier, numSamples, useImportanceSampling);
   float dot_L_d = dot(L, d);
   SSResult result;
   result.shadows = float3(0, 0, 0);
@@ -185,8 +186,10 @@ SSResult computeSSBody(float3 O, float3 d, float dist, float t_hit, bool groundH
 
 /* Doesn't use phase function or light color. TODO: pass in # of samples
  * to computeSSLayers and make tweakable. */
-SSResult computeSSForMS(float3 O, float3 d, float dist, float t_hit, bool groundHit, float3 L) {
-  SSLayersResult ssLayers = computeSSLayers(O, d, dist, t_hit, groundHit, L, false);
+SSResult computeSSForMS(float3 O, float3 d, float dist, float t_hit,
+  bool groundHit, float3 L, int numSamples, bool useImportanceSampling) {
+  SSLayersResult ssLayers = computeSSLayers(O, d, dist, t_hit, groundHit, L,
+    false, numSamples, useImportanceSampling);
   SSResult result;
   result.shadows = float3(0, 0, 0);
   result.noShadows = float3(0, 0, 0);
@@ -203,7 +206,8 @@ SSResult computeSSForMS(float3 O, float3 d, float dist, float t_hit, bool ground
  * source. It would have been nice to roll this into the regular function,
  * but there's no way to cleanly avoid the light occlusion check without
  * another conditional. */
-SSLayersResult computeSSLPLayers(float3 O, float3 d, float dist, float t_hit, bool groundHit) {
+SSLayersResult computeSSLPLayers(float3 O, float3 d, float dist, float t_hit,
+  bool groundHit, int numSamples, bool useImportanceSampling) {
   /* Final result */
   SSLayersResult result;
 
@@ -220,13 +224,13 @@ SSLayersResult computeSSLPLayers(float3 O, float3 d, float dist, float t_hit, bo
     result.noShadows[j] = float3(0, 0, 0);
   }
 
-  for (int i = 0; i < _numSSSamples; i++) {
+  for (int i = 0; i < numSamples; i++) {
     /* Generate the sample. */
     float2 t_ds;
-    if (_useImportanceSampling) {
-      t_ds = generateCubicSampleFromIndex(i, _numSSSamples);
+    if (useImportanceSampling) {
+      t_ds = generateCubicSampleFromIndex(i, numSamples);
     } else {
-      t_ds = generateLinearSampleFromIndex(i, _numSSSamples);
+      t_ds = generateLinearSampleFromIndex(i, numSamples);
     }
     float sampleT = t_ds.x * dist;
     float ds = t_ds.y;
@@ -237,8 +241,7 @@ SSLayersResult computeSSLPLayers(float3 O, float3 d, float dist, float t_hit, bo
     for (int j = 0; j < _numActiveLayers; j++) {
       scaledDensity[j] = ds * computeDensity(_layerDensityDistribution[j],
         samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
-        _layerUseDensityAttenuation[j], sampleT, _layerAttenuationBias[j],
-        _layerAttenuationDistance[j]);
+        length(samplePoint - _layerDensityAttenuationOrigin[j]), _layerAttenuationBias[j], _layerAttenuationDistance[j]);
     }
 
     /* Our transmittance value for O to the sample point is too large---we
@@ -263,8 +266,8 @@ SSLayersResult computeSSLPLayers(float3 O, float3 d, float dist, float t_hit, bo
 }
 
 SSResult computeSSLP(float3 O, float3 d, float dist, float t_hit, bool groundHit,
-  float3 groundEmission) {
-  SSLayersResult ssLayers = computeSSLPLayers(O, d, dist, t_hit, groundHit);
+  float3 groundEmission, int numSamples, bool useImportanceSampling) {
+  SSLayersResult ssLayers = computeSSLPLayers(O, d, dist, t_hit, groundHit, numSamples, useImportanceSampling);
   SSResult result;
   result.shadows = float3(0, 0, 0);
   result.noShadows = float3(0, 0, 0);
@@ -278,23 +281,24 @@ SSResult computeSSLP(float3 O, float3 d, float dist, float t_hit, bool groundHit
 }
 
 SSResult computeSS(float3 O, float3 d, float dist, float t_hit, bool groundHit,
-  float nightScatterMultiplier, bool useOcclusionMultiplier) {
+  float nightScatterMultiplier, bool useOcclusionMultiplier, int numSamples, bool useImportanceSampling) {
   SSResult result;
   result.shadows = float3(0, 0, 0);
   result.noShadows = float3(0, 0, 0);
   for (int i = 0; i < _numActiveBodies; i++) {
-    SSResult bodySS = computeSSBody(O, d, dist, t_hit, groundHit, _bodyDirection[i], _bodyLightColor[i].xyz, useOcclusionMultiplier);
+    SSResult bodySS = computeSSBody(O, d, dist, t_hit, groundHit, _bodyDirection[i],
+      _bodyLightColor[i].xyz, useOcclusionMultiplier, numSamples, useImportanceSampling);
     result.shadows += bodySS.shadows;
     result.noShadows += bodySS.noShadows;
   }
 
   /* Fake some scattering from the stars texture using the sky's average color. */
-  SSResult nightSkySS = computeSSForMS(O, d, dist, t_hit, groundHit, normalize(O));
+  SSResult nightSkySS = computeSSForMS(O, d, dist, t_hit, groundHit, normalize(O), numSamples, useImportanceSampling);
   result.shadows += nightSkySS.shadows * _nightSkyScatterTint.xyz * _averageNightSkyColor.xyz * nightScatterMultiplier;
   result.noShadows += nightSkySS.noShadows * _nightSkyScatterTint.xyz * _averageNightSkyColor.xyz * nightScatterMultiplier;
 
   /* Integrate the light pollution. */
-  SSResult lightPollutionSS = computeSSLP(O, d, dist, t_hit, groundHit, _lightPollutionTint.xyz);
+  SSResult lightPollutionSS = computeSSLP(O, d, dist, t_hit, groundHit, _lightPollutionTint.xyz, numSamples, useImportanceSampling);
   result.shadows += lightPollutionSS.shadows;
   result.noShadows += lightPollutionSS.noShadows;
 
@@ -315,20 +319,21 @@ struct MSLayersResult {
   float3 shadows[MAX_LAYERS];
 };
 
-MSLayersResult computeMSLayers(float3 O, float3 d, float dist, float t_hit, bool groundHit, float3 L) {
+MSLayersResult computeMSLayers(float3 O, float3 d, float dist, float t_hit,
+  bool groundHit, float3 L, int numSamples, bool useImportanceSampling) {
   /* Final result. */
   MSLayersResult result;
   for (int j = 0; j < _numActiveLayers; j++) {
     result.shadows[j] = float3(0, 0, 0);
   }
 
-  for (int i = 0; i < _numMSAccumulationSamples; i++) {
+  for (int i = 0; i < numSamples; i++) {
     /* Get the sample point. */
     float2 t_ds;
-    if (_useImportanceSampling) {
-      t_ds = generateCubicSampleFromIndex(i, _numMSAccumulationSamples);
+    if (useImportanceSampling) {
+      t_ds = generateCubicSampleFromIndex(i, numSamples);
     } else {
-      t_ds = generateLinearSampleFromIndex(i, _numMSAccumulationSamples);
+      t_ds = generateLinearSampleFromIndex(i, numSamples);
     }
     float sampleT = dist * t_ds.x;
     float ds = t_ds.y;
@@ -343,8 +348,7 @@ MSLayersResult computeMSLayers(float3 O, float3 d, float dist, float t_hit, bool
     for (int j = 0; j < _numActiveLayers; j++) {
       float scaledDensity = ds * computeDensity(_layerDensityDistribution[j],
         samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
-        _layerUseDensityAttenuation[j], sampleT, _layerAttenuationBias[j],
-        _layerAttenuationDistance[j]);
+        length(samplePoint - _layerDensityAttenuationOrigin[j]), _layerAttenuationBias[j], _layerAttenuationDistance[j]);
       result.shadows[j] += msContrib * scaledDensity;
     }
   }
@@ -353,8 +357,8 @@ MSLayersResult computeMSLayers(float3 O, float3 d, float dist, float t_hit, bool
 }
 
 float3 computeMSBody(float3 O, float3 d, float dist, float t_hit, bool groundHit, float3 L,
-  float3 lightColor) {
-  MSLayersResult msLayers = computeMSLayers(O, d, dist, t_hit, groundHit, L);
+  float3 lightColor, int numSamples, bool useImportanceSampling) {
+  MSLayersResult msLayers = computeMSLayers(O, d, dist, t_hit, groundHit, L, numSamples, useImportanceSampling);
   float3 result = float3(0, 0, 0);
   for (int i = 0; i < _numActiveLayers; i++) {
     result += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz)
@@ -367,20 +371,21 @@ float3 computeMSBody(float3 O, float3 d, float dist, float t_hit, bool groundHit
  * source. It would have been nice to roll this into the regular function,
  * but there's no way to cleanly avoid the light occlusion check without
  * another conditional. */
-MSLayersResult computeMSLPLayers(float3 O, float3 d, float dist, float t_hit, bool groundHit) {
+MSLayersResult computeMSLPLayers(float3 O, float3 d, float dist, float t_hit,
+  bool groundHit, int numSamples, bool useImportanceSampling) {
   /* Final result. */
   MSLayersResult result;
   for (int j = 0; j < _numActiveLayers; j++) {
     result.shadows[j] = float3(0, 0, 0);
   }
 
-  for (int i = 0; i < _numMSAccumulationSamples; i++) {
+  for (int i = 0; i < numSamples; i++) {
     /* Get the sample point. */
     float2 t_ds;
     if (_useImportanceSampling) {
-      t_ds = generateCubicSampleFromIndex(i, _numMSAccumulationSamples);
+      t_ds = generateCubicSampleFromIndex(i, numSamples);
     } else {
-      t_ds = generateLinearSampleFromIndex(i, _numMSAccumulationSamples);
+      t_ds = generateLinearSampleFromIndex(i, numSamples);
     }
     float sampleT = dist * t_ds.x;
     float ds = t_ds.y;
@@ -395,8 +400,7 @@ MSLayersResult computeMSLPLayers(float3 O, float3 d, float dist, float t_hit, bo
     for (int j = 0; j < _numActiveLayers; j++) {
       float scaledDensity = ds * computeDensity(_layerDensityDistribution[j],
         samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
-        _layerUseDensityAttenuation[j], sampleT, _layerAttenuationBias[j],
-        _layerAttenuationDistance[j]);
+        length(samplePoint - _layerDensityAttenuationOrigin[j]), _layerAttenuationBias[j], _layerAttenuationDistance[j]);
       result.shadows[j] += msContrib * scaledDensity;
     }
   }
@@ -405,8 +409,8 @@ MSLayersResult computeMSLPLayers(float3 O, float3 d, float dist, float t_hit, bo
 }
 
 float3 computeMSLP(float3 O, float3 d, float dist, float t_hit, bool groundHit,
-  float3 groundEmission) {
-  MSLayersResult msLayers = computeMSLPLayers(O, d, dist, t_hit, groundHit);
+  float3 groundEmission, int numSamples, bool useImportanceSampling) {
+  MSLayersResult msLayers = computeMSLPLayers(O, d, dist, t_hit, groundHit, numSamples, useImportanceSampling);
   float3 result = float3(0, 0, 0);
   for (int i = 0; i < _numActiveLayers; i++) {
     result += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz)
@@ -417,15 +421,15 @@ float3 computeMSLP(float3 O, float3 d, float dist, float t_hit, bool groundHit,
 
 
 float3 computeMS(float3 O, float3 d, float dist, float t_hit, bool groundHit,
-  float nightScatterMultiplier) {
+  float nightScatterMultiplier, int numSamples, bool useImportanceSampling) {
   float3 result = float3(0, 0, 0);
   for (int i = 0; i < _numActiveBodies; i++) {
-    result += computeMSBody(O, d, dist, t_hit, groundHit, _bodyDirection[i], _bodyLightColor[i].xyz);
+    result += computeMSBody(O, d, dist, t_hit, groundHit, _bodyDirection[i], _bodyLightColor[i].xyz, numSamples, useImportanceSampling);
   }
 
   /* Fake some scattering from the stars texture using the sky's average color. */
   result += computeMSBody(O, d, dist, t_hit, groundHit, normalize(O),
-    _nightSkyScatterTint.xyz * _averageNightSkyColor.xyz * nightScatterMultiplier);
+    _nightSkyScatterTint.xyz * _averageNightSkyColor.xyz * nightScatterMultiplier, numSamples, useImportanceSampling);
 
   /* Factor in the light pollution. HACK: commented out, because it's so
    * imperceptible it's just a waste of resources to compute. */

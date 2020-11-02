@@ -1,5 +1,5 @@
 todo list:
- -computeMSLayers and computeSSLayers sampling arguments
+ -computeMSLayers and computeSSLayers sampling arguments. DONE.
  -case out above atmosphere for ap/ss/ms
  -nebulae no texture assigned issue
  -conditional MSAA
@@ -7,20 +7,25 @@ todo list:
  -make night sky texture average evaluation more efficient
  -clean up remaining warnings
  -UI title size hierarchy
- -maybe investigate the flicker high-density bug if we feel like it
- -analytical solution for density attenuation
+ -enable and disable lights depending on whether or not their corresponding
+ body is enabled
+
+ -maybe investigate the top of sky circle bug if we feel like it
+ -also maybe investigate AP rippling bug if we feel like it
+
+ -analytical solution for density attenuation. DONE.
  -add new atmosphere type for exponential fog and make it so density attenuation
- only works for that kind of atmo layer type
+ only works for that kind of atmo layer type. DONE.
+ -allow specified point to attenuate density from, and checkbox for player origin. DONE.
  -possibly split out atmo types into different arrays for perf? I don't know
  if this will help much but it may allow us to avoid branching in the shader
  in the inner loop. should see how much faster it is without the branch
  first.
- -allow specified point to attenuate density from, and checkbox for player origin
 
 new params:
   -night scatter multiplier for AP => aerialPerspectiveNightScatteringMultiplier DONE.
-  -AP samples (already set up but need to pass thru to shader)
-  -checkbox for AP importance sampling => aerialPerspectiveUseImportanceSampling
+  -AP samples (already set up but need to pass thru to shader). DONE.
+  -checkbox for AP importance sampling => aerialPerspectiveUseImportanceSampling. DONE.
   -star tint parameter artistic override => starTint. DONE.
   -nebula seeds exposable in UI. DONE.
     -nebulaCoverageSeed

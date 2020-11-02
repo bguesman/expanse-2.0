@@ -63,9 +63,12 @@ public ClampedFloatParameter layerAnisotropy0, layerAnisotropy1, layerAnisotropy
 [Tooltip("Density of this atmosphere layer.")]
 public MinFloatParameter layerDensity0, layerDensity1, layerDensity2,
   layerDensity3, layerDensity4, layerDensity5, layerDensity6, layerDensity7;
-[Tooltip("Whether or not to use density attenuation for this layer. This will attenuate the density of the layer as the distance to the player increases. It is particularly useful for effects like fog.")]
-public BoolParameter layerUseDensityAttenuation0, layerUseDensityAttenuation1, layerUseDensityAttenuation2,
-  layerUseDensityAttenuation3, layerUseDensityAttenuation4, layerUseDensityAttenuation5, layerUseDensityAttenuation6, layerUseDensityAttenuation7;
+[Tooltip("Whether to use the camera position as the origin for density attenuation, as opposed to specific point in world space.")]
+public BoolParameter layerDensityAttenuationPlayerOrigin0, layerDensityAttenuationPlayerOrigin1, layerDensityAttenuationPlayerOrigin2,
+  layerDensityAttenuationPlayerOrigin3, layerDensityAttenuationPlayerOrigin4, layerDensityAttenuationPlayerOrigin5, layerDensityAttenuationPlayerOrigin6, layerDensityAttenuationPlayerOrigin7;
+[Tooltip("World space position to use as origing for density attenuation. Density will attenuate with distance away from this point.")]
+public Vector3Parameter layerDensityAttenuationOrigin0, layerDensityAttenuationOrigin1, layerDensityAttenuationOrigin2,
+  layerDensityAttenuationOrigin3, layerDensityAttenuationOrigin4, layerDensityAttenuationOrigin5, layerDensityAttenuationOrigin6, layerDensityAttenuationOrigin7;
 [Tooltip("Attenuation distance of this atmosphere layer. Higher values will result in more gradual attenuation of density. Lower values will attenuate more aggressively.")]
 public MinFloatParameter layerAttenuationDistance0, layerAttenuationDistance1, layerAttenuationDistance2,
   layerAttenuationDistance3, layerAttenuationDistance4, layerAttenuationDistance5, layerAttenuationDistance6, layerAttenuationDistance7;
@@ -447,7 +450,8 @@ public Expanse() : base() {
     this.GetType().GetField("layerPhaseFunction" + i).SetValue(this, new EnumParameter<ExpanseCommon.PhaseFunction>(ExpanseCommon.PhaseFunction.Rayleigh));
     this.GetType().GetField("layerAnisotropy" + i).SetValue(this, new ClampedFloatParameter(0.7f, -1.0f, 1.0f));
     this.GetType().GetField("layerDensity" + i).SetValue(this, new MinFloatParameter(1, 0));
-    this.GetType().GetField("layerUseDensityAttenuation" + i).SetValue(this, new BoolParameter(false));
+    this.GetType().GetField("layerDensityAttenuationPlayerOrigin" + i).SetValue(this, new BoolParameter(false));
+    this.GetType().GetField("layerDensityAttenuationOrigin" + i).SetValue(this, new Vector3Parameter(new Vector3(0, 0, 0)));
     this.GetType().GetField("layerAttenuationDistance" + i).SetValue(this, new MinFloatParameter(1000, 1));
     this.GetType().GetField("layerAttenuationBias" + i).SetValue(this, new MinFloatParameter(0, 0));
     this.GetType().GetField("layerTint" + i).SetValue(this, new ColorParameter(Color.grey, hdr: false, showAlpha: false, showEyeDropper: true));
@@ -508,7 +512,8 @@ public override int GetHashCode() {
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.PhaseFunction>) this.GetType().GetField("layerPhaseFunction" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("layerAnisotropy" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerDensity" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerUseDensityAttenuation" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerDensityAttenuationPlayerOrigin" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerDensityAttenuationOrigin" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationDistance" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationBias" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((ColorParameter) this.GetType().GetField("layerTint" + i).GetValue(this)).value.GetHashCode();
@@ -668,6 +673,7 @@ public override int GetHashCode() {
     hash = hash * 23 + numberOfMultipleScatteringSamples.value.GetHashCode();
     hash = hash * 23 + numberOfMultipleScatteringAccumulationSamples.value.GetHashCode();
     hash = hash * 23 + useImportanceSampling.value.GetHashCode();
+    hash = hash * 23 + aerialPerspectiveUseImportanceSampling.value.GetHashCode();
     hash = hash * 23 + useAntiAliasing.value.GetHashCode();
     hash = hash * 23 + ditherAmount.value.GetHashCode();
 
@@ -701,7 +707,8 @@ public int GetSkyHashCode() {
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.PhaseFunction>) this.GetType().GetField("layerPhaseFunction" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("layerAnisotropy" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerDensity" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerUseDensityAttenuation" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerDensityAttenuationPlayerOrigin" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerDensityAttenuationOrigin" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationDistance" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationBias" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((ColorParameter) this.GetType().GetField("layerTint" + i).GetValue(this)).value.GetHashCode();

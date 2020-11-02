@@ -30,7 +30,8 @@ public const uint kMaxPhaseFunctions = 3;
 /* Enum for atmosphere layer density distribution types. */
 public enum DensityDistribution {
   Exponential = 0,
-  Tent
+  Tent,
+  ExponentialAttenuated
 };
 public const uint kMaxDensityDistributions = 2;
 
