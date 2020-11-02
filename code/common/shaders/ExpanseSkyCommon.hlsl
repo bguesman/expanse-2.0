@@ -162,6 +162,8 @@ bool floatLT(float a, float b, float eps) {
 }
 
 float erf(float x) {
+  float sign_x = sign(x);
+  x = abs(x);
   const float p = 0.3275911;
   const float a1 = 0.254829592;
   const float a2 = -0.284496736;
@@ -174,7 +176,7 @@ float erf(float x) {
   float t4 = t2 * t2;
   float t5 = t3 * t2;
   float prefactor = a5 * t5 + a4 * t4 + a3 * t3 + a2 * t2 + a1 * t;
-  return 1 - prefactor * exp(-(x * x));
+  return sign_x * (1 - prefactor * exp(-(x * x)));
 }
 
 /******************************************************************************/

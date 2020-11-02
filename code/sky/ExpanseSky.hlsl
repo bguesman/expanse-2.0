@@ -32,31 +32,18 @@ float3 computeTransmittanceDensityAttenuation(float3 O, float3 d, float endT, fl
       float H = _layerThickness[i];
       float3 deltaPO = O - P;
       float a = 1 / (m * m);
-      float b = ((-2 * dot(deltaPO, d)) / (m * m)) + (dot(d, normalize(O)) / H);
+      float b = ((-2 * dot(deltaPO, d)) / (m * m)) - (dot(d, normalize(O)) / H);
       float c = ((_planetRadius - length(O)) / H) + ((k * k - dot(deltaPO, deltaPO)) / (m * m));
-      float prefactor = exp(c) * sqrt(PI) * exp((b * b) / (4 * a)) / (2 * sqrt(a));
-      float erf_f = erf((2 * a * endT - b) / (2 * sqrt(a)));
-      float erf0 = erf((-b) / (2 * sqrt(a)));
-      float opticalDepth = max(0, _layerDensity[i] * prefactor * (erf_f - erf0));
+      float prefactor = exp(c + (b * b) / (4 * a)) * safeSqrt(PI) / (2 * safeSqrt(a));
+      float erf_f = erf((2 * a * endT - b) / (2 * safeSqrt(a)));
+      float erf_0 = erf((-b) / (2 * safeSqrt(a)));
+      float opticalDepth = _layerDensity[i] * prefactor * (erf_f - erf_0);
 
-      power += opticalDepth * _layerCoefficientsA[i].xyz;
+      power += max(opticalDepth * _layerCoefficientsA[i].xyz, 0);
     }
   }
 
   return -power;
-
-  // float3 endPoint = O + d * endT;
-  // float3 power = float3(0, 0, 0);
-  // for (int i = 0; i < _numActiveLayers; i++) {
-  //   if (_layerUseDensityAttenuation[i]) {
-  //     float opticalDepth = computeOpticalDepth(_layerDensityDistribution[i],
-  //       O, endPoint, _layerHeight[i], _layerThickness[i], _layerDensity[i],
-  //       _layerAttenuationBias[i], _layerAttenuationDistance[i],
-  //       _layerUseDensityAttenuation[i], P, _numTSamples);
-  //     power += opticalDepth * _layerCoefficientsA[i].xyz;
-  //   }
-  // }
-  // return -power;
 }
 
 /******************************************************************************/
@@ -124,6 +111,7 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
     float2 sampleOut = mapSky2DCoord(length(samplePoint),
       clampCosine(dot(normalizedSamplePoint, d)), _atmosphereRadius,
       _planetRadius, t_hit - sampleT, groundHit, _resT.y);
+    // float3 T_oToSample = T_oOut - sampleSkyTTextureRaw(sampleOut);
     float3 T_oToSample = T_oOut - sampleSkyTTextureRaw(sampleOut) +
       computeTransmittanceDensityAttenuation(O, d, sampleT, O);
 
@@ -140,6 +128,7 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
       float2 sampleToL = mapSky2DCoord(length(samplePoint),
         clampCosine(dot(normalizedSamplePoint, L)), _atmosphereRadius,
         _planetRadius, lightIntersection.endT, lightIntersection.groundHit, _resT.y);
+      // float3 T = exp(T_oToSample + sampleSkyTTextureRaw(sampleToL));
       float3 T = exp(T_oToSample + sampleSkyTTextureRaw(sampleToL) +
         computeTransmittanceDensityAttenuation(samplePoint, L, lightIntersection.endT, O));
 
