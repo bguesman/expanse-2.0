@@ -1,0 +1,4 @@
+As I have ideas for this project going forward, I'll note them down here.
+
+-polynomial approximation to e^-x that is analytically integrable to
+bypass transmittance texture
