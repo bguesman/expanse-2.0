@@ -23,9 +23,7 @@ void STAR(uint3 id : SV_DispatchThreadID) {
   /* Convert the direction vector to a uv coordinate. */
   float3 textureCoordinate = (d + 1) / 2;
 
-  /* Sample some noise. TODO: should distort with curl noise and make that
-   * tweakable. TODO: allow weight-painted cubemap to control star density.
-   * TODO: allow grid size to be specified for max control? */
+  /* Sample some noise. */
   float bigCells = 512;
   float smallCells = 2048;
   NoiseResultAndCoordinate noiseBig = worley3D(textureCoordinate,
@@ -43,11 +41,12 @@ void STAR(uint3 id : SV_DispatchThreadID) {
       s_linear_clamp_sampler, uv, id.z, 0).xyz;
       nebulaeDensityModifier += _starNebulaFollowAmount * pow(dot(saturate(nebulaeColor), saturate(nebulaeColor))/3, _starNebulaFollowSpread);
   }
-  else if (_hasNebulaeTexture) {
-    float3 nebulaeColor = SAMPLE_TEXTURECUBE_LOD(_nebulaeTexture,
-      s_linear_clamp_sampler, d, 0);
-      nebulaeDensityModifier += _starNebulaFollowAmount * pow(dot(saturate(nebulaeColor), saturate(nebulaeColor))/3, _starNebulaFollowSpread);
-  }
+  // TODO: doesn't work.
+  // else if (_hasNebulaeTexture) {
+  //   float3 nebulaeColor = SAMPLE_TEXTURECUBE_LOD(_nebulaeTexture,
+  //     s_linear_clamp_sampler, d, 0);
+  //     nebulaeDensityModifier += _starNebulaFollowAmount * pow(dot(saturate(nebulaeColor), saturate(nebulaeColor))/3, _starNebulaFollowSpread);
+  // }
 
   /*****************************************************/
   /******* Compute everything for the big stars. *******/
@@ -143,49 +142,52 @@ void NEBULAE(uint3 id : SV_DispatchThreadID) {
    *  7. A layered perlin noise to modulate the nebula alpha value to give
    *  the impression of varying star transmittance. */
 
-  /* TODO: twekable seeds. */
-
   /* 1. Layered perlin noise for hazey base. */
-  float haze = saturate(perlin3DLayered(saturate(textureCoordinate),
+  float haze = saturate(perlin3DLayeredSeeded(saturate(textureCoordinate),
     float3(_nebulaHazeScale, _nebulaHazeScale, _nebulaHazeScale), _nebulaHazeScaleFactor, _nebulaHazeDetailBalance,
-    _nebulaHazeOctaves) + _nebulaHazeBias);
+    _nebulaHazeOctaves, _nebulaHazeSeedX, _nebulaHazeSeedY, _nebulaHazeSeedZ) + _nebulaHazeBias);
 
   /* 2. Layered worley noise for cloudy look. */
-  float clouds = saturate(worley3DLayered(saturate(textureCoordinate),
+  float clouds = saturate(worley3DLayeredSeeded(saturate(textureCoordinate),
   float3(_nebulaCloudScale, _nebulaCloudScale, _nebulaCloudScale), _nebulaCloudScaleFactor,
-  _nebulaCloudDetailBalance, _nebulaCloudOctaves) + _nebulaCloudBias);
+  _nebulaCloudDetailBalance, _nebulaCloudOctaves, _nebulaCloudSeedX, _nebulaCloudSeedY,
+  _nebulaCloudSeedZ) + _nebulaCloudBias);
 
   /* 5. Curl noise to warp strands. Have to compute first to advect uv
    * coordinate. */
   const float WARP_MAX = 0.08;
-  float3 coarseCurl = curlNoise3D(saturate(textureCoordinate),
-    float3(_nebulaCoarseStrandWarpScale, _nebulaCoarseStrandWarpScale, _nebulaCoarseStrandWarpScale));
-  float3 fineCurl = curlNoise3D(saturate(textureCoordinate),
-    float3(_nebulaFineStrandWarpScale, _nebulaFineStrandWarpScale, _nebulaFineStrandWarpScale));
+  float3 coarseCurl = curlNoise3DSeeded(saturate(textureCoordinate),
+    float3(_nebulaCoarseStrandWarpScale, _nebulaCoarseStrandWarpScale, _nebulaCoarseStrandWarpScale),
+    _nebulaCoarseStrandWarpSeedX, _nebulaCoarseStrandWarpSeedY, _nebulaCoarseStrandWarpSeedZ);
+  float3 fineCurl = curlNoise3DSeeded(saturate(textureCoordinate),
+    float3(_nebulaFineStrandWarpScale, _nebulaFineStrandWarpScale, _nebulaFineStrandWarpScale),
+      _nebulaFineStrandWarpSeedX, _nebulaFineStrandWarpSeedY, _nebulaFineStrandWarpSeedZ);
 
   /* 3. Layered voronoi noise to create coarse strands. */
   float3 warpedCoarseStrandTextureCoordinate = (normalize(d - _nebulaCoarseStrandWarp * WARP_MAX * coarseCurl) + 1) / 2;
-  float coarseStrands = saturate(voronoi3DLayered(saturate(warpedCoarseStrandTextureCoordinate),
+  float coarseStrands = saturate(voronoi3DLayeredSeeded(saturate(warpedCoarseStrandTextureCoordinate),
     float3(_nebulaCoarseStrandScale, _nebulaCoarseStrandScale, _nebulaCoarseStrandScale),
-    _nebulaCoarseStrandScaleFactor, _nebulaCoarseStrandDetailBalance, _nebulaCoarseStrandOctaves)
+    _nebulaCoarseStrandScaleFactor, _nebulaCoarseStrandDetailBalance, _nebulaCoarseStrandOctaves,
+    _nebulaCoarseStrandSeedX, _nebulaCoarseStrandSeedY, _nebulaCoarseStrandSeedZ)
     + _nebulaCoarseStrandBias);
 
   /* 4. Layered voronoi noise to create fine strands. */
   float3 warpedFineStrandTextureCoordinate = (normalize(d - _nebulaFineStrandWarp * WARP_MAX * fineCurl) + 1) / 2;
-  float fineStrands = saturate(voronoi3DLayered(saturate(warpedFineStrandTextureCoordinate),
+  float fineStrands = saturate(voronoi3DLayeredSeeded(saturate(warpedFineStrandTextureCoordinate),
     float3(_nebulaFineStrandScale, _nebulaFineStrandScale, _nebulaFineStrandScale), _nebulaFineStrandScaleFactor,
-    _nebulaFineStrandDetailBalance, _nebulaFineStrandOctaves) + _nebulaFineStrandBias);
+    _nebulaFineStrandDetailBalance, _nebulaFineStrandOctaves, _nebulaFineStrandSeedX,
+    _nebulaFineStrandSeedY, _nebulaFineStrandSeedZ) + _nebulaFineStrandBias);
 
 
   /* 6. Value noise for coverage. */
-  float coverage = saturate(value3D(saturate(textureCoordinate),
-    float3(_nebulaCoverageScale, _nebulaCoverageScale, _nebulaCoverageScale)).result);
+  float coverage = saturate(value3DSeeded(saturate(textureCoordinate),
+    float3(_nebulaCoverageScale, _nebulaCoverageScale, _nebulaCoverageScale), _nebulaCoverageSeed).result);
 
   /* 7. Layered perlin noise for transmittance. Scaled to be between specified
-   * min and max values. TODO: add biasing option. */
-  float transmittance = perlin3DLayered(saturate(textureCoordinate),
+   * min and max values. */
+  float transmittance = perlin3DLayeredSeeded(saturate(textureCoordinate),
   float3(_nebulaTransmittanceScale, _nebulaTransmittanceScale, _nebulaTransmittanceScale),
-    2, 0.5, 3);
+    2, 0.5, 3, _nebulaTransmittanceSeedX, _nebulaTransmittanceSeedY, _nebulaTransmittanceSeedZ);
   transmittance = _nebulaTransmittanceMin
     + (_nebulaTransmittanceMax - _nebulaTransmittanceMin) * transmittance;
 
@@ -202,16 +204,4 @@ void NEBULAE(uint3 id : SV_DispatchThreadID) {
 
   _Nebulae_RW[id] = float4(finalColor, transmittance);
 
-  /*
-   * TODO:
-   * -4 parameters
-   *  -base (perlin)
-   *  -cloudiness (worley)
-   *  -coarse stringiness (voronoi 1) better name?
-   *  -detail stringiness (voronoi 2) better name?
-   *  -warp (distortion via curl noise)
-   *  -create nebula first and then add checkbox to modulate star density by
-   *  nebula color magnitude (stars follow nebulae---maybe slider instead
-   *  to give some control? make sure to only turn on for )
-   */
 }

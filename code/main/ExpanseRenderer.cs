@@ -31,8 +31,6 @@ private RTHandle m_skyT;                              /* Transmittance. */
 private Texture2D m_skyTCPU;
 private bool m_skyTNeedsUpdate;
 private RTHandle m_skyMS;                             /* Multiple Scattering. */
-private RTHandle m_skyGI;                             /* Ground Irradiance. */
-private RTHandle m_skyLP;                             /* Light Pollution. */
 
 /* Textures. */
 private RTHandle m_skySS;                             /* Single Scattering. */
@@ -73,8 +71,6 @@ void allocateSkyPrecomputationTables(Expanse sky) {
 
     m_skyT = allocateSky2DTable(res.T, 0, "SkyT");
     m_skyMS = allocateSky2DTable(res.MS, 0, "SkyMS");
-    m_skyGI = allocateSky1DTable(res.GI, 0, "SkyGI");
-    m_skyLP = allocateSky2DTable(res.LP, 0, "SkyLP");
 
     m_skySS = allocateSky2DTable(res.SS, 0, "SkySS");
     m_skyMSAcc = allocateSky2DTable(res.MSAccumulation, 0, "SkyMSAcc");
@@ -93,10 +89,6 @@ void cleanupSkyTables() {
   m_skyT = null;
   RTHandles.Release(m_skyMS);
   m_skyMS = null;
-  RTHandles.Release(m_skyGI);
-  m_skyGI = null;
-  RTHandles.Release(m_skyLP);
-  m_skyLP = null;
   RTHandles.Release(m_skySS);
   m_skySS = null;
   RTHandles.Release(m_skyMSAcc);
@@ -374,7 +366,6 @@ private void setLightingData(CommandBuffer cmd, Vector4 cameraPos, float planetR
   float atmosphereRadius) {
   /* Use data from the property block, so that we don't go out of
    * sync. */
-  /* TODO: mapping is now different. need to update in here. */
   Vector4 O = cameraPos - (new Vector4(0, -planetRadius, 0, 0));
   Vector3 O3 = new Vector3(O.x, O.y, O.z);
   for (int i = 0; i < m_numBodiesEnabled; i++) {
@@ -384,16 +375,15 @@ private void setLightingData(CommandBuffer cmd, Vector4 cameraPos, float planetR
     if (intersection.z >= 0 && (intersection.x >= 0 || intersection.y >= 0)) {
       ExpanseCommon.bodyTransmittances[i] = new Vector3(0, 0, 0);
     } else {
-      ExpanseCommon.bodyTransmittances[i] = new Vector3(1, 1, 1);
-    //   /* Sample transmittance. */
-    //   Vector3 skyIntersection = ExpanseCommon.intersectSphere(O3, L, atmosphereRadius);
-    //   float r = O3.magnitude;
-    //   float mu = Vector3.Dot(Vector3.Normalize(O3), L);
-    //   float d = (skyIntersection.x > 0) ? (skyIntersection.y > 0 ? Mathf.Min(skyIntersection.x, skyIntersection.y) : skyIntersection.x) : skyIntersection.y;
-    //   Vector2 uv = ExpanseCommon.map_r_mu(r, mu, atmosphereRadius, planetRadius,
-    //     d, false);
-    //   Vector4 transmittance = m_skyTCPU.GetPixelBilinear(uv.x, uv.y);
-    //   ExpanseCommon.bodyTransmittances[i] = new Vector3(Mathf.Exp(transmittance.x), Mathf.Exp(transmittance.y), Mathf.Exp(transmittance.z));
+      /* Sample transmittance. */
+      Vector3 skyIntersection = ExpanseCommon.intersectSphere(O3, L, atmosphereRadius);
+      float r = O3.magnitude;
+      float mu = Vector3.Dot(Vector3.Normalize(O3), L);
+      float d = (skyIntersection.x > 0) ? (skyIntersection.y > 0 ? Mathf.Min(skyIntersection.x, skyIntersection.y) : skyIntersection.x) : skyIntersection.y;
+      Vector2 uv = ExpanseCommon.map_r_mu_transmittance(r, mu, atmosphereRadius, planetRadius,
+        d, false, m_skyTextureResolution.T.x);
+      Vector4 transmittance = m_skyTCPU.GetPixelBilinear(uv.x, uv.y);
+      ExpanseCommon.bodyTransmittances[i] = new Vector3(Mathf.Exp(transmittance.x), Mathf.Exp(transmittance.y), Mathf.Exp(transmittance.z));
     }
   }
 }
@@ -508,7 +498,7 @@ private void RenderCloudsPass(BuiltinSkyParameters builtinParams, bool renderFor
   int currentRTID = renderForCubemap ? m_currentCubemapCloudsRT : m_currentFullscreenCloudsRT;
   int prevRTID = (currentRTID + 1) % 2;
 
-  /* TODO: might wanna set cloud cube map tex for GI. Cool we can do that!
+  /* TODO: might wanna set sky cube map tex for GI. Cool we can do that!
    * multi-pass, f-yeah! */
 
   /* Pass in the previous cloud render texture to use for reprojection. */
@@ -611,24 +601,15 @@ private void DispatchSkyPrecompute(CommandBuffer cmd) {
   {
     if (m_numAtmosphereLayersEnabled > 0) {
       int handle_T = m_skyCS.FindKernel("T");
-      int handle_LP = m_skyCS.FindKernel("LP");
       int handle_MS = m_skyCS.FindKernel("MS");
-      int handle_GI = m_skyCS.FindKernel("GI");
 
       cmd.DispatchCompute(m_skyCS, handle_T,
         (int) m_skyTextureResolution.T.x / 8,
         (int) m_skyTextureResolution.T.y / 8, 1);
 
-      cmd.DispatchCompute(m_skyCS, handle_LP,
-        (int) m_skyTextureResolution.LP.x / 8,
-        (int) m_skyTextureResolution.LP.y / 8, 1);
-
       cmd.DispatchCompute(m_skyCS, handle_MS,
         (int) m_skyTextureResolution.MS.x / 8,
         (int) m_skyTextureResolution.MS.y / 8, 1);
-
-      cmd.DispatchCompute(m_skyCS, handle_GI,
-        (int) m_skyTextureResolution.GI / 8, 1, 1);
     }
   }
 }
@@ -689,14 +670,10 @@ private void DispatchNebulaeCompute(CommandBuffer cmd) {
 
 private void setSkyPrecomputateTables() {
   int handle_T = m_skyCS.FindKernel("T");
-  int handle_LP = m_skyCS.FindKernel("LP");
-  int handle_GI = m_skyCS.FindKernel("GI");
   int handle_MS = m_skyCS.FindKernel("MS");
   if (m_numAtmosphereLayersEnabled > 0) {
     m_skyCS.SetTexture(handle_T, "_T_RW", m_skyT);
     m_skyCS.SetTexture(handle_MS, "_MS_RW", m_skyMS);
-    m_skyCS.SetTexture(handle_GI, "_GI_RW", m_skyGI);
-    m_skyCS.SetTexture(handle_LP, "_LP_RW", m_skyLP);
   }
 }
 
@@ -902,14 +879,10 @@ private void setGlobalCBufferCelestialBodies(CommandBuffer cmd, Expanse sky) {
 
 private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, Expanse sky) {
   if (m_numAtmosphereLayersEnabled > 0) {
-    cmd.SetGlobalTexture("_GI", m_skyGI);
-    cmd.SetGlobalInt("_resGI", m_skyTextureResolution.GI);
     cmd.SetGlobalTexture("_T", m_skyT);
     cmd.SetGlobalVector("_resT", m_skyTextureResolution.T);
     cmd.SetGlobalTexture("_MS", m_skyMS);
     cmd.SetGlobalVector("_resMS", m_skyTextureResolution.MS);
-    cmd.SetGlobalTexture("_LP", m_skyLP);
-    cmd.SetGlobalVector("_resLP", m_skyTextureResolution.LP);
     cmd.SetGlobalTexture("_SS", m_skySS);
     cmd.SetGlobalVector("_resSS", m_skyTextureResolution.SS);
     cmd.SetGlobalTexture("_AP", m_skyAP);
@@ -920,6 +893,13 @@ private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, Expanse sky) {
 }
 
 private void setGlobalCBufferNightSky(CommandBuffer cmd, Expanse sky) {
+  cmd.SetGlobalVector("_averageNightSkyColor", m_averageNightSkyColor);
+  cmd.SetGlobalVector("_nightSkyScatterTint", sky.nightSkyTint.value
+    * sky.nightSkyScatterTint.value * sky.nightSkyScatterIntensity.value
+    * sky.nightSkyIntensity.value);
+  cmd.SetGlobalVector("_lightPollutionTint", sky.lightPollutionTint.value
+    * sky.lightPollutionIntensity.value);
+
   if (sky.useProceduralNightSky.value) {
     cmd.SetGlobalVector("_resStar", m_starTextureResolution.Star);
     cmd.SetGlobalFloat("_useHighDensityMode", sky.useHighDensityMode.value ? 1 : 0);
@@ -1004,6 +984,30 @@ private void setGlobalCBufferNightSky(CommandBuffer cmd, Expanse sky) {
       cmd.SetGlobalFloat("_nebulaTransmittanceMax", sky.nebulaTransmittanceRange.value.y);
       cmd.SetGlobalFloat("_nebulaTransmittanceScale", sky.nebulaTransmittanceScale.value);
 
+      /* Seeds. */
+      cmd.SetGlobalVector("_nebulaCoverageSeed", sky.nebulaCoverageSeed.value);
+      cmd.SetGlobalVector("_nebulaHazeSeedX", sky.nebulaHazeSeedX.value);
+      cmd.SetGlobalVector("_nebulaHazeSeedY", sky.nebulaHazeSeedY.value);
+      cmd.SetGlobalVector("_nebulaHazeSeedZ", sky.nebulaHazeSeedZ.value);
+      cmd.SetGlobalVector("_nebulaCloudSeedX", sky.nebulaCloudSeedX.value);
+      cmd.SetGlobalVector("_nebulaCloudSeedY", sky.nebulaCloudSeedY.value);
+      cmd.SetGlobalVector("_nebulaCloudSeedZ", sky.nebulaCloudSeedZ.value);
+      cmd.SetGlobalVector("_nebulaCoarseStrandSeedX", sky.nebulaCoarseStrandSeedX.value);
+      cmd.SetGlobalVector("_nebulaCoarseStrandSeedY", sky.nebulaCoarseStrandSeedY.value);
+      cmd.SetGlobalVector("_nebulaCoarseStrandSeedZ", sky.nebulaCoarseStrandSeedZ.value);
+      cmd.SetGlobalVector("_nebulaCoarseStrandWarpSeedX", sky.nebulaCoarseStrandWarpSeedX.value);
+      cmd.SetGlobalVector("_nebulaCoarseStrandWarpSeedY", sky.nebulaCoarseStrandWarpSeedY.value);
+      cmd.SetGlobalVector("_nebulaCoarseStrandWarpSeedZ", sky.nebulaCoarseStrandWarpSeedZ.value);
+      cmd.SetGlobalVector("_nebulaFineStrandSeedX", sky.nebulaFineStrandSeedX.value);
+      cmd.SetGlobalVector("_nebulaFineStrandSeedY", sky.nebulaFineStrandSeedY.value);
+      cmd.SetGlobalVector("_nebulaFineStrandSeedZ", sky.nebulaFineStrandSeedZ.value);
+      cmd.SetGlobalVector("_nebulaFineStrandWarpSeedX", sky.nebulaFineStrandWarpSeedX.value);
+      cmd.SetGlobalVector("_nebulaFineStrandWarpSeedY", sky.nebulaFineStrandWarpSeedY.value);
+      cmd.SetGlobalVector("_nebulaFineStrandWarpSeedZ", sky.nebulaFineStrandWarpSeedZ.value);
+      cmd.SetGlobalVector("_nebulaTransmittanceSeedX", sky.nebulaTransmittanceSeedX.value);
+      cmd.SetGlobalVector("_nebulaTransmittanceSeedY", sky.nebulaTransmittanceSeedY.value);
+      cmd.SetGlobalVector("_nebulaTransmittanceSeedZ", sky.nebulaTransmittanceSeedZ.value);
+
       /* Set the procedural nebulae texture for use in the star generation. */
       cmd.SetGlobalTexture("_proceduralNebulae", m_proceduralNebulaeTexture);
     }
@@ -1011,18 +1015,21 @@ private void setGlobalCBufferNightSky(CommandBuffer cmd, Expanse sky) {
 }
 
 private void setGlobalCBufferAerialPerspective(CommandBuffer cmd, Expanse sky) {
-  // TODO: empty now but may have params later so keeping it
+  cmd.SetGlobalFloat("_aerialPerspectiveOcclusionBiasUniform", sky.aerialPerspectiveOcclusionBiasUniform.value);
+  cmd.SetGlobalFloat("_aerialPerspectiveOcclusionPowerUniform", sky.aerialPerspectiveOcclusionPowerUniform.value);
+  cmd.SetGlobalFloat("_aerialPerspectiveOcclusionBiasDirectional", sky.aerialPerspectiveOcclusionBiasDirectional.value);
+  cmd.SetGlobalFloat("_aerialPerspectiveOcclusionPowerDirectional", sky.aerialPerspectiveOcclusionPowerDirectional.value);
+  cmd.SetGlobalFloat("_aerialPerspectiveNightScatteringMultiplier", sky.aerialPerspectiveNightScatteringMultiplier.value);
 }
 
 private void setGlobalCBufferQuality(CommandBuffer cmd, Expanse sky) {
   cmd.SetGlobalInt("_numTSamples", sky.numberOfTransmittanceSamples.value);
-  cmd.SetGlobalInt("_numLPSamples", sky.numberOfLightPollutionSamples.value);
   cmd.SetGlobalInt("_numSSSamples", sky.numberOfSingleScatteringSamples.value);
-  cmd.SetGlobalInt("_numGISamples", sky.numberOfGroundIrradianceSamples.value);
   cmd.SetGlobalInt("_numMSSamples", sky.numberOfMultipleScatteringSamples.value);
   cmd.SetGlobalInt("_numMSAccumulationSamples", sky.numberOfMultipleScatteringAccumulationSamples.value);
   cmd.SetGlobalFloat("_useImportanceSampling", sky.useImportanceSampling.value ? 1 : 0);
   cmd.SetGlobalFloat("_useAntiAliasing", sky.useAntiAliasing.value ? 1 : 0);
+  cmd.SetGlobalFloat("_aerialPerspectiveDepthSkew", sky.aerialPerspectiveDepthSkew.value);
   cmd.SetGlobalFloat("_ditherAmount", sky.ditherAmount.value);
 }
 
@@ -1045,9 +1052,6 @@ private void setMaterialPropertyBlock(BuiltinSkyParameters builtinParams) {
 
   /* Night sky. */
   setMaterialPropertyBlockNightSky(sky);
-
-  /* Aerial Perspective. */
-  setMaterialPropertyBlockAerialPerspective(sky);
 }
 
 private void setMaterialPropertyBlockCelestialBodies(Expanse sky) {
@@ -1135,6 +1139,7 @@ private void setMaterialPropertyBlockNightSky(Expanse sky) {
   m_PropertyBlock.SetFloat("_useProceduralNightSky", (sky.useProceduralNightSky.value) ? 1 : 0);
   if (sky.useProceduralNightSky.value) {
     m_PropertyBlock.SetTexture("_Star", m_proceduralStarTexture);
+    m_PropertyBlock.SetVector("_starTint", sky.starTint.value);
   } else {
     m_PropertyBlock.SetFloat("_hasNightSkyTexture", (sky.nightSkyTexture.value == null) ? 0 : 1);
     if (sky.nightSkyTexture.value != null) {
@@ -1142,18 +1147,12 @@ private void setMaterialPropertyBlockNightSky(Expanse sky) {
     }
   }
 
-  m_PropertyBlock.SetVector("_lightPollutionTint", sky.lightPollutionTint.value
-    * sky.lightPollutionIntensity.value);
   Vector3 nightSkyRotation = sky.nightSkyRotation.value;
   Quaternion nightSkyRotationMatrix = Quaternion.Euler(nightSkyRotation.x,
                                                 nightSkyRotation.y,
                                                 nightSkyRotation.z);
   m_PropertyBlock.SetMatrix("_nightSkyRotation", Matrix4x4.Rotate(nightSkyRotationMatrix));
   m_PropertyBlock.SetVector("_nightSkyTint", sky.nightSkyTint.value
-    * sky.nightSkyIntensity.value);
-  m_PropertyBlock.SetVector("_averageNightSkyColor", m_averageNightSkyColor);
-  m_PropertyBlock.SetVector("_nightSkyScatterTint", sky.nightSkyTint.value
-    * sky.nightSkyScatterTint.value * sky.nightSkyScatterIntensity.value
     * sky.nightSkyIntensity.value);
 
   m_PropertyBlock.SetFloat("_useTwinkle", (sky.useTwinkle.value) ? 1 : 0);
@@ -1163,13 +1162,6 @@ private void setMaterialPropertyBlockNightSky(Expanse sky) {
   m_PropertyBlock.SetFloat("_twinkleBias", sky.twinkleBias.value);
   m_PropertyBlock.SetFloat("_twinkleSmoothAmplitude", sky.twinkleSmoothAmplitude.value);
   m_PropertyBlock.SetFloat("_twinkleChaoticAmplitude", sky.twinkleChaoticAmplitude.value);
-}
-
-private void setMaterialPropertyBlockAerialPerspective(Expanse sky) {
-  m_PropertyBlock.SetFloat("_aerialPerspectiveOcclusionBiasUniform", sky.aerialPerspectiveOcclusionBiasUniform.value);
-  m_PropertyBlock.SetFloat("_aerialPerspectiveOcclusionPowerUniform", sky.aerialPerspectiveOcclusionPowerUniform.value);
-    m_PropertyBlock.SetFloat("_aerialPerspectiveOcclusionBiasDirectional", sky.aerialPerspectiveOcclusionBiasDirectional.value);
-    m_PropertyBlock.SetFloat("_aerialPerspectiveOcclusionPowerDirectional", sky.aerialPerspectiveOcclusionPowerDirectional.value);
 }
 
 /******************************************************************************/

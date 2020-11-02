@@ -70,13 +70,10 @@ TEXTURECUBE(_bodyEmissionTexture7);
 /* Night Sky. */
 bool _useProceduralNightSky;
 TEXTURE2D_ARRAY(_Star);
-float4 _lightPollutionTint;   /* Tint and intensity. */
 bool _hasNightSkyTexture;
 TEXTURECUBE(_nightSkyTexture);
 float4 _nightSkyTint;         /* Tint and intensity. */
 float4x4 _nightSkyRotation;
-float4 _averageNightSkyColor;
-float4 _nightSkyScatterTint;  /* Tint and intensity. */
 bool _useTwinkle;
 float _twinkleThreshold;
 float _twinkleFrequencyMin;
@@ -84,12 +81,7 @@ float _twinkleFrequencyMax;
 float _twinkleBias;
 float _twinkleSmoothAmplitude;
 float _twinkleChaoticAmplitude;
-
-/* Aerial Perspective. */
-float _aerialPerspectiveOcclusionBiasUniform;
-float _aerialPerspectiveOcclusionPowerUniform;
-float _aerialPerspectiveOcclusionBiasDirectional;
-float _aerialPerspectiveOcclusionPowerDirectional;
+float4 _starTint;
 
 /* Render textures. */
 TEXTURE2D(_fullscreenSkyColorRT);
@@ -248,16 +240,7 @@ float3 shadeGround(float3 endPoint) {
     float3 lightColor = _bodyLightColor[i].xyz;
     float3 cosTheta = dot(endPointNormalized, L);
 
-    /* Loop over all the layers to accumulate ground irradiance. */
-    float mu_L = dot(L, endPointNormalized);
-    float2 uvGI = mapSky1DCoord(mu_L);
-    float3 giAcc = float3(0, 0, 0);
-    for (int j = 0; j < _numActiveLayers; j++) {
-      float3 gi = sampleSkyGITexture(uvGI, j);
-      giAcc += _layerCoefficientsS[j].xyz * 2.0 * _layerTint[j].xyz * gi;
-    }
-
-    color += albedo * (giAcc * lightColor + cosTheta * lightColor) + emission;
+    color += albedo * cosTheta * lightColor + emission;
   }
   return color;
 }
@@ -404,7 +387,7 @@ float3 shadeNightSky(float3 d) {
           s_linear_clamp_sampler, textureCoordinate, 0).xyz;
       }
     }
-    return ((twinkleCoarse + twinkleFine) * starColor + nebulaeColor) * _nightSkyTint.xyz;
+    return ((twinkleCoarse + twinkleFine) * starColor * _starTint.xyz + nebulaeColor) * _nightSkyTint.xyz;
   } else {
     if (!_hasNightSkyTexture) {
       return _nightSkyTint.xyz;
@@ -425,44 +408,6 @@ float3 shadeNightSky(float3 d) {
     return twinkle * _nightSkyTint.xyz * starColor;
   }
 }
-
-//
-// float3 computeLightPollutionColor(float2 uv, float t_hit) {
-//   float3 color = float3(0, 0, 0);
-//   for (int i = 0; i < _numActiveLayers; i++) {
-//     float3 lp = sampleLPTexture(uv, i);
-//     color += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz) * lp;
-//   }
-//   color *= _lightPollutionTint;
-//   return t_hit * color;
-// }
-//
-// float3 computeStarScatteringColor(float r, float mu, float3 directLight,
-//   float t_hit, bool groundHit) {
-//   /* HACK: to get some sort of approximation of rayleigh scattering
-//    * for the ambient night color of the sky,  */
-//   TexCoord4D uvSS = mapSky4DCoord(r, mu, mu, 1, _atmosphereRadius,
-//     _planetRadius, t_hit, groundHit, _resSS.x, _resSS.y, _resSS.z, _resSS.w);
-//   TexCoord4D uvMSAcc = mapSky4DCoord(r, mu, mu, 1, _atmosphereRadius,
-//     _planetRadius, t_hit, groundHit, _resMSAcc.x, _resMSAcc.y, _resMSAcc.z, _resMSAcc.w);
-//
-//   /* Accumulate contribution from each layer. */
-//   float3 color = float3(0, 0, 0);
-//   for (int j = 0; j < _numActiveLayers; j++) {
-//     /* Single scattering. Use isotropic phase, since this approximation
-//      * has no directionality. */
-//     float3 ss = sampleSSTexture(uvSS, j) * isotropicPhase();
-//
-//     /* Multiple scattering. eyo */
-//     float3 ms = sampleMSAccTexture(uvMSAcc, j);
-//
-//     /* Final color. */
-//     color += _layerCoefficientsS[j].xyz * (2.0 * _layerTint[j].xyz)
-//       * (ss + ms * _layerMultipleScatteringMultiplier[j]);
-//   }
-//
-//   return color * t_hit * _nightSkyScatterTint * _averageNightSkyColor;
-// }
 
 float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   /* Trace a ray to see what we hit. */
@@ -722,7 +667,7 @@ SubShader
   {
     ZWrite Off
     ZTest Always
-    Blend One SrcAlpha// //TODO: FRUSTUM DEBUG //Blend One SrcAlpha
+    Blend One SrcAlpha
     Cull Off
 
     HLSLPROGRAM

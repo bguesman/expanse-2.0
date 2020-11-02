@@ -64,8 +64,6 @@ public struct SkyTextureResolution {
   public SkyTextureQuality quality;
   public Vector2 T;   // Transmittance LUT.
   public Vector2 MS;  // Multiple scattering LUT.
-  public int GI;      // Ground Irradiance LUT.
-  public Vector2 LP;  // Light Pollution LUT.
   public Vector2 SS;  // Single scattering full sky texture.
   public Vector2 MSAccumulation; // Multiple scattering full sky texture.
   public Vector3 AP;  // Aerial perspective frustum texture.
@@ -80,80 +78,66 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
          * I don't think you can get more optimized than this without looking
          * so bad it would be impossible to put in the game. */
         quality = quality,
-        T = new Vector2(128, 512),
+        T = new Vector2(32, 64),
         MS = new Vector2(8, 8),
-        GI = 32,
-        LP = new Vector2(8, 8),
         SS = new Vector2(64, 32),
         MSAccumulation = new Vector2(64, 32),
-        AP = new Vector3(32, 32, 32)
+        AP = new Vector3(8, 8, 8)
       };
     case SkyTextureQuality.Low:
       return new SkyTextureResolution() {
         quality = quality,
-        T = new Vector2(64, 256),
-        MS = new Vector2(32, 32),
-        GI = 32,
-        LP = new Vector2(32, 32),
-        SS = new Vector2(128, 32),
-        MSAccumulation = new Vector2(128, 32),
-        AP = new Vector3(32, 32, 32)
+        T = new Vector2(64, 128),
+        MS = new Vector2(16, 16),
+        SS = new Vector2(128, 64),
+        MSAccumulation = new Vector2(128, 64),
+        AP = new Vector3(16, 16, 16)
       };
     case SkyTextureQuality.Medium:
       return new SkyTextureResolution() {
         quality = quality,
         T = new Vector2(64, 256),
         MS = new Vector2(32, 32),
-        GI = 32,
-        LP = new Vector2(32, 32),
-        SS = new Vector2(128, 64),
+        SS = new Vector2(192, 64),
         MSAccumulation = new Vector2(128, 64),
-        AP = new Vector3(32, 32, 32)
+        AP = new Vector3(16, 16, 32)
       };
     case SkyTextureQuality.High:
       return new SkyTextureResolution() {
         quality = quality,
-        T = new Vector2(64, 512),
+        T = new Vector2(64, 256),
         MS = new Vector2(32, 32),
-        GI = 32,
-        LP = new Vector2(32, 32),
         SS = new Vector2(256, 64),
-        MSAccumulation = new Vector2(256, 64),
-        AP = new Vector3(32, 32, 32)
+        MSAccumulation = new Vector2(128, 64),
+        AP = new Vector3(32, 32, 64)
       };
     case SkyTextureQuality.Ultra:
       return new SkyTextureResolution() {
         quality = quality,
-        T = new Vector2(64, 1024),
-        MS = new Vector2(32, 32),
-        GI = 32,
-        LP = new Vector2(32, 32),
-        SS = new Vector2(64, 256),
-        MSAccumulation = new Vector2(64, 256),
-        AP = new Vector3(32, 32, 32)
+        T = new Vector2(128, 512),
+        MS = new Vector2(64, 64),
+        SS = new Vector2(512, 64),
+        MSAccumulation = new Vector2(128, 64),
+        AP = new Vector3(32, 32, 128)
       };
     case SkyTextureQuality.RippingThroughTheMetaverse:
       return new SkyTextureResolution() {
         quality = quality,
-        T = new Vector2(64, 256),
-        MS = new Vector2(32, 32),
-        GI = 32,
-        LP = new Vector2(32, 32),
-        SS = new Vector2(64, 256),
-        MSAccumulation = new Vector2(64, 256),
-        AP = new Vector3(32, 32, 32)
+        T = new Vector2(256, 1024),
+        MS = new Vector2(64, 64),
+        SS = new Vector2(512, 128),
+        MSAccumulation = new Vector2(256, 128),
+        AP = new Vector3(32, 32, 128)
       };
     default:
       /* To be safe, default case. Returns potato quality. */
       return new SkyTextureResolution() {
         quality = quality,
-        T = new Vector2(64, 256),
-        MS = new Vector2(32, 32),
-        GI = 32,
-        LP = new Vector2(32, 32),
-        SS = new Vector2(64, 256),
-        MSAccumulation = new Vector2(64, 256),
-        AP = new Vector3(32, 32, 32)
+        T = new Vector2(32, 64),
+        MS = new Vector2(8, 8),
+        SS = new Vector2(64, 32),
+        MSAccumulation = new Vector2(64, 32),
+        AP = new Vector3(8, 8, 8)
       };
   }
 }
@@ -234,30 +218,31 @@ public static Vector3 intersectSphere(Vector3 p, Vector3 d, float r) {
 
 /* Maps r and mu to uv. For sampling transmittance table to set
  * directional light color. */
-public static Vector2 map_r_mu(float r, float mu, float atmosphereRadius,
-  float planetRadius, float d, bool groundHit) {
-  float planetRadiusSq = planetRadius * planetRadius;
-  float rSq = r * r;
-  float rho = Mathf.Sqrt(rSq - planetRadiusSq);
-  float H = Mathf.Sqrt(atmosphereRadius * atmosphereRadius - planetRadiusSq);
-
-  float u_mu = 0.0f;
-  float discriminant = rSq * mu * mu - rSq + planetRadiusSq;
+public static float fromUnitToSubUVs(float u, float resolution) {
+ const float j = 0.5f;
+ return (j + u * (resolution + 1 - 2 * j)) / (resolution + 1);
+}
+public static Vector2 map_r_mu_transmittance(float r, float mu, float atmosphereRadius,
+  float planetRadius, float d, bool groundHit, float resMu) {
+  float u_mu = 0;
+  float muStep = 1/resMu;
+  float h = r - planetRadius;
+  float cos_h = -Mathf.Sqrt(h * (2 * planetRadius + h)) / (planetRadius + h);
   if (groundHit) {
-    float d_min = r - planetRadius;
-    float d_max = rho;
-    /* Use lower half of [0, 1] range. */
-    u_mu = 0.4f - 0.4f * (d_max == d_min ? 0.0f : (d - d_min) / (d_max - d_min));
+    mu = Mathf.Clamp(mu, -1, cos_h);
+    u_mu = 0.5f * Mathf.Pow(Mathf.Abs((cos_h - mu) / (1 + cos_h)), 0.2f);
+    if (u_mu > 0.5f-muStep/2) {
+      u_mu = 0.5f - muStep/2;
+    }
   } else {
-    float d_min = atmosphereRadius - r;
-    float d_max = rho + H;
-    /* Use upper half of [0, 1] range. */
-    u_mu = 0.6f + 0.4f * (d_max == d_min ? 0.0f : (d - d_min) / (d_max - d_min));
+    mu = Mathf.Clamp(mu, cos_h, 1);
+    u_mu = 0.5f * Mathf.Pow(Mathf.Abs((mu - cos_h) / (1 - cos_h)), 0.2f) + 0.5f;
+    if (u_mu < 0.5f + muStep/2) {
+      u_mu = 0.5f + muStep/2;
+    }
   }
-
-  float u_r = rho / H;
-
-  return new Vector2(u_r, u_mu);
+  float u_r = Mathf.Sqrt((r - planetRadius) / (atmosphereRadius - planetRadius));
+  return new Vector2(u_r, fromUnitToSubUVs(u_mu, resMu));
 }
 
 

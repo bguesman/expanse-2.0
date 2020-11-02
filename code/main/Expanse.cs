@@ -170,12 +170,16 @@ public FloatRangeParameter starTemperatureRange = new FloatRangeParameter(new Ve
 public ClampedFloatParameter starTemperatureBias = new ClampedFloatParameter(0.5f, 0.0f, 1);
 [Tooltip("Seed for star temperature variation.")]
 public Vector3Parameter starTemperatureSeed = new Vector3Parameter(new Vector3(0.2352f, 1.582f, 8.823f));
+[Tooltip("Tint to star texture.")]
+public ColorParameter starTint = new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true);
 
 /* Nebulae parameters. */
 [Tooltip("Whether to use a procedural nebulae texture, or a static pre-authored one.")]
 public BoolParameter useProceduralNebulae = new BoolParameter(true);
 
-/* Procedural nebulae. TODO: tooltips. */
+/* Procedural nebulae. */
+[Tooltip("When checked, shows seed values for procedural nebulae parameters. Tweaking random seeds can help you get the right flavor of randomness you want.")]
+public BoolParameter showNebulaeSeeds = new BoolParameter(false);
 [Tooltip("Quality of procedural nebulae texture.")]
 public EnumParameter<ExpanseCommon.StarTextureQuality> nebulaeTextureQuality = new EnumParameter<ExpanseCommon.StarTextureQuality>(ExpanseCommon.StarTextureQuality.Medium);
 [Tooltip("Global definition control for the whole nebula texture. This increases saturation and contrast. It's useful to use in tandem with the global intensity control.")]
@@ -184,6 +188,8 @@ public MinFloatParameter nebulaOverallDefinition = new MinFloatParameter(1, 0);
 public MinFloatParameter nebulaOverallIntensity = new MinFloatParameter(1, 0);
 [Tooltip("Scale of noise used for determining nebula coverage. If this value is high, there will be lots of little nebulae scattered across the sky. If this value is low, there will be a few huge nebulae.")]
 public MinFloatParameter nebulaCoverageScale = new MinFloatParameter(3, 1);
+[Tooltip("The seed for the nebula coverage texture.")]
+public Vector3Parameter nebulaCoverageSeed = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
 
 [Tooltip("Intensity of nebula haze.")]
 public MinFloatParameter nebulaHazeBrightness = new MinFloatParameter(1, 0);
@@ -205,6 +211,12 @@ public MinFloatParameter nebulaHazeSpread = new MinFloatParameter(1, 0);
 public ClampedFloatParameter nebulaHazeCoverage = new ClampedFloatParameter(0.5f, 0, 1);
 [Tooltip("Strength of the nebula haze. This is meant to be used in tandem with the coverage value. Higher strength values will allow more features to push through the coverage map. The best way to see what this parameter does is to play around with it.")]
 public MinFloatParameter nebulaHazeStrength = new MinFloatParameter(1, 0);
+[Tooltip("The x seed for the nebula haze texture.")]
+public Vector3Parameter nebulaHazeSeedX = new Vector3Parameter(new Vector3(1.81f, 1.2359f, 3.993583f));
+[Tooltip("The y seed for the nebula haze texture.")]
+public Vector3Parameter nebulaHazeSeedY = new Vector3Parameter(new Vector3(0.5932f, 0.95382f, 6.32532f));
+[Tooltip("The z seed for the nebula haze texture.")]
+public Vector3Parameter nebulaHazeSeedZ = new Vector3Parameter(new Vector3(1.777723f, 1.05320f, 4.7983f));
 
 [Tooltip("Intensity of nebula clouds.")]
 public MinFloatParameter nebulaCloudBrightness = new MinFloatParameter(1, 0);
@@ -226,6 +238,12 @@ public MinFloatParameter nebulaCloudSpread = new MinFloatParameter(1, 0);
 public ClampedFloatParameter nebulaCloudCoverage = new ClampedFloatParameter(0.5f, 0, 1);
 [Tooltip("Strength of the nebula clouds. This is meant to be used in tandem with the coverage value. Higher strength values will allow more features to push through the coverage map. The best way to see what this parameter does is to play around with it.")]
 public MinFloatParameter nebulaCloudStrength = new MinFloatParameter(1, 0);
+[Tooltip("The x seed for the nebula cloud texture.")]
+public Vector3Parameter nebulaCloudSeedX = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
+[Tooltip("The y seed for the nebula cloud texture.")]
+public Vector3Parameter nebulaCloudSeedY = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
+[Tooltip("The z seed for the nebula cloud texture.")]
+public Vector3Parameter nebulaCloudSeedZ = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
 
 [Tooltip("Intensity of nebula big strands.")]
 public MinFloatParameter nebulaCoarseStrandBrightness = new MinFloatParameter(1, 0);
@@ -253,6 +271,18 @@ public MinFloatParameter nebulaCoarseStrandStrength = new MinFloatParameter(1, 0
 public MinFloatParameter nebulaCoarseStrandWarpScale = new MinFloatParameter(16, 0);
 [Tooltip("Intensity of warping of the big strands. Nebulae are big bodies of interstellar gas, and so they obey the laws of fluid mechanics. It's important to capture some of the resulting swirly fluid features. This warp value helps to do that.")]
 public ClampedFloatParameter nebulaCoarseStrandWarp = new ClampedFloatParameter(0.003f, 0, 1);
+[Tooltip("The x seed for the nebula big strand texture.")]
+public Vector3Parameter nebulaCoarseStrandSeedX = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
+[Tooltip("The y seed for the nebula big strand texture.")]
+public Vector3Parameter nebulaCoarseStrandSeedY = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
+[Tooltip("The z seed for the nebula big strand texture.")]
+public Vector3Parameter nebulaCoarseStrandSeedZ = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
+[Tooltip("The x seed for the nebula big strand warp texture.")]
+public Vector3Parameter nebulaCoarseStrandWarpSeedX = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
+[Tooltip("The y seed for the nebula big strand warp texture.")]
+public Vector3Parameter nebulaCoarseStrandWarpSeedY = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
+[Tooltip("The z seed for the nebula big strand warp texture.")]
+public Vector3Parameter nebulaCoarseStrandWarpSeedZ = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
 
 [Tooltip("Intensity of nebula small strands.")]
 public MinFloatParameter nebulaFineStrandBrightness = new MinFloatParameter(1, 0);
@@ -280,11 +310,29 @@ public MinFloatParameter nebulaFineStrandStrength = new MinFloatParameter(1, 0);
 public MinFloatParameter nebulaFineStrandWarpScale = new MinFloatParameter(16, 0);
 [Tooltip("Intensity of warping of the small strands. Nebulae are big bodies of interstellar gas, and so they obey the laws of fluid mechanics. It's important to capture some of the resulting swirly fluid features. This warp value helps to do that.")]
 public ClampedFloatParameter nebulaFineStrandWarp = new ClampedFloatParameter(0.003f, 0, 1);
+[Tooltip("The x seed for the nebula small strand texture.")]
+public Vector3Parameter nebulaFineStrandSeedX = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
+[Tooltip("The y seed for the nebula small strand texture.")]
+public Vector3Parameter nebulaFineStrandSeedY = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
+[Tooltip("The z seed for the nebula small strand texture.")]
+public Vector3Parameter nebulaFineStrandSeedZ = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
+[Tooltip("The x seed for the nebula small strand warp texture.")]
+public Vector3Parameter nebulaFineStrandWarpSeedX = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
+[Tooltip("The y seed for the nebula small strand warp texture.")]
+public Vector3Parameter nebulaFineStrandWarpSeedY = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
+[Tooltip("The z seed for the nebula small strand warp texture.")]
+public Vector3Parameter nebulaFineStrandWarpSeedZ = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
 
 [Tooltip("Range of transmittance values the nebula can have.")]
 public FloatRangeParameter nebulaTransmittanceRange = new FloatRangeParameter(new Vector2(0, 1), 0, 1);
 [Tooltip("Scale of noise used to randomize nebula transmittance.")]
 public MinFloatParameter nebulaTransmittanceScale = new MinFloatParameter(5, 5);
+[Tooltip("The x seed for the nebula transmittance texture.")]
+public Vector3Parameter nebulaTransmittanceSeedX = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
+[Tooltip("The y seed for the nebula transmittance texture.")]
+public Vector3Parameter nebulaTransmittanceSeedY = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
+[Tooltip("The z seed for the nebula transmittance texture.")]
+public Vector3Parameter nebulaTransmittanceSeedZ = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
 
 [Tooltip("Amount that the star density follows the nebula texture.")]
 public MinFloatParameter starNebulaFollowAmount = new MinFloatParameter(0, 0);
@@ -336,6 +384,8 @@ public MinFloatParameter aerialPerspectiveOcclusionBiasUniform = new MinFloatPar
 public MinFloatParameter aerialPerspectiveOcclusionPowerDirectional = new MinFloatParameter(1, 0);
 [Tooltip("This parameter is a way of offsetting the attenuation of aerial perspective as a consequence of approximate volumetric shadowing (for Mie (\"directional\") layers). To see the effect, put the sun behind a big piece of geometry (like a mountain) and play around with this parameter. Expanse does not accurately model atmospheric volumetric shadows due to the performance cost, and instead uses this approximation to avoid visual artifacts.")]
 public MinFloatParameter aerialPerspectiveOcclusionBiasDirectional = new MinFloatParameter(0.02f, 0);
+[Tooltip("The night scattering effect can sometimes be either too intense or not intense enough for aerial perspective. This allows for attenuation of night scattering for aerial perspective only.")]
+public MinFloatParameter aerialPerspectiveNightScatteringMultiplier = new MinFloatParameter(0.2f, 0.0f);
 
 /* Quality. */
 [Tooltip("Quality of sky texture.")]
@@ -343,7 +393,7 @@ public EnumParameter<ExpanseCommon.SkyTextureQuality> skyTextureQuality = new En
 [Tooltip("The number of samples used when computing transmittance lookup tables. With importance sampling turned on, a value of as low as 10 gives near-perfect results on the ground. A value as low as 4 is ok if some visible inaccuracy is tolerable. Without importantance sampling, a value of 32 or higher is recommended.")]
 public ClampedIntParameter numberOfTransmittanceSamples = new ClampedIntParameter(12, 1, 256);
 [Tooltip("The number of samples used when computing light pollution. With importance sampling turned on, a value of as low as 10 gives near-perfect results on the ground. A value as low as 8 is ok if some visible inaccuracy is tolerable. Without importantance sampling, a value of 64 or higher is recommended.")]
-public ClampedIntParameter numberOfLightPollutionSamples = new ClampedIntParameter(12, 1, 256);
+public ClampedIntParameter numberOfAerialPerspectiveSamples = new ClampedIntParameter(12, 1, 256);
 [Tooltip("The number of samples used when computing single scattering. With importance sampling turned on, a value of as low as 10 gives near-perfect results on the ground. A value as low as 5 is ok if some visible inaccuracy is tolerable. Without importantance sampling, a value of 32 or higher is recommended.")]
 public ClampedIntParameter numberOfSingleScatteringSamples = new ClampedIntParameter(32, 1, 256);
 [Tooltip("The number of samples used when sampling the ground irradiance. Importance sampling does not apply here. To get a near-perfect result, around 10 samples is necessary. But it is a fairly subtle effect, so as low as 6 samples gives a decent result.")]
@@ -352,8 +402,12 @@ public ClampedIntParameter numberOfGroundIrradianceSamples = new ClampedIntParam
 public ClampedIntParameter numberOfMultipleScatteringSamples = new ClampedIntParameter(32, 1, 256);
 [Tooltip("The number of samples to use when computing the actual accumulated estimate of multiple scattering from the isotropic estimate. The number of samples to use when computing the initial isotropic estimate of multiple scattering. With importance sample, 8 samples gives a near-perfect result. However, multiple scattering is a fairly subtle effect, so as low as 3 samples gives a decent result. Without importance sampling, a value of 32 or higher is necessary for near perfect results, but a value of 4 is sufficient for most needs.")]
 public ClampedIntParameter numberOfMultipleScatteringAccumulationSamples = new ClampedIntParameter(12, 1, 256);
-[Tooltip("Whether or not to use importance sampling. Importance sampling is a sample distribution strategy that increases fidelity given a limited budget of samples. It is recommended to turn it on, as it doesn't decrease fidelity, but does allow for fewer samples to be taken, boosting performance. However, for outer-space perspectives, it can sometimes introduce inaccuracies, so it can be useful to increase sample counts and turn off importance sampling in those cases.")]
+[Tooltip("Whether or not to use importance sampling for all calculations except aerial perspective. Importance sampling is a sample distribution strategy that increases fidelity given a limited budget of samples. It is recommended to turn it on, as it doesn't decrease fidelity, but does allow for fewer samples to be taken, boosting performance. However, for outer-space perspectives, it can sometimes introduce inaccuracies, so it can be useful to increase sample counts and turn off importance sampling in those cases.")]
 public BoolParameter useImportanceSampling = new BoolParameter(false);
+[Tooltip("Whether or not to use importance sampling for aerial perspective. Importance sampling is a sample distribution strategy that increases fidelity given a limited budget of samples. However, it can sometimes cause artifacts or perform poorly when computing aerial perspective, so the option to turn it off for aerial perspective only is provided.")]
+public BoolParameter aerialPerspectiveUseImportanceSampling = new BoolParameter(false);
+[Tooltip("Skews precomputed aerial perspective samples to be further from the camera (if less than 1) or closer to the camera (if greater than 1). This is useful for environments with very heavy fog, where it can be more important to capture scattering close to the camera.")]
+public ClampedFloatParameter aerialPerspectiveDepthSkew = new ClampedFloatParameter(1, 0.25f, 5);
 [Tooltip("Whether or not to use MSAA 8x anti-aliasing. This does negatively affect performance.")]
 public BoolParameter useAntiAliasing = new BoolParameter(false);
 [Tooltip("Amount of dithering used to reduce color banding. If this is too high, noise will be visible.")]
@@ -381,9 +435,6 @@ public ClampedFloatParameter ditherAmount = new ClampedFloatParameter(0.05f, 0.0
 
 /* Constructor to initialize defaults for array parameters. */
 public Expanse() : base() {
-  /* TODO: how can we initialize layers to be earthlike by default and still
-   * have the code compact? The answer is to have a volume profile bundled
-   * in with the download that has all the defaults set up. */
   /* Atmosphere layer initialization. */
   for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
     /* Enable only the first layer by default. */
@@ -504,6 +555,7 @@ public override int GetHashCode() {
     hash = hash * 23 + starIntensitySeed.value.GetHashCode();
     hash = hash * 23 + starTemperatureRange.value.GetHashCode();
     hash = hash * 23 + starTemperatureBias.value.GetHashCode();
+    hash = hash * 23 + starTint.value.GetHashCode();
     hash = hash * 23 + useProceduralNebulae.value.GetHashCode();
     hash = hash * 23 + nebulaeTextureQuality.value.GetHashCode();
     hash = nebulaeTexture.value != null ? hash * 23 + nebulaeTexture.value.GetHashCode() : hash;
@@ -568,6 +620,29 @@ public override int GetHashCode() {
     hash = hash * 23 + starNebulaFollowAmount.value.GetHashCode();
     hash = hash * 23 + starNebulaFollowSpread.value.GetHashCode();
 
+    hash = hash * 23 + nebulaCoverageSeed.value.GetHashCode();
+    hash = hash * 23 + nebulaHazeSeedX.value.GetHashCode();
+    hash = hash * 23 + nebulaHazeSeedY.value.GetHashCode();
+    hash = hash * 23 + nebulaHazeSeedZ.value.GetHashCode();
+    hash = hash * 23 + nebulaCloudSeedX.value.GetHashCode();
+    hash = hash * 23 + nebulaCloudSeedY.value.GetHashCode();
+    hash = hash * 23 + nebulaCloudSeedZ.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandSeedX.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandSeedY.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandSeedZ.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandWarpSeedX.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandWarpSeedY.value.GetHashCode();
+    hash = hash * 23 + nebulaCoarseStrandWarpSeedZ.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandSeedX.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandSeedY.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandSeedZ.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandWarpSeedX.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandWarpSeedY.value.GetHashCode();
+    hash = hash * 23 + nebulaFineStrandWarpSeedZ.value.GetHashCode();
+    hash = hash * 23 + nebulaTransmittanceSeedX.value.GetHashCode();
+    hash = hash * 23 + nebulaTransmittanceSeedY.value.GetHashCode();
+    hash = hash * 23 + nebulaTransmittanceSeedZ.value.GetHashCode();
+
     /* Texture. */
     hash = hash * 23 + lightPollutionTint.value.GetHashCode();
     hash = hash * 23 + lightPollutionIntensity.value.GetHashCode();
@@ -587,7 +662,7 @@ public override int GetHashCode() {
     /* Quality. */
     hash = hash * 23 + skyTextureQuality.value.GetHashCode();
     hash = hash * 23 + numberOfTransmittanceSamples.value.GetHashCode();
-    hash = hash * 23 + numberOfLightPollutionSamples.value.GetHashCode();
+    hash = hash * 23 + numberOfAerialPerspectiveSamples.value.GetHashCode();
     hash = hash * 23 + numberOfSingleScatteringSamples.value.GetHashCode();
     hash = hash * 23 + numberOfGroundIrradianceSamples.value.GetHashCode();
     hash = hash * 23 + numberOfMultipleScatteringSamples.value.GetHashCode();
@@ -637,12 +712,13 @@ public int GetSkyHashCode() {
     /* Quality. */
     hash = hash * 23 + skyTextureQuality.value.GetHashCode();
     hash = hash * 23 + numberOfTransmittanceSamples.value.GetHashCode();
-    hash = hash * 23 + numberOfLightPollutionSamples.value.GetHashCode();
+    hash = hash * 23 + numberOfAerialPerspectiveSamples.value.GetHashCode();
     hash = hash * 23 + numberOfSingleScatteringSamples.value.GetHashCode();
     hash = hash * 23 + numberOfGroundIrradianceSamples.value.GetHashCode();
     hash = hash * 23 + numberOfMultipleScatteringSamples.value.GetHashCode();
     hash = hash * 23 + numberOfMultipleScatteringAccumulationSamples.value.GetHashCode();
     hash = hash * 23 + useImportanceSampling.value.GetHashCode();
+    hash = hash * 23 + aerialPerspectiveDepthSkew.value.GetHashCode();
   }
   return hash;
 }
@@ -664,7 +740,6 @@ public int GetNightSkyHashCode() {
     hash = hash * 23 + useProceduralNightSky.value.GetHashCode();
     if (useProceduralNightSky.value) {
       hash = hash * 23 + starTextureQuality.value.GetHashCode();
-      hash = hash * 23 + showStarSeeds.value.GetHashCode();
       hash = hash * 23 + useHighDensityMode.value.GetHashCode();
       hash = hash * 23 + starDensity.value.GetHashCode();
       hash = hash * 23 + starDensitySeed.value.GetHashCode();
@@ -681,9 +756,6 @@ public int GetNightSkyHashCode() {
       hash = hash * 23 + nebulaeTextureQuality.value.GetHashCode();
       hash = nebulaeTexture.value != null ? hash * 23 + nebulaeTexture.value.GetHashCode() : hash;
       /* Procedural nebulae. */
-      // TODO: do we need this? so far no.
-      // hash = hash * 23 + nebulaOverallDefinition.value.GetHashCode();
-      // hash = hash * 23 + nebulaOverallIntensity.value.GetHashCode();
       hash = hash * 23 + nebulaCoverageScale.value.GetHashCode();
 
       hash = hash * 23 + nebulaHazeBrightness.value.GetHashCode();
@@ -742,6 +814,29 @@ public int GetNightSkyHashCode() {
 
       hash = hash * 23 + starNebulaFollowAmount.value.GetHashCode();
       hash = hash * 23 + starNebulaFollowSpread.value.GetHashCode();
+
+      hash = hash * 23 + nebulaCoverageSeed.value.GetHashCode();
+      hash = hash * 23 + nebulaHazeSeedX.value.GetHashCode();
+      hash = hash * 23 + nebulaHazeSeedY.value.GetHashCode();
+      hash = hash * 23 + nebulaHazeSeedZ.value.GetHashCode();
+      hash = hash * 23 + nebulaCloudSeedX.value.GetHashCode();
+      hash = hash * 23 + nebulaCloudSeedY.value.GetHashCode();
+      hash = hash * 23 + nebulaCloudSeedZ.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandSeedX.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandSeedY.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandSeedZ.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandWarpSeedX.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandWarpSeedY.value.GetHashCode();
+      hash = hash * 23 + nebulaCoarseStrandWarpSeedZ.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandSeedX.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandSeedY.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandSeedZ.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandWarpSeedX.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandWarpSeedY.value.GetHashCode();
+      hash = hash * 23 + nebulaFineStrandWarpSeedZ.value.GetHashCode();
+      hash = hash * 23 + nebulaTransmittanceSeedX.value.GetHashCode();
+      hash = hash * 23 + nebulaTransmittanceSeedY.value.GetHashCode();
+      hash = hash * 23 + nebulaTransmittanceSeedZ.value.GetHashCode();
     }
     hash = nightSkyTexture.value != null ? hash * 23 + nightSkyTexture.value.GetHashCode() : hash;
   }

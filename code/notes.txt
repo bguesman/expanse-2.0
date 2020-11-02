@@ -1,0 +1,43 @@
+todo list:
+ -computeMSLayers and computeSSLayers sampling arguments
+ -case out above atmosphere for ap/ss/ms
+ -nebulae no texture assigned issue
+ -conditional MSAA
+ -lighting based on visible sun fraction (debatable if this matters)
+ -make night sky texture average evaluation more efficient
+ -clean up remaining warnings
+ -UI title size hierarchy
+ -maybe investigate the flicker high-density bug if we feel like it
+ -analytical solution for density attenuation
+
+new params:
+  -night scatter multiplier for AP => aerialPerspectiveNightScatteringMultiplier DONE.
+  -AP samples (already set up but need to pass thru to shader)
+  -checkbox for AP importance sampling => aerialPerspectiveUseImportanceSampling
+  -star tint parameter artistic override => starTint. DONE.
+  -nebula seeds exposable in UI. DONE.
+    -nebulaCoverageSeed
+    -nebulaHazeSeedX
+    -nebulaHazeSeedY
+    -nebulaHazeSeedZ
+    -nebulaCloudSeedX
+    -nebulaCloudSeedY
+    -nebulaCloudSeedZ
+    -nebulaCoarseStrandSeedX
+    -nebulaCoarseStrandSeedY
+    -nebulaCoarseStrandSeedZ
+    -nebulaCoarseStrandWarpSeedX
+    -nebulaCoarseStrandWarpSeedY
+    -nebulaCoarseStrandWarpSeedZ
+    -nebulaFineStrandSeedX
+    -nebulaFineStrandSeedY
+    -nebulaFineStrandSeedZ
+    -nebulaFineStrandWarpSeedX
+    -nebulaFineStrandWarpSeedY
+    -nebulaFineStrandWarpSeedZ
+    -nebulaTransmittanceSeedX
+    -nebulaTransmittanceSeedY
+    -nebulaTransmittanceSeedZ
+  -AP depth non-linearity => aerialPerspectiveDepthSkew. DONE.
+
+  -possibly on hold but probably useful: nebula color gradients. is there a gradient ui parameter?

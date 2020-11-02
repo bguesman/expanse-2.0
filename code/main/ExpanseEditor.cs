@@ -141,6 +141,7 @@ SerializedDataParameter starTemperatureRange;
 SerializedDataParameter starTemperatureBias;
 SerializedDataParameter starTemperatureSeed;
 SerializedDataParameter useHighDensityMode;
+SerializedDataParameter starTint;
 /* Nebulae. */
 SerializedDataParameter useProceduralNebulae;
 SerializedDataParameter nebulaeTextureQuality;
@@ -209,6 +210,30 @@ SerializedDataParameter nebulaTransmittanceScale;
 SerializedDataParameter starNebulaFollowAmount;
 SerializedDataParameter starNebulaFollowSpread;
 
+SerializedDataParameter showNebulaeSeeds;
+SerializedDataParameter nebulaCoverageSeed;
+SerializedDataParameter nebulaHazeSeedX;
+SerializedDataParameter nebulaHazeSeedY;
+SerializedDataParameter nebulaHazeSeedZ;
+SerializedDataParameter nebulaCloudSeedX;
+SerializedDataParameter nebulaCloudSeedY;
+SerializedDataParameter nebulaCloudSeedZ;
+SerializedDataParameter nebulaCoarseStrandSeedX;
+SerializedDataParameter nebulaCoarseStrandSeedY;
+SerializedDataParameter nebulaCoarseStrandSeedZ;
+SerializedDataParameter nebulaCoarseStrandWarpSeedX;
+SerializedDataParameter nebulaCoarseStrandWarpSeedY;
+SerializedDataParameter nebulaCoarseStrandWarpSeedZ;
+SerializedDataParameter nebulaFineStrandSeedX;
+SerializedDataParameter nebulaFineStrandSeedY;
+SerializedDataParameter nebulaFineStrandSeedZ;
+SerializedDataParameter nebulaFineStrandWarpSeedX;
+SerializedDataParameter nebulaFineStrandWarpSeedY;
+SerializedDataParameter nebulaFineStrandWarpSeedZ;
+SerializedDataParameter nebulaTransmittanceSeedX;
+SerializedDataParameter nebulaTransmittanceSeedY;
+SerializedDataParameter nebulaTransmittanceSeedZ;
+
 /* Regular nebulae. */
 SerializedDataParameter nebulaeTexture;
 
@@ -233,16 +258,19 @@ SerializedDataParameter aerialPerspectiveOcclusionPowerUniform;
 SerializedDataParameter aerialPerspectiveOcclusionBiasUniform;
 SerializedDataParameter aerialPerspectiveOcclusionPowerDirectional;
 SerializedDataParameter aerialPerspectiveOcclusionBiasDirectional;
+SerializedDataParameter aerialPerspectiveNightScatteringMultiplier;
 
 /* Quality parameters. */
 SerializedDataParameter skyTextureQuality;
 SerializedDataParameter numberOfTransmittanceSamples;
-SerializedDataParameter numberOfLightPollutionSamples;
+SerializedDataParameter numberOfAerialPerspectiveSamples;
 SerializedDataParameter numberOfSingleScatteringSamples;
 SerializedDataParameter numberOfGroundIrradianceSamples;
 SerializedDataParameter numberOfMultipleScatteringSamples;
 SerializedDataParameter numberOfMultipleScatteringAccumulationSamples;
 SerializedDataParameter useImportanceSampling;
+SerializedDataParameter aerialPerspectiveUseImportanceSampling;
+SerializedDataParameter aerialPerspectiveDepthSkew;
 SerializedDataParameter useAntiAliasing;
 SerializedDataParameter ditherAmount;
 
@@ -521,7 +549,12 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
     PropertyField(nightSkyScatterTint, new UnityEngine.GUIContent("Scatter Tint"));
 
     EditorGUILayout.Space();
-    EditorGUILayout.LabelField("Stars", subtitleStyle);
+    EditorGUILayout.LabelField("Light Pollution", subtitleStyle);
+    PropertyField(lightPollutionTint, new UnityEngine.GUIContent("Tint"));
+    PropertyField(lightPollutionIntensity, new UnityEngine.GUIContent("Intensity"));
+
+    EditorGUILayout.Space();
+    EditorGUILayout.LabelField("Stars", titleStyle);
     PropertyField(starTextureQuality, new UnityEngine.GUIContent("Texture Quality"));
     PropertyField(showStarSeeds, new UnityEngine.GUIContent("Show Seeds"));
     if (showStarSeeds.value.boolValue) {
@@ -537,6 +570,7 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
       PropertyField(starTemperatureRange, new UnityEngine.GUIContent("Temperature Range"));
       PropertyField(starTemperatureBias, new UnityEngine.GUIContent("Temperature Bias"));
       PropertyField(starTemperatureSeed, new UnityEngine.GUIContent("Temperature Seed"));
+      PropertyField(starTint, new UnityEngine.GUIContent("Tint"));
     } else {
       PropertyField(useHighDensityMode);
       PropertyField(starDensity, new UnityEngine.GUIContent("Density"));
@@ -546,6 +580,7 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
       PropertyField(starIntensityBias, new UnityEngine.GUIContent("Intensity Bias"));
       PropertyField(starTemperatureRange, new UnityEngine.GUIContent("Temperature Range"));
       PropertyField(starTemperatureBias, new UnityEngine.GUIContent("Temperature Bias"));
+      PropertyField(starTint, new UnityEngine.GUIContent("Tint"));
     }
 
     EditorGUILayout.Space();
@@ -559,23 +594,28 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
       PropertyField(twinkleChaoticAmplitude, new UnityEngine.GUIContent("Chaotic Intensity"));
     }
 
-    EditorGUILayout.Space();
-    EditorGUILayout.LabelField("Light Pollution", subtitleStyle);
-    PropertyField(lightPollutionTint, new UnityEngine.GUIContent("Tint"));
-    PropertyField(lightPollutionIntensity, new UnityEngine.GUIContent("Intensity"));
 
     EditorGUILayout.Space();
-    EditorGUILayout.LabelField("Nebulae", subtitleStyle);
+    EditorGUILayout.LabelField("Nebulae", titleStyle);
     PropertyField(useProceduralNebulae, new UnityEngine.GUIContent("Procedural"));
     if (useProceduralNebulae.value.boolValue) {
       PropertyField(nebulaeTextureQuality, new UnityEngine.GUIContent("Texture Quality"));
+      PropertyField(showNebulaeSeeds, new UnityEngine.GUIContent("Show Seeds"));
       PropertyField(nebulaOverallDefinition, new UnityEngine.GUIContent("Overall Definition"));
       PropertyField(nebulaOverallIntensity, new UnityEngine.GUIContent("Overall Intensity"));
-      PropertyField(nebulaCoverageScale, new UnityEngine.GUIContent("Coverage Scale"));
       PropertyField(starNebulaFollowAmount, new UnityEngine.GUIContent("Star Follow Amount"));
       PropertyField(starNebulaFollowSpread, new UnityEngine.GUIContent("Star Follow Spread"));
+      PropertyField(nebulaCoverageScale, new UnityEngine.GUIContent("Coverage Scale"));
+      if (showNebulaeSeeds.value.boolValue) {
+        PropertyField(nebulaCoverageSeed, new UnityEngine.GUIContent("Coverage Seed"));
+      }
       PropertyField(nebulaTransmittanceRange, new UnityEngine.GUIContent("Transmittance Range"));
       PropertyField(nebulaTransmittanceScale, new UnityEngine.GUIContent("Transmittance Scale"));
+      if (showNebulaeSeeds.value.boolValue) {
+        PropertyField(nebulaTransmittanceSeedX, new UnityEngine.GUIContent("Transmittance X Seed"));
+        PropertyField(nebulaTransmittanceSeedY, new UnityEngine.GUIContent("Transmittance Y Seed"));
+        PropertyField(nebulaTransmittanceSeedZ, new UnityEngine.GUIContent("Transmittance Z Seed"));
+      }
 
       EditorGUILayout.Space();
       nebulaLayerDropdownSelection = EditorGUILayout.Popup("Nebula Layer", nebulaLayerDropdownSelection, nebulaLayerDropdownOptions);
@@ -591,6 +631,11 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
           PropertyField(nebulaHazeStrength, new UnityEngine.GUIContent("Strength"));
           PropertyField(nebulaHazeCoverage, new UnityEngine.GUIContent("Coverage"));
           PropertyField(nebulaHazeSpread, new UnityEngine.GUIContent("Spread"));
+          if (showNebulaeSeeds.value.boolValue) {
+            PropertyField(nebulaHazeSeedX, new UnityEngine.GUIContent("Haze X Seed"));
+            PropertyField(nebulaHazeSeedY, new UnityEngine.GUIContent("Haze Y Seed"));
+            PropertyField(nebulaHazeSeedZ, new UnityEngine.GUIContent("Haze Z Seed"));
+          }
           break;
         }
         case 1: {
@@ -604,6 +649,11 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
           PropertyField(nebulaCloudStrength, new UnityEngine.GUIContent("Strength"));
           PropertyField(nebulaCloudCoverage, new UnityEngine.GUIContent("Coverage"));
           PropertyField(nebulaCloudSpread, new UnityEngine.GUIContent("Spread"));
+          if (showNebulaeSeeds.value.boolValue) {
+            PropertyField(nebulaCloudSeedX, new UnityEngine.GUIContent("Cloud X Seed"));
+            PropertyField(nebulaCloudSeedY, new UnityEngine.GUIContent("Cloud Y Seed"));
+            PropertyField(nebulaCloudSeedZ, new UnityEngine.GUIContent("Cloud Z Seed"));
+          }
           break;
         }
         case 2: {
@@ -620,6 +670,14 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
           PropertyField(nebulaCoarseStrandSpread, new UnityEngine.GUIContent("Spread"));
           PropertyField(nebulaCoarseStrandWarp, new UnityEngine.GUIContent("Warp"));
           PropertyField(nebulaCoarseStrandWarpScale, new UnityEngine.GUIContent("Warp Scale"));
+          if (showNebulaeSeeds.value.boolValue) {
+            PropertyField(nebulaCoarseStrandSeedX, new UnityEngine.GUIContent("Coarse Strand X Seed"));
+            PropertyField(nebulaCoarseStrandSeedY, new UnityEngine.GUIContent("Coarse Strand Y Seed"));
+            PropertyField(nebulaCoarseStrandSeedZ, new UnityEngine.GUIContent("Coarse Strand Z Seed"));
+            PropertyField(nebulaCoarseStrandWarpSeedX, new UnityEngine.GUIContent("Coarse Strand Warp X Seed"));
+            PropertyField(nebulaCoarseStrandWarpSeedY, new UnityEngine.GUIContent("Coarse Strand Warp Y Seed"));
+            PropertyField(nebulaCoarseStrandWarpSeedZ, new UnityEngine.GUIContent("Coarse Strand Warp Z Seed"));
+          }
           break;
         }
         case 3: {
@@ -636,11 +694,19 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
           PropertyField(nebulaFineStrandSpread, new UnityEngine.GUIContent("Spread"));
           PropertyField(nebulaFineStrandWarp, new UnityEngine.GUIContent("Warp"));
           PropertyField(nebulaFineStrandWarpScale, new UnityEngine.GUIContent("Warp Scale"));
+          if (showNebulaeSeeds.value.boolValue) {
+            PropertyField(nebulaFineStrandSeedX, new UnityEngine.GUIContent("Fine Strand X Seed"));
+            PropertyField(nebulaFineStrandSeedY, new UnityEngine.GUIContent("Fine Strand Y Seed"));
+            PropertyField(nebulaFineStrandSeedZ, new UnityEngine.GUIContent("Fine Strand Z Seed"));
+            PropertyField(nebulaFineStrandWarpSeedX, new UnityEngine.GUIContent("Fine Strand Warp X Seed"));
+            PropertyField(nebulaFineStrandWarpSeedY, new UnityEngine.GUIContent("Fine Strand Warp Y Seed"));
+            PropertyField(nebulaFineStrandWarpSeedZ, new UnityEngine.GUIContent("Fine Strand Warp Z Seed"));
+          }
           break;
         }
         default: {
           /* Show an error. */
-          EditorGUILayout.LabelField("ERROR: Invalid nebula layer selected. If you're a user, this is not your fault.", subtitleStyle);
+          EditorGUILayout.LabelField("ERROR: Invalid nebula layer selected. If you're a user, this error is not your fault.", subtitleStyle);
           break;
         }
       }
@@ -688,6 +754,7 @@ private void aerialPerspective(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIS
   PropertyField(aerialPerspectiveOcclusionBiasUniform, new UnityEngine.GUIContent("Uniform Occlusion Bias"));
   PropertyField(aerialPerspectiveOcclusionPowerDirectional, new UnityEngine.GUIContent("Directional Occlusion Spread"));
   PropertyField(aerialPerspectiveOcclusionBiasDirectional, new UnityEngine.GUIContent("Directional Occlusion Bias"));
+  PropertyField(aerialPerspectiveNightScatteringMultiplier, new UnityEngine.GUIContent("Night Scattering Multiplier"));
 }
 
 
@@ -696,12 +763,14 @@ private void quality(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subti
   /* Texture quality selection dropdown. */
   PropertyField(skyTextureQuality, new UnityEngine.GUIContent("Texture Quality"));
   PropertyField(numberOfTransmittanceSamples, new UnityEngine.GUIContent("Transmittance Samples"));
-  PropertyField(numberOfLightPollutionSamples, new UnityEngine.GUIContent("Light Pollution Samples"));
   PropertyField(numberOfSingleScatteringSamples, new UnityEngine.GUIContent("Single Scattering Samples"));
-  PropertyField(numberOfGroundIrradianceSamples, new UnityEngine.GUIContent("Ground Irradiance Samples"));
   PropertyField(numberOfMultipleScatteringSamples, new UnityEngine.GUIContent("Multiple Scattering Samples"));
   PropertyField(numberOfMultipleScatteringAccumulationSamples, new UnityEngine.GUIContent("Multiple Scattering Accumulation Samples"));
+  PropertyField(numberOfAerialPerspectiveSamples, new UnityEngine.GUIContent("Aerial Perspective Samples"));
+  PropertyField(numberOfGroundIrradianceSamples, new UnityEngine.GUIContent("Ground Irradiance Samples"));
   PropertyField(useImportanceSampling, new UnityEngine.GUIContent("Importance Sampling"));
+  PropertyField(aerialPerspectiveUseImportanceSampling, new UnityEngine.GUIContent("Aerial Perspective Importance Sampling"));
+  PropertyField(aerialPerspectiveDepthSkew, new UnityEngine.GUIContent("Aerial Perspective Depth Skew"));
   PropertyField(useAntiAliasing, new UnityEngine.GUIContent("Anti-Aliasing"));
   PropertyField(ditherAmount);
 }
@@ -806,6 +875,7 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   starTemperatureRange = Unpack(o.Find(x => x.starTemperatureRange));
   starTemperatureBias = Unpack(o.Find(x => x.starTemperatureBias));
   starTemperatureSeed = Unpack(o.Find(x => x.starTemperatureSeed));
+  starTint = Unpack(o.Find(x => x.starTint));
   /* Nebulae. */
   useProceduralNebulae = Unpack(o.Find(x => x.useProceduralNebulae));
   nebulaeTextureQuality = Unpack(o.Find(x => x.nebulaeTextureQuality));
@@ -863,6 +933,29 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   nebulaTransmittanceScale = Unpack(o.Find(x => x.nebulaTransmittanceScale));
   starNebulaFollowAmount = Unpack(o.Find(x => x.starNebulaFollowAmount));
   starNebulaFollowSpread = Unpack(o.Find(x => x.starNebulaFollowSpread));
+  nebulaCoverageSeed = Unpack(o.Find(x => x.nebulaCoverageSeed));
+  nebulaHazeSeedX = Unpack(o.Find(x => x.nebulaHazeSeedX));
+  nebulaHazeSeedY = Unpack(o.Find(x => x.nebulaHazeSeedY));
+  nebulaHazeSeedZ = Unpack(o.Find(x => x.nebulaHazeSeedZ));
+  nebulaCloudSeedX = Unpack(o.Find(x => x.nebulaCloudSeedX));
+  nebulaCloudSeedY = Unpack(o.Find(x => x.nebulaCloudSeedY));
+  nebulaCloudSeedZ = Unpack(o.Find(x => x.nebulaCloudSeedZ));
+  nebulaCoarseStrandSeedX = Unpack(o.Find(x => x.nebulaCoarseStrandSeedX));
+  nebulaCoarseStrandSeedY = Unpack(o.Find(x => x.nebulaCoarseStrandSeedY));
+  nebulaCoarseStrandSeedZ = Unpack(o.Find(x => x.nebulaCoarseStrandSeedZ));
+  nebulaCoarseStrandWarpSeedX = Unpack(o.Find(x => x.nebulaCoarseStrandWarpSeedX));
+  nebulaCoarseStrandWarpSeedY = Unpack(o.Find(x => x.nebulaCoarseStrandWarpSeedY));
+  nebulaCoarseStrandWarpSeedZ = Unpack(o.Find(x => x.nebulaCoarseStrandWarpSeedZ));
+  nebulaFineStrandSeedX = Unpack(o.Find(x => x.nebulaFineStrandSeedX));
+  nebulaFineStrandSeedY = Unpack(o.Find(x => x.nebulaFineStrandSeedY));
+  nebulaFineStrandSeedZ = Unpack(o.Find(x => x.nebulaFineStrandSeedZ));
+  nebulaFineStrandWarpSeedX = Unpack(o.Find(x => x.nebulaFineStrandWarpSeedX));
+  nebulaFineStrandWarpSeedY = Unpack(o.Find(x => x.nebulaFineStrandWarpSeedY));
+  nebulaFineStrandWarpSeedZ = Unpack(o.Find(x => x.nebulaFineStrandWarpSeedZ));
+  nebulaTransmittanceSeedX = Unpack(o.Find(x => x.nebulaTransmittanceSeedX));
+  nebulaTransmittanceSeedY = Unpack(o.Find(x => x.nebulaTransmittanceSeedY));
+  nebulaTransmittanceSeedZ = Unpack(o.Find(x => x.nebulaTransmittanceSeedZ));
+  showNebulaeSeeds = Unpack(o.Find(x => x.showNebulaeSeeds));
 
   /* Regular nebulae. */
   nebulaeTexture = Unpack(o.Find(x => x.nebulaeTexture));
@@ -888,16 +981,19 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   aerialPerspectiveOcclusionBiasUniform = Unpack(o.Find(x => x.aerialPerspectiveOcclusionBiasUniform));
   aerialPerspectiveOcclusionPowerDirectional = Unpack(o.Find(x => x.aerialPerspectiveOcclusionPowerDirectional));
   aerialPerspectiveOcclusionBiasDirectional = Unpack(o.Find(x => x.aerialPerspectiveOcclusionBiasDirectional));
+  aerialPerspectiveNightScatteringMultiplier = Unpack(o.Find(x => x.aerialPerspectiveNightScatteringMultiplier));
 
   /* Quality. */
   skyTextureQuality = Unpack(o.Find(x => x.skyTextureQuality));
   numberOfTransmittanceSamples = Unpack(o.Find(x => x.numberOfTransmittanceSamples));
-  numberOfLightPollutionSamples = Unpack(o.Find(x => x.numberOfLightPollutionSamples));
+  numberOfAerialPerspectiveSamples = Unpack(o.Find(x => x.numberOfAerialPerspectiveSamples));
   numberOfSingleScatteringSamples = Unpack(o.Find(x => x.numberOfSingleScatteringSamples));
   numberOfGroundIrradianceSamples = Unpack(o.Find(x => x.numberOfGroundIrradianceSamples));
   numberOfMultipleScatteringSamples = Unpack(o.Find(x => x.numberOfMultipleScatteringSamples));
   numberOfMultipleScatteringAccumulationSamples = Unpack(o.Find(x => x.numberOfMultipleScatteringAccumulationSamples));
   useImportanceSampling = Unpack(o.Find(x => x.useImportanceSampling));
+  aerialPerspectiveUseImportanceSampling = Unpack(o.Find(x => x.aerialPerspectiveUseImportanceSampling));
+  aerialPerspectiveDepthSkew = Unpack(o.Find(x => x.aerialPerspectiveDepthSkew));
   useAntiAliasing = Unpack(o.Find(x => x.useAntiAliasing));
   ditherAmount = Unpack(o.Find(x => x.ditherAmount));
 

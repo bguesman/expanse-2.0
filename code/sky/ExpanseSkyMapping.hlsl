@@ -272,8 +272,8 @@ float4 unmapFrustumCoordinate(float3 uvw) {
   float3 clipSpaceD = -normalize(mul(float4(xy.x, xy.y, 1, 1), _pCoordToViewDir).xyz);
 
   /* Get camera center, and angle between direction and center. */
-  /* Depth. TODO: non-linearize if necessary. */
-  float depth = uvw.z * _farClip;
+  /* Depth. TODO: tweakable non-linear curve where pow is */
+  float depth = pow(abs(uvw.z), _aerialPerspectiveDepthSkew) * _farClip;
   float3 cameraCenterD = -normalize(mul(float4(_currentScreenSize.xy/2.0, 1, 1), _pCoordToViewDir).xyz);
   float cosTheta = dot(cameraCenterD, clipSpaceD);
   depth /= max(cosTheta, 0.00001);
@@ -283,7 +283,7 @@ float4 unmapFrustumCoordinate(float3 uvw) {
 
 /* Maps linear depth to frustum coordinate. */
 float3 mapFrustumCoordinate(float2 positionCS, float linearDepth) {
-  return float3(positionCS/_currentScreenSize.xy, linearDepth / _farClip);
+  return float3(positionCS/_currentScreenSize.xy, pow(abs(linearDepth / _farClip), 1.0/_aerialPerspectiveDepthSkew));
 }
 
 /******************************************************************************/

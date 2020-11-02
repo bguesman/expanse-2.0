@@ -1,10 +1,8 @@
 #pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
 
 #pragma kernel T main=T
-#pragma kernel LP main=LP
 #pragma kernel SS main=SS
 #pragma kernel AP main=AP
-#pragma kernel GI main=GI
 #pragma kernel MS main=MS
 #pragma kernel MSAcc main=MSAcc
 
@@ -17,9 +15,6 @@
 /* Transmittance. */
 RW_TEXTURE2D(float3, _T_RW);
 
-/* Light Pollution. */
-RW_TEXTURE2D(float3, _LP_RW);
-
 /* Single scattering. */
 RW_TEXTURE2D(float3, _SS_RW);
 
@@ -31,9 +26,6 @@ RW_TEXTURE2D(float3, _MS_RW);
 
 /* Multiple scattering accumulation. */
 RW_TEXTURE2D(float3, _MSAcc_RW);
-
-/* Ground Irradiance. */
-RW_TEXTURE2D(float3, _GI_RW);
 
 [numthreads(8,8,1)]
 void T(uint3 id : SV_DispatchThreadID) {
@@ -59,95 +51,6 @@ void T(uint3 id : SV_DispatchThreadID) {
 }
 
 [numthreads(8,8,1)]
-void LP(uint3 id : SV_DispatchThreadID) {
-  // /* Get the uv for this id and unwrap it to a viewing angle and a
-  //  * height. */
-  // float u_r = (id.x + 0.5f) / float(_resLP.x);
-  // float u_mu = (id.y + 0.5f) / float(_resLP.y);
-  //
-  // float2 r_mu = unmapSky2DCoord(u_r, u_mu, _atmosphereRadius, _planetRadius);
-  //
-  // float r = r_mu.x;
-  // float mu = r_mu.y;
-  //
-  // float3 O = float3(0, r, 0);
-  // float3 d = float3(safeSqrt(1 - mu * mu), mu, 0);
-  //
-  // /* Trace a ray to see what we hit. */
-  // SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
-  //   _atmosphereRadius);
-  // float3 endPoint = O + d * intersection.endT;
-  // float t_hit = intersection.endT;
-  //
-  // float2 oToSample = mapSky2DCoord(length(O), mu, _atmosphereRadius,
-  //   _planetRadius, t_hit, intersection.groundHit, _resT.y);
-  //
-  // float3 lightPollution[MAX_LAYERS];
-  // float scaledDensity[MAX_LAYERS];
-  // for (int i = 0; i < MAX_LAYERS; i++) {
-  //   lightPollution[i] = float3(0, 0, 0);
-  //   scaledDensity[i] = 0;
-  // }
-  //
-  // for (int i = 0; i < _numLPSamples; i++) {
-  //   float sampleT = 0.0;
-  //   float ds = 0.0;
-  //   if (_useImportanceSampling) {
-  //     float2 t_ds = generateCubicSampleFromIndex(i, _numLPSamples);
-  //     sampleT = t_hit * t_ds.x;
-  //     ds = t_ds.y;
-  //   } else {
-  //     /* Distribute linearly. */
-  //     float2 t_ds = generateLinearSampleFromIndex(i, _numLPSamples);
-  //     sampleT = t_hit * t_ds.x;
-  //     ds = t_ds.y;
-  //   }
-  //
-  //   float3 samplePoint = O + d * sampleT;
-  //   float3 normalizedSamplePoint = normalize(samplePoint);
-  //
-  //   /* Compute the scaled density for each layer.  */
-  //   for (int j = 0; j < _numActiveLayers; j++) {
-  //     scaledDensity[j] = ds * computeDensity(_layerDensityDistribution[j],
-  //       samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
-  //       _layerUseDensityAttenuation[j], sampleT, _layerAttenuationBias[j],
-  //       _layerAttenuationDistance[j]);
-  //   }
-  //
-  //   /* Compute transmittance from O to sample point. */
-  //   float3 T_oToSample = SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler,
-  //     oToSample, 0);
-  //
-  //   /* Our transmittance value for O to the sample point is too large---we
-  //    * need to divide out the transmittance from the sample point to the
-  //    * atmosphere, or ground, depending on what we hit. */
-  //   float2 sampleOut = mapSky2DCoord(length(samplePoint),
-  //     clampCosine(dot(normalizedSamplePoint, d)), _atmosphereRadius,
-  //     _planetRadius, t_hit - sampleT, intersection.groundHit, _resT.y);
-  //   float3 T_sampleOut = SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler,
-  //     sampleOut, 0).xyz;
-  //   T_oToSample -= T_sampleOut;
-  //
-  //   /* Compute the light transmittance to the ground. */
-  //   float2 sampleToGround = mapSky2DCoord(length(samplePoint), -1.0,
-  //     _atmosphereRadius, _planetRadius, length(samplePoint) - _planetRadius,
-  //     true, _resT.y);
-  //   float3 T_sampleToGround = SAMPLE_TEXTURE2D_LOD(_T, s_linear_clamp_sampler,
-  //     sampleToGround, 0).xyz;
-  //
-  //   float3 T = exp(T_oToSample + T_sampleToGround);
-  //
-  //   for (int j = 0; j < _numActiveLayers; j++) {
-  //     lightPollution[j] += scaledDensity[j] * T;
-  //   }
-  // }
-  //
-  // for (int i = 0; i < _numActiveLayers; i++) {
-  //   _LP_RW[uint3(id.xy, (uint) i)] = lightPollution[i];
-  // }
-}
-
-[numthreads(8,8,1)]
 void SS(uint3 id : SV_DispatchThreadID) {
   /* Get the uv for this id and unwrap it to a viewing angle and a
    * radial angle. */
@@ -158,12 +61,20 @@ void SS(uint3 id : SV_DispatchThreadID) {
     _atmosphereRadius, _planetRadius, _resSS.x, _resSS.y);
   float3 d = mu_theta_to_d(mu_theta.x, mu_theta.y, O);
 
+  // HACK: Hack where we make sure we don't sample directly on the horizon
+  // line fixes remaining tiny artifacts.
+  float h = r - _planetRadius;
+  float cosHorizon = -safeSqrt(h * (2 * _planetRadius + h)) / (_planetRadius + h);
+  float step = 1.0/_resSS.x;
+  d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
+
   /* Trace a ray to see what we hit. */
+  // TODO: case out above atmo
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
 
   /* Compute single scattering and store the shadowed result. */
-  SSResult ss = computeSS(O, d, intersection.endT, intersection.endT, intersection.groundHit);
+  SSResult ss = computeSS(O, d, intersection.endT, intersection.endT, intersection.groundHit, 1.0, false);
   _SS_RW[id.xy] = ss.shadows;
 }
 
@@ -181,7 +92,7 @@ void AP(uint3 id : SV_DispatchThreadID) {
   // line fixes remaining tiny artifacts.
   float h = r - _planetRadius;
   float cosHorizon = -safeSqrt(h * (2 * _planetRadius + h)) / (_planetRadius + h);
-  float step = max(1.0/_resMSAcc.x, 1.0/_resSS.x);
+  float step = min(1.0/_resMSAcc.x, 1.0/_resSS.x);
   d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
 
   /* Compute SS between origin and depth in direction d. */
@@ -190,8 +101,10 @@ void AP(uint3 id : SV_DispatchThreadID) {
     _atmosphereRadius);
   depth = min(depth, intersection.endT);
   // TODO: make samples tweakable?
-  SSResult ss = computeSS(O, d, depth, intersection.endT, intersection.groundHit);
-  float3 ms = computeMS(O, d, depth, intersection.endT, intersection.groundHit);
+  SSResult ss = computeSS(O, d, depth, intersection.endT, intersection.groundHit,
+    _aerialPerspectiveNightScatteringMultiplier, true);
+  float3 ms = computeMS(O, d, depth, intersection.endT, intersection.groundHit,
+    _aerialPerspectiveNightScatteringMultiplier);
 
   /* Compute the transmittance between the 2 points. */
   float2 oToSample = mapSky2DCoord(r, dot(normalize(O), d), _atmosphereRadius,
@@ -203,57 +116,6 @@ void AP(uint3 id : SV_DispatchThreadID) {
   T -= sampleSkyTTextureRaw(sampleOut);
 
   _AP_RW[id] = float4(ss.shadows + ms, dot(float3(1.0, 1.0, 1.0)/3.0, T));
-}
-
-[numthreads(8,1,1)]
-void GI(uint3 id : SV_DispatchThreadID) {
-  // float u_mu_l = (id.x + 0.5f) / float(_resGI);
-  //
-  // float2 r_mu_l = unmapSky1DCoord(u_mu_l, _planetRadius);
-  // float r = r_mu_l.x;
-  // float mu_l = r_mu_l.y;
-  //
-  // float3 O = float3(0, r, 0);
-  // float3 O_normalized = float3(0, 1, 0);
-  // float3 L = float3(safeSqrt(1 - mu_l * mu_l), mu_l, 0);
-  //
-  // /* Precompute outside of loop. */
-  // float3 proj_L = normalize(L - O_normalized * mu_l);
-  //
-  // float3 gi[MAX_LAYERS];
-  // for (int j = 0; j < _numActiveLayers; j++) {
-  //   gi[j] = float3(0, 0, 0);
-  // }
-  //
-  // for (int i = 0; i < _numGISamples; i++) {
-  //   /* Generate fibonacci hemisphere dir based on i. */
-  //   float3 d = fibonacciHemisphere(i, _numGISamples);
-  //
-  //   float mu = dot(d, O_normalized);
-  //   float3 proj_d = normalize(d - O_normalized * dot(O_normalized, d));
-  //   float nu = clampCosine(dot(proj_L, proj_d));
-  //
-  //   /* Check to see if we hit the sky. */
-  //   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
-  //     _atmosphereRadius);
-  //   if (!intersection.groundHit) {
-  //     float t_hit = intersection.endT;
-  //     TexCoord4D ssCoord = mapSky4DCoord(r, mu, mu_l, nu,
-  //       _atmosphereRadius, _planetRadius, t_hit, false, _resSS.x, _resSS.y,
-  //       _resSS.z, _resSS.w);
-  //     float dot_L_d = dot(L, d);
-  //     for (int j = 0; j < _numActiveLayers; j++) {
-  //       /* Compute single scattering contribution using phase function. */
-  //       float3 ss = t_hit * sampleSSTexture(ssCoord, j);
-  //       float phase = computePhase(dot_L_d, _layerAnisotropy[j], _layerPhaseFunction[j]);
-  //       gi[j] += ss * phase;
-  //     }
-  //   }
-  // }
-  //
-  // for (int i = 0; i < _numActiveLayers; i++) {
-  //   _GI_RW[float3(id.xy, i)] = gi[i] * 2 * PI / float(_numGISamples);
-  // }
 }
 
 [numthreads(8,8,1)]
@@ -282,7 +144,7 @@ void MS(uint3 id : SV_DispatchThreadID) {
     float3 hitPoint = O + t_hit * d;
 
     /* Add ground albedo times the transmittance to the second order
-     * reflections if we hit the ground. TODO: still valid? */
+     * reflections if we hit the ground. */
     if (intersection.groundHit) {
       float mu = d.y;
       float2 groundUV = mapSky2DCoord(r, mu, _atmosphereRadius,
@@ -295,8 +157,8 @@ void MS(uint3 id : SV_DispatchThreadID) {
 
     /* Compute single scattering. */
     SSResult ss = computeSSForMS(O, d, t_hit, t_hit, intersection.groundHit, L);
-    secondOrder += (t_hit * ss.shadows) / (4 * PI);
-    transferFunction += t_hit * ss.noShadows;
+    secondOrder += ss.shadows / (4 * PI);
+    transferFunction += ss.noShadows;
   }
 
   /* Multiply by the isotropic phase function 1/4pi and divide by the number
@@ -314,15 +176,24 @@ void MSAcc(uint3 id : SV_DispatchThreadID) {
    * radial angle. */
   float2 u_mu_theta = (id.xy + 0.5f) / _resMSAcc.xy;
   float3 O = GetCameraPositionPlanetSpace();
-  float2 mu_theta = unmapSkyRenderCoordinate(length(O), u_mu_theta.x, u_mu_theta.y,
+  float r = length(O);
+  float2 mu_theta = unmapSkyRenderCoordinate(r, u_mu_theta.x, u_mu_theta.y,
     _atmosphereRadius, _planetRadius, _resMSAcc.x, _resMSAcc.y);
 
   float3 d = mu_theta_to_d(mu_theta.x, mu_theta.y, O);
+
+  // HACK: Hack where we make sure we don't sample directly on the horizon
+  // line fixes remaining tiny artifacts.
+  float h = r - _planetRadius;
+  float cosHorizon = -safeSqrt(h * (2 * _planetRadius + h)) / (_planetRadius + h);
+  float step = 1.0/_resMSAcc.x;
+  d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
 
   /* TODO: Need to case out above atmo. */
   /* Trace a ray to see what we hit. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
 
-  _MSAcc_RW[id.xy] = computeMS(O, d, intersection.endT, intersection.endT, intersection.groundHit);
+  // TODO: tweakable
+  _MSAcc_RW[id.xy] = computeMS(O, d, intersection.endT, intersection.endT, intersection.groundHit, 1.0);
 }

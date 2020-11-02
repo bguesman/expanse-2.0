@@ -83,6 +83,30 @@ float _nebulaTransmittanceScale;
 float _starNebulaFollowAmount;
 float _starNebulaFollowSpread;
 
+/* Seeds. */
+float4 _nebulaCoverageSeed;
+float4 _nebulaHazeSeedX;
+float4 _nebulaHazeSeedY;
+float4 _nebulaHazeSeedZ;
+float4 _nebulaCloudSeedX;
+float4 _nebulaCloudSeedY;
+float4 _nebulaCloudSeedZ;
+float4 _nebulaCoarseStrandSeedX;
+float4 _nebulaCoarseStrandSeedY;
+float4 _nebulaCoarseStrandSeedZ;
+float4 _nebulaCoarseStrandWarpSeedX;
+float4 _nebulaCoarseStrandWarpSeedY;
+float4 _nebulaCoarseStrandWarpSeedZ;
+float4 _nebulaFineStrandSeedX;
+float4 _nebulaFineStrandSeedY;
+float4 _nebulaFineStrandSeedZ;
+float4 _nebulaFineStrandWarpSeedX;
+float4 _nebulaFineStrandWarpSeedY;
+float4 _nebulaFineStrandWarpSeedZ;
+float4 _nebulaTransmittanceSeedX;
+float4 _nebulaTransmittanceSeedY;
+float4 _nebulaTransmittanceSeedZ;
+
 bool _hasNebulaeTexture;
 TEXTURECUBE(_nebulaeTexture);
 

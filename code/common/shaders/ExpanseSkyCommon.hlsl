@@ -44,15 +44,27 @@ int _numActiveBodies;
 float4 _bodyLightColor[MAX_BODIES];
 float3 _bodyDirection[MAX_BODIES];
 
+/* Night Sky. */
+float4 _averageNightSkyColor;
+float4 _nightSkyScatterTint;  /* Tint and intensity. */
+float4 _lightPollutionTint;   /* Tint and intensity. */
+
+/* Aerial Perspective. */
+float _aerialPerspectiveOcclusionBiasUniform;
+float _aerialPerspectiveOcclusionPowerUniform;
+float _aerialPerspectiveOcclusionBiasDirectional;
+float _aerialPerspectiveOcclusionPowerDirectional;
+float _aerialPerspectiveNightScatteringMultiplier;
+
 /* Quality. */
 int _numTSamples;
 int _numLPSamples;
 int _numSSSamples;
-int _numGISamples;
 int _numMSSamples;
 int _numMSAccumulationSamples;
 bool _useImportanceSampling;
 bool _useAntiAliasing;
+float _aerialPerspectiveDepthSkew;
 float _ditherAmount;
 
 float3 _WorldSpaceCameraPos1;
@@ -88,10 +100,6 @@ TEXTURE2D(_MSAcc);
 /* Aerial perspective. */
 float4 _resAP; /* Table resolution. */
 TEXTURE3D(_AP);
-
-/* Ground Irradiance. */
-int _resGI; /* Table resolution. */
-TEXTURE2D(_GI);
 
 CBUFFER_END // Expanse Sky
 
@@ -151,6 +159,22 @@ bool floatLT(float a, float b) {
 }
 bool floatLT(float a, float b, float eps) {
   return a < b + eps;
+}
+
+float erf(float x) {
+  const float p = 0.3275911;
+  const float a1 = 0.254829592;
+  const float a2 = -0.284496736;
+  const float a3 = 1.421413741;
+  const float a4 = -1.453152027;
+  const float a5 = 1.061405429;
+  float t = 1 / (1 + p * x);
+  float t2 = t * t;
+  float t3 = t * t2;
+  float t4 = t2 * t2;
+  float t5 = t3 * t2;
+  float prefactor = a5 * t5 + a4 * t4 + a3 * t3 + a2 * t2 + a1 * t;
+  return 1 - prefactor * exp(-(x * x));
 }
 
 /******************************************************************************/
@@ -349,6 +373,18 @@ float2 generateCubicSampleFromIndex(int i, int numberOfSamples) {
  * Assumes the planet is centered at the origin. */
 float computeDensityExponential(float3 p, float thickness, float density) {
   return density * exp((_planetRadius - length(p))/thickness);
+  // float x = (length(p)-_planetRadius) / thickness;
+  // float x2 = x * x;
+  // float x3 = x * x2;
+  // float x4 = x2 * x2;
+  // float x5 = x3 * x2;
+  // float a0 = 0.997934481;
+  // float a1 = -0.976409309;
+  // float a2 = 0.44438792;
+  // float a3 = -0.11334505;
+  // float a4 = 0.0154856521;
+  // float a5 = -0.000873834901;
+  // return density * max(0, a5 * x5 + a4 * x4 + a3 * x3 + a2 * x2 + a1 * x + a0);
 }
 
 /* Computes density at a point for tent distributed atmosphere.
@@ -376,7 +412,7 @@ float computeDensity(int densityDistribution, float3 p, float height,
 
 float computeOpticalDepth(int densityDistribution, float3 O, float3 endPoint,
   float height, float thickness, float density, float attenBias,
-  float attenDistance, bool useAtten, int samples) {
+  float attenDistance, bool useAtten, float3 attenuationPoint, int samples) {
   /* Only use importance sampling if we use exponential distribution. */
   bool importanceSample = _useImportanceSampling && (densityDistribution == 0);
   // Evaluate integral over curved planet with a midpoint integrator.
@@ -394,7 +430,7 @@ float computeOpticalDepth(int densityDistribution, float3 O, float3 endPoint,
 
     /* Accumulate the density at that point. */
     acc += computeDensity(densityDistribution, pt, height, thickness,
-      density, useAtten, length_d * t_ds.x, attenBias, attenDistance)
+      density, useAtten, length(attenuationPoint - pt), attenBias, attenDistance)
       * t_ds.y * length_d;
   }
   return acc;
@@ -502,16 +538,6 @@ float3 sampleSkyMSAccTexture(float2 uv) {
 
 float4 sampleSkyAPTexture(float3 uv) {
   return SAMPLE_TEXTURE3D_LOD(_AP, s_linear_clamp_sampler, uv, 0);
-}
-
-float3 sampleSkyGITexture(float2 uv, int i) {
-  // return SAMPLE_TEXTURE2D_ARRAY_LOD(_GI, s_linear_clamp_sampler, uv, i, 0).xyz;
-  return float3(0, 0, 0);
-}
-
-float3 sampleSkyLPTexture(float2 uv, int i) {
-  // return SAMPLE_TEXTURE2D_ARRAY_LOD(_LP, s_linear_clamp_sampler, uv, i, 0).xyz;
-  return float3(0, 0, 0);
 }
 
 /******************************************************************************/
