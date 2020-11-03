@@ -11,7 +11,9 @@ todo list:
  body is enabled
  -moveable planet origin
  -transmittance lookup for direct lighting needs to be attenuated by
- analytical layers as well
+ analytical layers as well. DONE.
+ -transmittance lookup needs to be done for directional lights too. DONE MINUS INTEGRAL SPLIT.
+ -transmittance split integral for bias
 
  -maybe investigate the top of sky circle bug if we feel like it
  -also maybe investigate AP rippling bug if we feel like it

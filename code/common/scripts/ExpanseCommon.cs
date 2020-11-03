@@ -291,6 +291,24 @@ public static Vector4 blackbodyTempToColor(float t) {
   return new Vector4(r, g, b, 0);
 }
 
+public static float erf(float x) {
+  float sign_x = Mathf.Sign(x);
+  x = Mathf.Abs(x);
+  const float p = 0.3275911f;
+  const float a1 = 0.254829592f;
+  const float a2 = -0.284496736f;
+  const float a3 = 1.421413741f;
+  const float a4 = -1.453152027f;
+  const float a5 = 1.061405429f;
+  float t = 1 / (1 + p * x);
+  float t2 = t * t;
+  float t3 = t * t2;
+  float t4 = t2 * t2;
+  float t5 = t3 * t2;
+  float prefactor = a5 * t5 + a4 * t4 + a3 * t3 + a2 * t2 + a1 * t;
+  return sign_x * (1 - prefactor * Mathf.Exp(-(x * x)));
+}
+
 /******************************************************************************/
 /*********************** END PHYSICAL PROPERTY FUNCTIONS **********************/
 /******************************************************************************/

@@ -362,10 +362,11 @@ public override void Cleanup()
   cleanupStarTextures();
 }
 
-private void setLightingData(CommandBuffer cmd, Vector4 cameraPos, float planetRadius,
-  float atmosphereRadius) {
+private void setLightingData(CommandBuffer cmd, Vector4 cameraPos, Expanse sky) {
   /* Use data from the property block, so that we don't go out of
    * sync. */
+  float planetRadius = sky.planetRadius.value;
+  float atmosphereRadius = planetRadius + sky.atmosphereThickness.value;
   Vector4 O = cameraPos - (new Vector4(0, -planetRadius, 0, 0));
   Vector3 O3 = new Vector3(O.x, O.y, O.z);
   for (int i = 0; i < m_numBodiesEnabled; i++) {
@@ -383,7 +384,60 @@ private void setLightingData(CommandBuffer cmd, Vector4 cameraPos, float planetR
       Vector2 uv = ExpanseCommon.map_r_mu_transmittance(r, mu, atmosphereRadius, planetRadius,
         d, false, m_skyTextureResolution.T.x);
       Vector4 transmittance = m_skyTCPU.GetPixelBilinear(uv.x, uv.y);
-      ExpanseCommon.bodyTransmittances[i] = new Vector3(Mathf.Exp(transmittance.x), Mathf.Exp(transmittance.y), Mathf.Exp(transmittance.z));
+
+
+      /* Calculate transmittance for the analytical layers. */
+      /* P is the point to compute distance to attenuate from. */
+      /* Integrate analytically. TODO: doesn't work for tent function yet. */
+      Vector3 power = new Vector3(0, 0, 0);
+      for (int j = 0; j < m_numAtmosphereLayersEnabled; j++) {
+        ExpanseCommon.DensityDistribution densityDistribution = ((EnumParameter<ExpanseCommon.DensityDistribution>) sky.GetType().GetField("layerDensityDistribution" + j).GetValue(sky)).value;
+        if (densityDistribution == ExpanseCommon.DensityDistribution.ExponentialAttenuated) {
+          float m = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationDistance" + j).GetValue(sky)).value;
+          float k = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationBias" + j).GetValue(sky)).value;
+          float H = ((MinFloatParameter) sky.GetType().GetField("layerThickness" + j).GetValue(sky)).value;
+          Vector3 P = O;
+          bool useCameraPos = ((BoolParameter) sky.GetType().GetField("layerDensityAttenuationPlayerOrigin" + j).GetValue(sky)).value;
+          if (!useCameraPos) {
+            P = ((Vector3Parameter) sky.GetType().GetField("layerDensityAttenuationOrigin" + j).GetValue(sky)).value - (new Vector3(0, -planetRadius, 0));
+          }
+          Vector3 deltaPO = O3 - P;
+          float a = 1 / (m * m);
+          float b = ((-2 * Vector3.Dot(deltaPO, L)) / (m * m)) - (Vector3.Dot(L, Vector3.Normalize(O3)) / H);
+          float c = ((planetRadius - r) / H) + ((k * k - Vector3.Dot(deltaPO, deltaPO)) / (m * m));
+
+          // Debug.Log("a: " + a);
+          // Debug.Log("b: " + b);
+          // Debug.Log("c: " + c);
+
+
+          float prefactor = Mathf.Exp(c + (b * b) / (4 * a)) * Mathf.Sqrt(Mathf.PI) / (2 * Mathf.Sqrt(a));
+
+
+          // Debug.Log("prefactor: " + prefactor);
+
+          float erf_f = ExpanseCommon.erf((2 * a * d - b) / (2 * Mathf.Sqrt(a)));
+          float erf_0 = ExpanseCommon.erf((-b) / (2 * Mathf.Sqrt(a)));
+
+          // Debug.Log("erf_diff: " + (erf_f - erf_0));
+
+          float layerDensity = ((MinFloatParameter) sky.GetType().GetField("layerDensity" + j).GetValue(sky)).value;
+          Vector3 coefficients = ((Vector3Parameter) sky.GetType().GetField("layerCoefficientsA" + j).GetValue(sky)).value;
+
+          float opticalDepth = layerDensity * prefactor * (erf_f - erf_0);
+
+          // Debug.Log("optical depth: " + opticalDepth);
+
+          Vector3 contrib = opticalDepth * coefficients;
+          contrib = new Vector3(Mathf.Max(contrib.x, 0), Mathf.Max(contrib.y, 0), Mathf.Max(contrib.z, 0));
+
+          power += contrib;
+        }
+      }
+
+      power = -power;
+
+      ExpanseCommon.bodyTransmittances[i] = new Vector3(Mathf.Exp(transmittance.x + power.x), Mathf.Exp(transmittance.y + power.y), Mathf.Exp(transmittance.z + power.z));
     }
   }
 }
@@ -468,8 +522,7 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
 
   /* Set lighting properties so that light scripts can use them to affect
    * the directional lights in the scene. */
-  setLightingData(builtinParams.commandBuffer, builtinParams.worldSpaceCameraPos, sky.planetRadius.value,
-    sky.planetRadius.value + sky.atmosphereThickness.value);
+  setLightingData(builtinParams.commandBuffer, builtinParams.worldSpaceCameraPos, sky);
 
   return false;
 }
