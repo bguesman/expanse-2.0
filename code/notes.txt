@@ -9,6 +9,9 @@ todo list:
  -UI title size hierarchy
  -enable and disable lights depending on whether or not their corresponding
  body is enabled
+ -moveable planet origin
+ -transmittance lookup for direct lighting needs to be attenuated by
+ analytical layers as well
 
  -maybe investigate the top of sky circle bug if we feel like it
  -also maybe investigate AP rippling bug if we feel like it

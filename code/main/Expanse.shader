@@ -457,7 +457,9 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     t_hit, intersection.groundHit, _resT.y);
 
   /* Compute transmittance. */
-  float3 transmittance = sampleSkyTTexture(coord2D);
+  float3 transmittance = sampleSkyTTextureRaw(coord2D);
+  transmittance += computeTransmittanceDensityAttenuation(startPoint, d, t_hit);
+  transmittance = exp(transmittance);
 
   float3 skyColor = float3(0, 0, 0);
   float blendTransmittance = 0;
@@ -470,7 +472,7 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   } else {
     /* Sample rendered sky tables. */
     /* Single scattering. */
-    float theta = d_to_theta(d, O);
+    float theta = d_to_theta(d, startPoint);
     float2 skyRenderCoordSS = mapSkyRenderCoordinate(r, mu, theta, _atmosphereRadius,
       _planetRadius, t_hit, intersection.groundHit, _resSS.x, _resSS.y);
     float3 ss = sampleSkySSTexture(skyRenderCoordSS);
