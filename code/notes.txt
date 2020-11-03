@@ -13,7 +13,9 @@ todo list:
  -transmittance lookup for direct lighting needs to be attenuated by
  analytical layers as well. DONE.
  -transmittance lookup needs to be done for directional lights too. DONE MINUS INTEGRAL SPLIT.
- -transmittance split integral for bias
+ -transmittance split integral for bias. NOTE: this doesn't actually seem to be that
+ crucial to getting the look correct, and it's already expensive enough to evaluate
+ the integral. I think I'm just gonna get rid of the attenuation bias in the UI.
 
  -maybe investigate the top of sky circle bug if we feel like it
  -also maybe investigate AP rippling bug if we feel like it

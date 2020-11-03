@@ -394,7 +394,8 @@ private void setLightingData(CommandBuffer cmd, Vector4 cameraPos, Expanse sky) 
         ExpanseCommon.DensityDistribution densityDistribution = ((EnumParameter<ExpanseCommon.DensityDistribution>) sky.GetType().GetField("layerDensityDistribution" + j).GetValue(sky)).value;
         if (densityDistribution == ExpanseCommon.DensityDistribution.ExponentialAttenuated) {
           float m = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationDistance" + j).GetValue(sky)).value;
-          float k = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationBias" + j).GetValue(sky)).value;
+          // TODO: current integration strategy makes this non-physical
+          // float k = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationBias" + j).GetValue(sky)).value;
           float H = ((MinFloatParameter) sky.GetType().GetField("layerThickness" + j).GetValue(sky)).value;
           Vector3 P = O;
           bool useCameraPos = ((BoolParameter) sky.GetType().GetField("layerDensityAttenuationPlayerOrigin" + j).GetValue(sky)).value;
@@ -404,29 +405,18 @@ private void setLightingData(CommandBuffer cmd, Vector4 cameraPos, Expanse sky) 
           Vector3 deltaPO = O3 - P;
           float a = 1 / (m * m);
           float b = ((-2 * Vector3.Dot(deltaPO, L)) / (m * m)) - (Vector3.Dot(L, Vector3.Normalize(O3)) / H);
-          float c = ((planetRadius - r) / H) + ((k * k - Vector3.Dot(deltaPO, deltaPO)) / (m * m));
-
-          // Debug.Log("a: " + a);
-          // Debug.Log("b: " + b);
-          // Debug.Log("c: " + c);
-
+          // float c = ((planetRadius - r) / H) + ((k * k - Vector3.Dot(deltaPO, deltaPO)) / (m * m));
+          float c = ((planetRadius - r) / H) + ((-Vector3.Dot(deltaPO, deltaPO)) / (m * m));
 
           float prefactor = Mathf.Exp(c + (b * b) / (4 * a)) * Mathf.Sqrt(Mathf.PI) / (2 * Mathf.Sqrt(a));
 
-
-          // Debug.Log("prefactor: " + prefactor);
-
           float erf_f = ExpanseCommon.erf((2 * a * d - b) / (2 * Mathf.Sqrt(a)));
           float erf_0 = ExpanseCommon.erf((-b) / (2 * Mathf.Sqrt(a)));
-
-          // Debug.Log("erf_diff: " + (erf_f - erf_0));
 
           float layerDensity = ((MinFloatParameter) sky.GetType().GetField("layerDensity" + j).GetValue(sky)).value;
           Vector3 coefficients = ((Vector3Parameter) sky.GetType().GetField("layerCoefficientsA" + j).GetValue(sky)).value;
 
           float opticalDepth = layerDensity * prefactor * (erf_f - erf_0);
-
-          // Debug.Log("optical depth: " + opticalDepth);
 
           Vector3 contrib = opticalDepth * coefficients;
           contrib = new Vector3(Mathf.Max(contrib.x, 0), Mathf.Max(contrib.y, 0), Mathf.Max(contrib.z, 0));
@@ -863,7 +853,7 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, Expanse sky, Ve
       } else {
         layerDensityAttenuationOrigin[numActiveLayers] = ((Vector3Parameter) sky.GetType().GetField("layerDensityAttenuationOrigin" + i).GetValue(sky)).value;
       }
-      // Conver to planet space.
+      // Convert to planet space.
       layerDensityAttenuationOrigin[numActiveLayers] += new Vector4(0, sky.planetRadius.value, 0, 0);
       layerAttenuationDistance[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationDistance" + i).GetValue(sky)).value;
       layerAttenuationBias[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationBias" + i).GetValue(sky)).value;

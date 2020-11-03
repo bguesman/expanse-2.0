@@ -475,7 +475,8 @@ private void atmosphereLayer(UnityEngine.GUIStyle titleStyle,
       }
       /* Only display density attenuation parameters if we use density attenuation. */
       PropertyField(layerAttenuationDistance[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuation Distance"));
-      PropertyField(layerAttenuationBias[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuation Bias"));
+      // TODO: current integration strategy makes attenuation bias non-physical
+      // PropertyField(layerAttenuationBias[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuation Bias"));
     }
 
     /* Phase function selection dropdown. */

@@ -27,13 +27,14 @@ float3 computeTransmittanceDensityAttenuation(float3 O, float3 d, float endT) {
   for (int i = 0; i < _numActiveLayers; i++) {
     if (useDensityAttenuation(_layerDensityDistribution[i])) {
       float m = _layerAttenuationDistance[i];
-      float k = _layerAttenuationBias[i];
+      // float k = _layerAttenuationBias[i]; // TODO: current integration makes this non-physical
       float H = _layerThickness[i];
       float3 P = _layerDensityAttenuationOrigin[i];
       float3 deltaPO = O - P;
       float a = 1 / (m * m);
       float b = ((-2 * dot(deltaPO, d)) / (m * m)) - (dot(d, normalize(O)) / H);
-      float c = ((_planetRadius - length(O)) / H) + ((k * k - dot(deltaPO, deltaPO)) / (m * m));
+      // float c = ((_planetRadius - length(O)) / H) + ((k * k - dot(deltaPO, deltaPO)) / (m * m));
+      float c = ((_planetRadius - length(O)) / H) + ((-dot(deltaPO, deltaPO)) / (m * m));
       float prefactor = exp(c + (b * b) / (4 * a)) * safeSqrt(PI) / (2 * safeSqrt(a));
       float erf_f = erf((2 * a * endT - b) / (2 * safeSqrt(a)));
       float erf_0 = erf((-b) / (2 * safeSqrt(a)));

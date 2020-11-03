@@ -410,7 +410,9 @@ float computeDensity(int densityDistribution, float3 p, float height,
     case 1:
       return computeDensityTent(p, height, thickness, density);
     case 2: {
-      float atten = saturate(exp(-(dist - attenBias)/attenDistance));
+      // TODO: current integration stragegy makes attenuation bias non-physical
+      // float atten = saturate(exp(-(dist*dist - attenBias*attenBias)/(attenDistance*attenDistance)));
+      float atten = saturate(exp(-(dist*dist)/(attenDistance*attenDistance)));
       return atten * computeDensityExponential(p, thickness, density);
     }
     default:
