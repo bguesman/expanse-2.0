@@ -23,6 +23,8 @@ const int EXPANSE_SKY_UNIQUE_ID = 95837281;
 public MinFloatParameter atmosphereThickness = new MinFloatParameter(40000, 10);
 [Tooltip("The radius of the planet, in meters.")]
 public MinFloatParameter planetRadius = new MinFloatParameter(6360000, 10);
+[Tooltip("The planet origin, in meters, but specified as an offset from the position (0, -radius, 0), since that origin is much more convenient.")]
+public Vector3Parameter planetOriginOffset = new Vector3Parameter(new Vector3(0, 0, 0));
 [Tooltip("The ground albedo as a cubemap texture. The ground is modeled as a Lambertian (completely diffuse) reflector. If no texture is specified, the color of the ground will just be the ground tint.")]
 public CubemapParameter groundAlbedoTexture = new CubemapParameter(null);
 [Tooltip("A color tint to the ground texture. Perfect grey, (128, 128, 128), specifies no tint. If there is no ground texture specified, this is just the color of the ground.")]

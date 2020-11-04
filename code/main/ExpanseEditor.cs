@@ -45,6 +45,7 @@ ExpanseCommon.CelestialBody m_celestialBodySelect = ExpanseCommon.CelestialBody.
 /* Planet parameters. */
 SerializedDataParameter atmosphereThickness;
 SerializedDataParameter planetRadius;
+SerializedDataParameter planetOriginOffset;
 SerializedDataParameter planetRotation;
 SerializedDataParameter groundAlbedoTexture;
 SerializedDataParameter groundTint;
@@ -431,6 +432,7 @@ private void planet(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtit
   EditorGUILayout.LabelField("Planet", titleStyle);
   PropertyField(atmosphereThickness);
   PropertyField(planetRadius);
+  PropertyField(planetOriginOffset);
   PropertyField(groundAlbedoTexture);
   PropertyField(groundTint);
   PropertyField(groundEmissionTexture);
@@ -818,6 +820,7 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   /* Planet. */
   atmosphereThickness = Unpack(o.Find(x => x.atmosphereThickness));
   planetRadius = Unpack(o.Find(x => x.planetRadius));
+  planetOriginOffset = Unpack(o.Find(x => x.planetOriginOffset));
   groundAlbedoTexture = Unpack(o.Find(x => x.groundAlbedoTexture));
   groundTint = Unpack(o.Find(x => x.groundTint));
   groundEmissionTexture = Unpack(o.Find(x => x.groundEmissionTexture));

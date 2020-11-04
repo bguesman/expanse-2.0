@@ -367,7 +367,7 @@ private void setLightingData(CommandBuffer cmd, Vector4 cameraPos, Expanse sky) 
    * sync. */
   float planetRadius = sky.planetRadius.value;
   float atmosphereRadius = planetRadius + sky.atmosphereThickness.value;
-  Vector4 O = cameraPos - (new Vector4(0, -planetRadius, 0, 0));
+  Vector3 O = cameraPos - ((new Vector4(0, -sky.planetRadius.value, 0, 0)) + (new Vector4(sky.planetOriginOffset.value.x, sky.planetOriginOffset.value.y, sky.planetOriginOffset.value.z, 0)));
   Vector3 O3 = new Vector3(O.x, O.y, O.z);
   for (int i = 0; i < m_numBodiesEnabled; i++) {
     /* Check if the body is occluded by the planet. */
@@ -790,6 +790,7 @@ private void setGlobalCBuffer(BuiltinSkyParameters builtinParams) {
 private void setGlobalCBufferPlanet(CommandBuffer cmd, Expanse sky) {
   cmd.SetGlobalFloat("_atmosphereRadius", sky.planetRadius.value + sky.atmosphereThickness.value);
   cmd.SetGlobalFloat("_planetRadius", sky.planetRadius.value);
+  cmd.SetGlobalVector("_planetOriginOffset", sky.planetOriginOffset.value);
   cmd.SetGlobalVector("_groundTint", sky.groundTint.value);
   cmd.SetGlobalFloat("_groundEmissionMultiplier", sky.groundEmissionMultiplier.value);
 
@@ -854,7 +855,7 @@ private void setGlobalCBufferAtmosphereLayers(CommandBuffer cmd, Expanse sky, Ve
         layerDensityAttenuationOrigin[numActiveLayers] = ((Vector3Parameter) sky.GetType().GetField("layerDensityAttenuationOrigin" + i).GetValue(sky)).value;
       }
       // Convert to planet space.
-      layerDensityAttenuationOrigin[numActiveLayers] += new Vector4(0, sky.planetRadius.value, 0, 0);
+      layerDensityAttenuationOrigin[numActiveLayers] -= -(new Vector4(0, sky.planetRadius.value, 0, 0)) +(new Vector4(sky.planetOriginOffset.value.x, sky.planetOriginOffset.value.y, sky.planetOriginOffset.value.z, 0));
       layerAttenuationDistance[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationDistance" + i).GetValue(sky)).value;
       layerAttenuationBias[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("layerAttenuationBias" + i).GetValue(sky)).value;
       layerTint[numActiveLayers] = ((ColorParameter) sky.GetType().GetField("layerTint" + i).GetValue(sky)).value;

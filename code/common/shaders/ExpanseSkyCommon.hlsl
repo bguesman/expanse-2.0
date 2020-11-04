@@ -13,6 +13,7 @@ CBUFFER_START(ExpanseSky) // Expanse Sky
 /* Planet. */
 float _atmosphereRadius;
 float _planetRadius;
+float4 _planetOriginOffset;
 float4 _groundTint;
 float _groundEmissionMultiplier;
 float4x4 _planetRotation;
@@ -308,7 +309,7 @@ SkyIntersectionData traceSkyVolumeValid(float3 O, float3 d, float planetRadius,
 /******************************************************************************/
 
 float3 GetCameraPositionPlanetSpace() {
-  return _WorldSpaceCameraPos1 - float3(0, -_planetRadius, 0);
+  return _WorldSpaceCameraPos1 - (float3(0, -_planetRadius, 0) + _planetOriginOffset);
 }
 
 /******************************************************************************/

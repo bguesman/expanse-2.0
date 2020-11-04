@@ -668,8 +668,11 @@ SubShader
   Pass
   {
     ZWrite Off
-    ZTest Always
-    Blend One SrcAlpha
+    // TODO: fix back for windows.
+    ZTest LEqual
+    Blend One Zero
+    /* ZTest Always
+    Blend One SrcAlpha */
     Cull Off
 
     HLSLPROGRAM
