@@ -1,5 +1,5 @@
 todo list:
- -case out above atmosphere for ap/ss/ms
+ -case out above atmosphere for ap/ss/ms. DONE except for AP.
  -nebulae no texture assigned issue
  -conditional MSAA
  -lighting based on visible sun fraction (debatable if this matters)
