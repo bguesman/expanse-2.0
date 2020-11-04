@@ -6,6 +6,7 @@ todo list:
  -make night sky texture average evaluation more efficient
  -clean up remaining warnings
  -UI title size hierarchy
+ -reverse importance sample if looking at ground?
 
  -maybe investigate the top of sky circle bug if we feel like it
  -also maybe investigate AP rippling bug if we feel like it

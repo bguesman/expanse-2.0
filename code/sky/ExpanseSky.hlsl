@@ -63,10 +63,6 @@ struct SSLayersResult {
   float3 noShadows[MAX_LAYERS];
 };
 
-// TODO: make it possible to pass in whether or not to importance sample.
-// Then, have a checkbox for importance sampling for aerial perspective
-// and for the rest of the sky, since frequently importance sampling for
-// aerial perspective is a bad idea.
 SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
   bool groundHit, float3 L, bool useOcclusionMultiplier, int numSamples, bool useImportanceSampling) {
 
@@ -185,8 +181,7 @@ SSResult computeSSBody(float3 O, float3 d, float dist, float t_hit, bool groundH
   return result;
 }
 
-/* Doesn't use phase function or light color. TODO: pass in # of samples
- * to computeSSLayers and make tweakable. */
+/* Doesn't use phase function or light color. */
 SSResult computeSSForMS(float3 O, float3 d, float dist, float t_hit,
   bool groundHit, float3 L, int numSamples, bool useImportanceSampling) {
   SSLayersResult ssLayers = computeSSLayers(O, d, dist, t_hit, groundHit, L,

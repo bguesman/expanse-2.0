@@ -72,9 +72,11 @@ void SS(uint3 id : SV_DispatchThreadID) {
   // TODO: case out above atmo
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
+  float t_hit = intersection.endT - intersection.startT;
+  float3 startPoint = O + d * intersection.startT;
 
   /* Compute single scattering and store the shadowed result. */
-  SSResult ss = computeSS(O, d, intersection.endT, intersection.endT, intersection.groundHit, 1.0, false, _numSSSamples, _useImportanceSampling);
+  SSResult ss = computeSS(startPoint, d, t_hit, t_hit, intersection.groundHit, 1.0, false, _numSSSamples, _useImportanceSampling);
   _SS_RW[id.xy] = ss.shadows;
 }
 
@@ -96,7 +98,7 @@ void AP(uint3 id : SV_DispatchThreadID) {
   d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
 
   /* Compute SS between origin and depth in direction d. */
-  /* TODO: need to case out above atmo. */
+  /* TODO: need to case out above atmo. a bit more complex here. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
   depth = min(depth, intersection.endT);
@@ -193,7 +195,9 @@ void MSAcc(uint3 id : SV_DispatchThreadID) {
   /* Trace a ray to see what we hit. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
+  float t_hit = intersection.endT - intersection.startT;
+  float3 startPoint = O + d * intersection.startT;
 
   // TODO: tweakable
-  _MSAcc_RW[id.xy] = computeMS(O, d, intersection.endT, intersection.endT, intersection.groundHit, 1.0, _numMSAccumulationSamples, _useImportanceSampling);
+  _MSAcc_RW[id.xy] = computeMS(O, d, t_hit, t_hit, intersection.groundHit, 1.0, _numMSAccumulationSamples, _useImportanceSampling);
 }
