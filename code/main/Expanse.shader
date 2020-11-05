@@ -429,9 +429,10 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   float farClip = _ProjectionParams.z / max(cosTheta, 0.00001);
   bool geoHit = depth < t_hit && depth < farClip - 0.001;
 
-  /* Compute direct illumination, but only if we don't hit any geometry. */
+  /* Compute direct illumination, but only if we don't hit any geometry and
+   * if we're rendering fullscreen. */
   float3 directLight = float3(0, 0, 0);
-  if (!geoHit) {
+  if (!geoHit && !cubemap) {
     if (intersection.groundHit) {
       directLight = shadeGround(endPoint);
     } else {
@@ -447,7 +448,11 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   /* If we didn't hit the ground or the atmosphere, return just direct
    * light. */
   if (!intersection.groundHit && !intersection.atmoHit) {
-    return float4(directLight, 0);
+    if (depth < farClip - 0.001) {
+      return float4(0, 0, 0, 1);
+    } else {
+      return float4(directLight, 0);
+    }
   }
 
   /* Compute 2D texture coordinate. */

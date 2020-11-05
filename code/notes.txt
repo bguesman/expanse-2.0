@@ -1,5 +1,4 @@
 todo list:
- -case out above atmosphere for ap/ss/ms. DONE except for AP.
  -nebulae no texture assigned issue
  -conditional MSAA
  -lighting based on visible sun fraction (debatable if this matters)
@@ -15,6 +14,20 @@ todo list:
  if this will help much but it may allow us to avoid branching in the shader
  in the inner loop. should see how much faster it is without the branch
  first.
+ -investigate bug where you're looking at the planet from space and half of it
+ seems to be totally wrong. UPDATE: appears to be choice of K for local frame.
+ This makes sense. Doesn't seem to affect results on the ground. May just want
+ to use a different selection process to figure out what that vector should
+ be.
+
+ -no celestial bodies in the rendered cubemap---should make things a lot more
+ efficient. currently sitting at around 150us with quality medium. DONE: now
+ sitting at 10us!
+ -possibly optimize direct lighting rendering computation
+    -always sample default textures to omit branching, but multiply result by
+    hasTexture cast to float?
+-bug where objects oustide atmo have a black line where they transition
+from being composited on top of the atmo to on top of space
 
 new params:
 

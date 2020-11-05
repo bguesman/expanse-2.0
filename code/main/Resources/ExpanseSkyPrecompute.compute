@@ -69,7 +69,6 @@ void SS(uint3 id : SV_DispatchThreadID) {
   d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
 
   /* Trace a ray to see what we hit. */
-  // TODO: case out above atmo
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
   float t_hit = intersection.endT - intersection.startT;
@@ -98,23 +97,33 @@ void AP(uint3 id : SV_DispatchThreadID) {
   d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
 
   /* Compute SS between origin and depth in direction d. */
-  /* TODO: need to case out above atmo. a bit more complex here. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
-  depth = min(depth, intersection.endT);
-  // TODO: make samples tweakable?
-  SSResult ss = computeSS(O, d, depth, intersection.endT, intersection.groundHit,
+
+  if (depth < intersection.startT) {
+    /* We're sampling at a point that hasn't even hit the beginning of the
+     * atmosphere yet. */
+    _AP_RW[id] = float4(0, 0, 0, 1);
+    return;
+  }
+
+  /* We're sampling at a point that has indeed hit the atmosphere. */
+  float t_hit = intersection.endT - intersection.startT;
+  float3 startPoint = O + d * intersection.startT;
+
+  depth = min(depth-intersection.startT, t_hit);
+  SSResult ss = computeSS(startPoint, d, depth, t_hit, intersection.groundHit,
     _aerialPerspectiveNightScatteringMultiplier, true, _numAPSamples, _aerialPerspectiveUseImportanceSampling);
-  float3 ms = computeMS(O, d, depth, intersection.endT, intersection.groundHit,
+  float3 ms = computeMS(startPoint, d, depth, t_hit, intersection.groundHit,
     _aerialPerspectiveNightScatteringMultiplier, _numAPSamples, _aerialPerspectiveUseImportanceSampling);
 
   /* Compute the transmittance between the 2 points. */
-  float2 oToSample = mapSky2DCoord(r, dot(normalize(O), d), _atmosphereRadius,
-    _planetRadius, intersection.endT, intersection.groundHit, _resT.y);
+  float2 oToSample = mapSky2DCoord(r, dot(normalize(startPoint), d), _atmosphereRadius,
+    _planetRadius, t_hit, intersection.groundHit, _resT.y);
   float3 T = sampleSkyTTextureRaw(oToSample);
-  float3 depthSample = O + d * depth;
+  float3 depthSample = startPoint + d * depth;
   float2 sampleOut = mapSky2DCoord(length(depthSample), dot(normalize(depthSample), d), _atmosphereRadius,
-    _planetRadius, intersection.endT - depth, intersection.groundHit, _resT.y);
+    _planetRadius, t_hit - depth, intersection.groundHit, _resT.y);
   T -= sampleSkyTTextureRaw(sampleOut);
 
   _AP_RW[id] = float4(ss.shadows + ms, dot(float3(1.0, 1.0, 1.0)/3.0, T));
@@ -191,13 +200,11 @@ void MSAcc(uint3 id : SV_DispatchThreadID) {
   float step = 1.0/_resMSAcc.x;
   d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
 
-  /* TODO: Need to case out above atmo. */
   /* Trace a ray to see what we hit. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
   float t_hit = intersection.endT - intersection.startT;
   float3 startPoint = O + d * intersection.startT;
 
-  // TODO: tweakable
   _MSAcc_RW[id.xy] = computeMS(O, d, t_hit, t_hit, intersection.groundHit, 1.0, _numMSAccumulationSamples, _useImportanceSampling);
 }
