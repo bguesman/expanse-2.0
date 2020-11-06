@@ -127,8 +127,10 @@ float unmap_mu_with_r(float r, float u_mu, float atmosphereRadius,
   float h = r - planetRadius;
   float cos_h = -safeSqrt(h * (2 * planetRadius + h)) / (planetRadius + h);
   if (floatLT(u_mu, 0.5)) {
+    u_mu = max(u_mu, 0.005);
     mu = clampCosine(cos_h - pow(u_mu * 2, 2) * (1 + cos_h));
   } else {
+    u_mu = max(u_mu, 0.505);
     mu = clampCosine(pow(2 * (u_mu - 0.5), 2) * (1 - cos_h) + cos_h);
   }
   return mu;
@@ -230,11 +232,14 @@ float2 unmapSkyRenderCoordinate(float r, float u_mu, float u_theta,
 
 /* Returns d from mu and theta angles and view point. */
 float3 mu_theta_to_d(float cos_mu, float theta, float3 O) {
+  /* This ensures that we don't sample directly on the theta boundary, which
+   * fixes the small artifacts that can occur there. */
+  theta = clamp(theta, 0.001, 1.999 * PI);
   /* Construct local frame. */
   float3 y = normalize(O);
   float3 k = float3(1, 0, 0);
-  float3 z = cross(y, k);
-  float3 x = cross(z, y);
+  float3 z = normalize(cross(y, k));
+  float3 x = normalize(cross(z, y));
   /* Recover d via projection onto local axes. */
   float3 dy = cos_mu * y;
   float sin_mu = safeSqrt(1 - cos_mu * cos_mu);
@@ -249,8 +254,8 @@ float d_to_theta(float3 d, float3 O) {
   /* Construct local frame. */
   float3 y = normalize(O);
   float3 k = float3(1, 0, 0);
-  float3 z = cross(y, k);
-  float3 x = cross(z, y);
+  float3 z = normalize(cross(y, k));
+  float3 x = normalize(cross(z, y));
   /* Get cosine and sine of theta from projection onto local axes. */
   float3 dProj = normalize(d - dot(y, d) * y);
   float cosTheta = dot(dProj, x);
@@ -259,6 +264,7 @@ float d_to_theta(float3 d, float3 O) {
   if (floatLT(sinTheta, 0)) {
     theta = 2 * PI - theta;
   }
+  theta = clamp(theta, 0.001, 1.999 * PI);
   return theta;
 }
 

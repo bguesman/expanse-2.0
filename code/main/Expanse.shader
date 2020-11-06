@@ -477,14 +477,14 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
   } else {
     /* Sample rendered sky tables. */
     /* Single scattering. */
-    float theta = d_to_theta(d, startPoint);
+    float theta = d_to_theta(d, O);
     float2 skyRenderCoordSS = mapSkyRenderCoordinate(r, mu, theta, _atmosphereRadius,
       _planetRadius, t_hit, intersection.groundHit, _resSS.x, _resSS.y);
     float3 ss = sampleSkySSTexture(skyRenderCoordSS);
 
     /* Multiple scattering. */
     float2 skyRenderCoordMS = mapSkyRenderCoordinate(r, mu, theta, _atmosphereRadius,
-      _planetRadius, t_hit, intersection.groundHit, _resMS.x, _resMS.y);
+      _planetRadius, t_hit, intersection.groundHit, _resMSAcc.x, _resMSAcc.y);
     float3 ms = sampleSkyMSAccTexture(skyRenderCoordMS);
 
     skyColor = ss + ms;
