@@ -44,6 +44,7 @@ float _layerMultipleScatteringMultiplier[MAX_LAYERS];
 int _numActiveBodies;
 float4 _bodyLightColor[MAX_BODIES];
 float3 _bodyDirection[MAX_BODIES];
+float _bodyAngularRadius[MAX_BODIES];
 
 /* Night Sky. */
 float4 _averageNightSkyColor;

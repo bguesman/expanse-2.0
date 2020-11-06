@@ -37,7 +37,6 @@ HLSLINCLUDE
 /******************************************************************************/
 
 /* Celestial bodies. */
-float _bodyAngularRadius[MAX_BODIES];
 float _bodyDistance[MAX_BODIES];
 bool _bodyReceivesLight[MAX_BODIES];
 float4x4 _bodyAlbedoTextureRotation[MAX_BODIES];

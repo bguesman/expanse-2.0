@@ -894,13 +894,14 @@ private void setGlobalCBufferCelestialBodies(CommandBuffer cmd, Expanse sky) {
 
     /* Set up arrays to pass to shader. */
     Vector4[] bodyLightColor = new Vector4[n];
+    float[] bodyAngularRadius = new float[n];
 
     int numActiveBodies = 0;
     for (int i = 0; i < ExpanseCommon.kMaxCelestialBodies; i++) {
       bool enabled = (((BoolParameter) sky.GetType().GetField("bodyEnabled" + i).GetValue(sky)).value);
       if (enabled) {
         /* Only set up remaining properties if this body is enabled. */
-
+        bodyAngularRadius[numActiveBodies] = Mathf.PI * (((ClampedFloatParameter) sky.GetType().GetField("bodyAngularRadius" + i).GetValue(sky)).value / 180);
         Vector3 angles = ((Vector3Parameter) sky.GetType().GetField("bodyDirection" + i).GetValue(sky)).value;
         Quaternion bodyLightRotation = Quaternion.Euler(angles.x, angles.y, angles.z);
         Vector3 direction = bodyLightRotation * (new Vector3(0, 0, -1));
@@ -931,6 +932,7 @@ private void setGlobalCBufferCelestialBodies(CommandBuffer cmd, Expanse sky) {
     cmd.SetGlobalInt("_numActiveBodies", numActiveBodies);
     cmd.SetGlobalVectorArray("_bodyDirection", m_bodyDirections);
     cmd.SetGlobalVectorArray("_bodyLightColor", bodyLightColor);
+    cmd.SetGlobalFloatArray("_bodyAngularRadius", bodyAngularRadius);
 }
 
 private void setGlobalCBufferAtmosphereTables(CommandBuffer cmd, Expanse sky) {
@@ -1117,7 +1119,6 @@ private void setMaterialPropertyBlockCelestialBodies(Expanse sky) {
   int n = (int) ExpanseCommon.kMaxCelestialBodies;
 
   /* Set up arrays to pass to shader. */
-  float[] bodyAngularRadius = new float[n];
   float[] bodyDistance = new float[n];
   float[] bodyReceivesLight = new float[n];
   Matrix4x4[] bodyAlbedoTextureRotation = new Matrix4x4[n];
@@ -1136,7 +1137,6 @@ private void setMaterialPropertyBlockCelestialBodies(Expanse sky) {
     if (enabled) {
       /* Only set up remaining properties if this body is enabled. */
 
-      bodyAngularRadius[numActiveBodies] = Mathf.PI * (((ClampedFloatParameter) sky.GetType().GetField("bodyAngularRadius" + i).GetValue(sky)).value / 180);
       bodyDistance[numActiveBodies] = ((MinFloatParameter) sky.GetType().GetField("bodyDistance" + i).GetValue(sky)).value;
       bodyReceivesLight[numActiveBodies] = (((BoolParameter) sky.GetType().GetField("bodyReceivesLight" + i).GetValue(sky)).value) ? 1 : 0;
 
@@ -1179,7 +1179,6 @@ private void setMaterialPropertyBlockCelestialBodies(Expanse sky) {
   }
 
   /* Actually set everything in the property block. */
-  m_PropertyBlock.SetFloatArray("_bodyAngularRadius", bodyAngularRadius);
   m_PropertyBlock.SetFloatArray("_bodyDistance", bodyDistance);
   m_PropertyBlock.SetFloatArray("_bodyReceivesLight", bodyReceivesLight);
   m_PropertyBlock.SetMatrixArray("_bodyAlbedoTextureRotation", bodyAlbedoTextureRotation);

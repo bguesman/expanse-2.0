@@ -68,7 +68,7 @@ struct SSLayersResult {
 };
 
 SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
-  bool groundHit, float3 L, bool useOcclusionMultiplier, int numSamples, bool useImportanceSampling) {
+  bool groundHit, float3 L, float lightAngularRadius, bool useOcclusionMultiplier, int numSamples, bool useImportanceSampling) {
 
   /* Final result */
   SSLayersResult result;
@@ -123,7 +123,9 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
     /* Trace a ray from the sample point to the light to check visibility. */
     SkyIntersectionData lightIntersection = traceSkyVolume(samplePoint,
       L, _planetRadius, _atmosphereRadius);
+
     if (!lightIntersection.groundHit) {
+      /* Full shadow. */
       /* Compute transmittance from the sample to the light hit point and add
        * it to the total transmittance. */
       float2 sampleToL = mapSky2DCoord(length(samplePoint),
@@ -168,8 +170,8 @@ struct SSResult {
 };
 
 SSResult computeSSBody(float3 O, float3 d, float dist, float t_hit, bool groundHit, float3 L,
-  float3 lightColor, bool useOcclusionMultiplier, int numSamples, bool useImportanceSampling) {
-  SSLayersResult ssLayers = computeSSLayers(O, d, dist, t_hit, groundHit, L,
+  float3 lightColor, float lightAngularRadius, bool useOcclusionMultiplier, int numSamples, bool useImportanceSampling) {
+  SSLayersResult ssLayers = computeSSLayers(O, d, dist, t_hit, groundHit, L, lightAngularRadius,
     useOcclusionMultiplier, numSamples, useImportanceSampling);
   float dot_L_d = dot(L, d);
   SSResult result;
@@ -180,6 +182,7 @@ SSResult computeSSBody(float3 O, float3 d, float dist, float t_hit, bool groundH
     result.shadows += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz) * (ssLayers.shadows[i] * phase);
     result.noShadows += _layerCoefficientsS[i].xyz * (2.0 * _layerTint[i].xyz) * (ssLayers.noShadows[i] * phase);
   }
+
   result.shadows *= lightColor * dist;
   result.noShadows *= lightColor * dist;
   return result;
@@ -188,7 +191,7 @@ SSResult computeSSBody(float3 O, float3 d, float dist, float t_hit, bool groundH
 /* Doesn't use phase function or light color. */
 SSResult computeSSForMS(float3 O, float3 d, float dist, float t_hit,
   bool groundHit, float3 L, int numSamples, bool useImportanceSampling) {
-  SSLayersResult ssLayers = computeSSLayers(O, d, dist, t_hit, groundHit, L,
+  SSLayersResult ssLayers = computeSSLayers(O, d, dist, t_hit, groundHit, L, -1,
     false, numSamples, useImportanceSampling);
   SSResult result;
   result.shadows = float3(0, 0, 0);
@@ -287,7 +290,7 @@ SSResult computeSS(float3 O, float3 d, float dist, float t_hit, bool groundHit,
   result.noShadows = float3(0, 0, 0);
   for (int i = 0; i < _numActiveBodies; i++) {
     SSResult bodySS = computeSSBody(O, d, dist, t_hit, groundHit, _bodyDirection[i],
-      _bodyLightColor[i].xyz, useOcclusionMultiplier, numSamples, useImportanceSampling);
+      _bodyLightColor[i].xyz, _bodyAngularRadius[i], useOcclusionMultiplier, numSamples, useImportanceSampling);
     result.shadows += bodySS.shadows;
     result.noShadows += bodySS.noShadows;
   }

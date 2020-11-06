@@ -7,6 +7,8 @@ todo list:
  -lighting based on visible sun fraction (debatable if this matters). seems
  important for getting rid of edge in sky during sunsets. can have a
  visibility factor function that replaces shadowing.
+  -this looks more complicated than it's worth right now. gonna leave the
+  argument in the function but keep it as a stretch goal.
 
  -clean up remaining warnings
 
