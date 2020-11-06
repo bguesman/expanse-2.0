@@ -10,10 +10,8 @@ public class ExpanseLightControl : MonoBehaviour
 
   public int bodyIndex;
 
-  // Start is called before the first frame update
   void Start() {}
 
-  // Update is called once per fram3
   void Update() {
     /* Get the light. */
     UnityEngine.Light light = gameObject.GetComponent(typeof(UnityEngine.Light)) as UnityEngine.Light;

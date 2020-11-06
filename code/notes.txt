@@ -1,41 +1,26 @@
 todo list:
+
  -nebulae no texture assigned issue
+
  -conditional MSAA
+
  -lighting based on visible sun fraction (debatable if this matters). seems
  important for getting rid of edge in sky during sunsets. can have a
  visibility factor function that replaces shadowing.
- -make night sky texture average evaluation more efficient
+
  -clean up remaining warnings
- -UI title size hierarchy
+
+ -UI title size hierarchy. General UI tweaks.
+
  -reverse importance sample if looking at ground?
 
  -maybe investigate the top of sky circle bug if we feel like it
- -also maybe investigate AP rippling bug if we feel like it
 
- -possibly split out atmo types into different arrays for perf? I don't know
- if this will help much but it may allow us to avoid branching in the shader
- in the inner loop. should see how much faster it is without the branch
- first.
+ -also maybe investigate AP rippling bug if we feel like it. But it's pretty
+ inconsequential. Should be documented is all in known issues.
 
- -it appears that there may still be a bug with planet origin translation.
- For an example just set the atmo really thick and set the origin to
- really far away in the y direction
-  -edit: it appears to be with the d.y clamping hack in precompute
-  -Update, got rid of that hack... and it's working again. It seems to
-  be working super well. I'm not even seeing the AP ripple bug anymore.
-  I'm gonna commit this with it commented out, but then delete it and say
-  sayonara for now.
-
- -possibly optimize direct lighting rendering computation
-    -always sample default textures to omit branching, but multiply result by
-    hasTexture cast to float?
--bug where objects oustide atmo have a black line where they transition
-from being composited on top of the atmo to on top of space
-
--constant star ambient addition to the map? Maybe the average sky color
-that we compute for scattering? or maybe allow it to be more user specifiable,
-like a "night ambient multiplier"
+ -weird fog ap flicker bug? perhaps when sun is just right on horizon? can't
+ seem to repro... bad state maybe?
 
 new params:
-
   -possibly on hold but probably useful: nebula color gradients. is there a gradient ui parameter?

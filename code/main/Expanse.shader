@@ -73,6 +73,7 @@ TEXTURE2D_ARRAY(_Star);
 bool _hasNightSkyTexture;
 TEXTURECUBE(_nightSkyTexture);
 float4 _nightSkyTint;         /* Tint and intensity. */
+float _nightSkyAmbientMultiplier;
 float4x4 _nightSkyRotation;
 bool _useTwinkle;
 float _twinkleThreshold;
@@ -481,13 +482,17 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     float2 skyRenderCoordSS = mapSkyRenderCoordinate(r, mu, theta, _atmosphereRadius,
       _planetRadius, t_hit, intersection.groundHit, _resSS.x, _resSS.y);
     float3 ss = sampleSkySSTexture(skyRenderCoordSS);
-
     /* Multiple scattering. */
     float2 skyRenderCoordMS = mapSkyRenderCoordinate(r, mu, theta, _atmosphereRadius,
       _planetRadius, t_hit, intersection.groundHit, _resMSAcc.x, _resMSAcc.y);
     float3 ms = sampleSkyMSAccTexture(skyRenderCoordMS);
 
     skyColor = ss + ms;
+
+    if (cubemap) {
+      /* Add an estimate of the night sky color for ambient lighting. */
+      skyColor += _nightSkyTint * _nightSkyAmbientMultiplier;
+    }
   }
 
   return float4(skyColor + transmittance * directLight, blendTransmittance);

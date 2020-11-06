@@ -247,6 +247,7 @@ SerializedDataParameter nightSkyTexture;
 SerializedDataParameter nightSkyRotation;
 SerializedDataParameter nightSkyTint;
 SerializedDataParameter nightSkyIntensity;
+SerializedDataParameter nightSkyAmbientMultiplier;
 SerializedDataParameter nightSkyScatterTint;
 SerializedDataParameter nightSkyScatterIntensity;
 SerializedDataParameter useTwinkle;
@@ -555,6 +556,7 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
     PropertyField(nightSkyTint, new UnityEngine.GUIContent("Tint"));
     PropertyField(nightSkyScatterIntensity, new UnityEngine.GUIContent("Scatter Intensity"));
     PropertyField(nightSkyScatterTint, new UnityEngine.GUIContent("Scatter Tint"));
+    PropertyField(nightSkyAmbientMultiplier, new UnityEngine.GUIContent("Ambient Multiplier"));
 
     EditorGUILayout.Space();
     EditorGUILayout.LabelField("Light Pollution", subtitleStyle);
@@ -734,6 +736,7 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
       PropertyField(nightSkyRotation, new UnityEngine.GUIContent("Rotation"));
     }
     PropertyField(nightSkyIntensity, new UnityEngine.GUIContent("Intensity"));
+    PropertyField(nightSkyAmbientMultiplier, new UnityEngine.GUIContent("Ambient Multiplier"));
     PropertyField(nightSkyTint, new UnityEngine.GUIContent("Tint"));
     PropertyField(nightSkyScatterIntensity, new UnityEngine.GUIContent("Scatter Intensity"));
     PropertyField(nightSkyScatterTint, new UnityEngine.GUIContent("Scatter Tint"));
@@ -977,6 +980,7 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   nightSkyRotation = Unpack(o.Find(x => x.nightSkyRotation));
   nightSkyTint = Unpack(o.Find(x => x.nightSkyTint));
   nightSkyIntensity = Unpack(o.Find(x => x.nightSkyIntensity));
+  nightSkyAmbientMultiplier = Unpack(o.Find(x => x.nightSkyAmbientMultiplier));
   nightSkyScatterTint = Unpack(o.Find(x => x.nightSkyScatterTint));
   nightSkyScatterIntensity = Unpack(o.Find(x => x.nightSkyScatterIntensity));
   useTwinkle = Unpack(o.Find(x => x.useTwinkle));

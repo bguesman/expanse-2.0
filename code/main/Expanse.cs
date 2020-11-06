@@ -357,14 +357,16 @@ public MinFloatParameter lightPollutionIntensity = new MinFloatParameter(10, 0);
 public CubemapParameter nightSkyTexture = new CubemapParameter(null);
 [Tooltip("The rotation of the night sky texture as euler angles.")]
 public Vector3Parameter nightSkyRotation = new Vector3Parameter(new Vector3(0.0f, 0.0f, 0.0f));
-[Tooltip("Tint to the night sky.")]
+[Tooltip("Intensity of the night sky.")]
 public MinFloatParameter nightSkyIntensity = new MinFloatParameter(0, 0);
 [Tooltip("Tint to the night sky.")]
 public ColorParameter nightSkyTint = new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true);
-[Tooltip("Expanse computes sky scattering using the average color of the sky texture. There are so many light sources in the night sky that this is really the only computationally tractable option. However, this usually results in scattering that's not nearly intense enough. This multiplier is an artistic override to mitigate that issue.")]
+[Tooltip("Expanse computes sky scattering using the average color of the sky texture. There are so many light sources in the night sky that this is really the only computationally tractable option. However, this can sometimes result in scattering that's too intense, or not intense enough, depending on your use case. This parameter is an artistic override to help mitigate that issue.")]
 public MinFloatParameter nightSkyScatterIntensity = new MinFloatParameter(50, 0);
 [Tooltip("An additional tint applied on top of the night sky tint, but only to the scattering. This is useful as an artistsic override for if the average color of your sky texture doesn't quite get you the scattering behavior you want. For instance, you may want the scattering to be bluer.")]
 public ColorParameter nightSkyScatterTint = new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true);
+[Tooltip("Expanse factors in the average night sky color, affected by the scatter intensity and the sky/scatter tints, to the dynamic sky ambient lightmap. Sometimes it's useful to have the night sky cast more light than it actually emits though, for readability purposes. This is an artistic override that allows you to increase or decrease the night sky's contribution to ambient lighting. Don't be afraid to push this to extremely high values (tens or hundreds of thousands) to get the effect you want.")]
+public MinFloatParameter nightSkyAmbientMultiplier = new MinFloatParameter(1, 0);
 
 /* Star twinkle effect. */
 [Tooltip("Whether or not to use star twinkle effect.")]
@@ -657,6 +659,7 @@ public override int GetHashCode() {
     hash = hash * 23 + nightSkyRotation.value.GetHashCode();
     hash = hash * 23 + nightSkyTint.value.GetHashCode();
     hash = hash * 23 + nightSkyIntensity.value.GetHashCode();
+    hash = hash * 23 + nightSkyAmbientMultiplier.value.GetHashCode();
     hash = hash * 23 + nightSkyScatterTint.value.GetHashCode();
     hash = hash * 23 + nightSkyScatterIntensity.value.GetHashCode();
 

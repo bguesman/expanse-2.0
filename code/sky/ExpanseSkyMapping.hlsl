@@ -277,8 +277,7 @@ float4 unmapFrustumCoordinate(float3 uvw) {
   float2 xy = uvw.xy * _currentScreenSize.xy;
   float3 clipSpaceD = -normalize(mul(float4(xy.x, xy.y, 1, 1), _pCoordToViewDir).xyz);
 
-  /* Get camera center, and angle between direction and center. */
-  /* Depth. TODO: tweakable non-linear curve where pow is */
+  /* Depth, or truly, ray length to the view plane. */
   float depth = pow(abs(uvw.z), _aerialPerspectiveDepthSkew) * _farClip;
   float3 cameraCenterD = -normalize(mul(float4(_currentScreenSize.xy/2.0, 1, 1), _pCoordToViewDir).xyz);
   float cosTheta = dot(cameraCenterD, clipSpaceD);

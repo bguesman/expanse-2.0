@@ -433,24 +433,30 @@ private void setLightingData(CommandBuffer cmd, Vector4 cameraPos, Expanse sky) 
 }
 
 private Vector4 computeAverageNightSkyColor(Expanse sky) {
-  /* TODO: make more efficient. */
   if (sky.useProceduralNightSky.value) {
-    /* Use an analytical hack to allow for realtime editing. */
-    return sky.nightSkyIntensity.value * sky.nightSkyTint.value;
+    /* Use an analytical hack to allow for realtime editing.
+     * HACK: fudge factor here to make the difference between this and
+     * a texture less extreme. You can think of this as an approximation
+     * of the "fraction of the night sky that's a star". Don't tie this to
+     * the procedural star density though, because that just needlessly
+     * complicates things. */
+    float approximateStarDensity = 0.0025f;
+    return sky.nightSkyIntensity.value * sky.nightSkyTint.value * approximateStarDensity;
   } else if (sky.nightSkyTexture.value != null) {
-    /* Actually compute the average. TODO: make more efficient. */
+    /* Actually compute the average. */
     Vector4 averageColor = new Vector4(0, 0, 0, 0);
     for (int i = 0; i < 6; i++) {
       Vector4 faceColor = new Vector4(0, 0, 0, 0);
       Color[] pixels = sky.nightSkyTexture.value.GetPixels(0);
-      foreach (Color p in pixels) {
-        faceColor += (Vector4) p;
+      for (int p = 0; p < pixels.Length; p += 16) {
+        Color c = pixels[p];
+        faceColor += (Vector4) c;
       }
       faceColor /= pixels.Length;
       averageColor += faceColor;
     }
     averageColor /= 6;
-    return averageColor;
+    return sky.nightSkyIntensity.value * sky.nightSkyTint.value * averageColor;
   } else {
     return sky.nightSkyTint.value;
   }
@@ -1206,6 +1212,7 @@ private void setMaterialPropertyBlockNightSky(Expanse sky) {
   m_PropertyBlock.SetMatrix("_nightSkyRotation", Matrix4x4.Rotate(nightSkyRotationMatrix));
   m_PropertyBlock.SetVector("_nightSkyTint", sky.nightSkyTint.value
     * sky.nightSkyIntensity.value);
+  m_PropertyBlock.SetFloat("_nightSkyAmbientMultiplier", sky.nightSkyAmbientMultiplier.value);
 
   m_PropertyBlock.SetFloat("_useTwinkle", (sky.useTwinkle.value) ? 1 : 0);
   m_PropertyBlock.SetFloat("_twinkleThreshold", sky.twinkleThreshold.value);

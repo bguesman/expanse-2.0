@@ -61,13 +61,6 @@ void SS(uint3 id : SV_DispatchThreadID) {
     _atmosphereRadius, _planetRadius, _resSS.x, _resSS.y);
   float3 d = mu_theta_to_d(mu_theta.x, mu_theta.y, O);
 
-  // HACK: Hack where we make sure we don't sample directly on the horizon
-  // line fixes remaining tiny artifacts.
-  float h = r - _planetRadius;
-  float cosHorizon = -safeSqrt(h * (2 * _planetRadius + h)) / (_planetRadius + h);
-  float step = 1.0/_resSS.x;
-  // d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
-
   /* Trace a ray to see what we hit. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
@@ -88,13 +81,6 @@ void AP(uint3 id : SV_DispatchThreadID) {
   float depth = xyz.w;
   float3 O = GetCameraPositionPlanetSpace();
   float r = length(O);
-
-  // HACK: Hack where we make sure we don't sample directly on the horizon
-  // line fixes remaining tiny artifacts.
-  float h = r - _planetRadius;
-  float cosHorizon = -safeSqrt(h * (2 * _planetRadius + h)) / (_planetRadius + h);
-  float step = min(1.0/_resMSAcc.x, 1.0/_resSS.x);
-  // d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
 
   /* Compute SS between origin and depth in direction d. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
@@ -192,13 +178,6 @@ void MSAcc(uint3 id : SV_DispatchThreadID) {
     _atmosphereRadius, _planetRadius, _resMSAcc.x, _resMSAcc.y);
 
   float3 d = mu_theta_to_d(mu_theta.x, mu_theta.y, O);
-
-  // HACK: Hack where we make sure we don't sample directly on the horizon
-  // line fixes remaining tiny artifacts.
-  float h = r - _planetRadius;
-  float cosHorizon = -safeSqrt(h * (2 * _planetRadius + h)) / (_planetRadius + h);
-  float step = 1.0/_resMSAcc.x;
-  // d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
 
   /* Trace a ray to see what we hit. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,

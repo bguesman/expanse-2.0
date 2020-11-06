@@ -27,7 +27,11 @@ float3 computeTransmittanceDensityAttenuation(float3 O, float3 d, float endT) {
   for (int i = 0; i < _numActiveLayers; i++) {
     if (useDensityAttenuation(_layerDensityDistribution[i])) {
       float m = _layerAttenuationDistance[i];
-      // float k = _layerAttenuationBias[i]; // TODO: current integration makes this non-physical
+      // TODO: Current integration makes attenuation bias non-physical, so
+      // it's commented out here. Would have to split integral into constant
+      // and non-constant parts because of saturate() in the density
+      // attnenuation function.
+      // float k = _layerAttenuationBias[i];
       float H = _layerThickness[i];
       float3 P = _layerDensityAttenuationOrigin[i];
       float3 deltaPO = O - P;

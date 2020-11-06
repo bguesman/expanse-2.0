@@ -72,7 +72,7 @@ void STAR(uint3 id : SV_DispatchThreadID) {
     float intensityRandom = 1-bias0To1(random_3_1_seeded(noiseBig.coordinate, _starIntensitySeed.xyz), _starIntensityBias, 100);
     float intensity = _starIntensityMin + (_starIntensityMax - _starIntensityMin) * intensityRandom;
 
-    /* Blackbody color based on seed. TODO: tint. */
+    /* Blackbody color based on seed. */
     float temperatureRandom = 1-bias0To1(random_3_1_seeded(noiseBig.coordinate, _starTemperatureSeed.xyz), _starTemperatureBias, 100);
     float randomTemperature = _starTemperatureMin + (_starTemperatureMax - _starTemperatureMin) * temperatureRandom;
     float3 blackBodyColor = blackbodyTempToColor(randomTemperature);
@@ -105,7 +105,7 @@ void STAR(uint3 id : SV_DispatchThreadID) {
       float intensityRandom = 1-bias0To1(random_3_1_seeded(noiseSmall.coordinate, _starIntensitySeed.xyz), _starIntensityBias, 100);
       float intensity = _starIntensityMin + (_starIntensityMax - _starIntensityMin) * intensityRandom;
 
-      /* Blackbody color based on seed. TODO: tint. */
+      /* Blackbody color based on seed. */
       float temperatureRandom = 1-bias0To1(random_3_1_seeded(noiseSmall.coordinate, _starTemperatureSeed.xyz), _starTemperatureBias, 100);
       float randomTemperature = _starTemperatureMin + (_starTemperatureMax - _starTemperatureMin) * temperatureRandom;
       float3 blackBodyColor = blackbodyTempToColor(randomTemperature);
