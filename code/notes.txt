@@ -16,23 +16,16 @@ todo list:
  if this will help much but it may allow us to avoid branching in the shader
  in the inner loop. should see how much faster it is without the branch
  first.
- -investigate bug where you're looking at the planet from space and half of it
- seems to be totally wrong. UPDATE: appears to be choice of K for local frame.
- This makes sense. Doesn't seem to affect results on the ground. May just want
- to use a different selection process to figure out what that vector should
- be. handedness flip perhaps?
-  -maybe not. maybe the parameterization just fails for outside the atmo?
-  I don't really know yet.
-  -Well, the big one I was investigating here was fixed by normalizing
-  the local frame. Thought 2 normalized vectors produced a normalized
-  vector when you took their cross product, but I guess not!
-  -There is still a bug when you go too high up though, actually outside
-  the atmo.
-  -It would appear it's all fixed now.
 
- -no celestial bodies in the rendered cubemap---should make things a lot more
- efficient. currently sitting at around 150us with quality medium. DONE: now
- sitting at 10us!
+ -it appears that there may still be a bug with planet origin translation.
+ For an example just set the atmo really thick and set the origin to
+ really far away in the y direction
+  -edit: it appears to be with the d.y clamping hack in precompute
+  -Update, got rid of that hack... and it's working again. It seems to
+  be working super well. I'm not even seeing the AP ripple bug anymore.
+  I'm gonna commit this with it commented out, but then delete it and say
+  sayonara for now.
+
  -possibly optimize direct lighting rendering computation
     -always sample default textures to omit branching, but multiply result by
     hasTexture cast to float?

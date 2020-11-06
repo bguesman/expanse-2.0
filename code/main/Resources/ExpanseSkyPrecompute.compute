@@ -66,7 +66,7 @@ void SS(uint3 id : SV_DispatchThreadID) {
   float h = r - _planetRadius;
   float cosHorizon = -safeSqrt(h * (2 * _planetRadius + h)) / (_planetRadius + h);
   float step = 1.0/_resSS.x;
-  d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
+  // d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
 
   /* Trace a ray to see what we hit. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
@@ -94,7 +94,7 @@ void AP(uint3 id : SV_DispatchThreadID) {
   float h = r - _planetRadius;
   float cosHorizon = -safeSqrt(h * (2 * _planetRadius + h)) / (_planetRadius + h);
   float step = min(1.0/_resMSAcc.x, 1.0/_resSS.x);
-  d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
+  // d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
 
   /* Compute SS between origin and depth in direction d. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
@@ -198,7 +198,7 @@ void MSAcc(uint3 id : SV_DispatchThreadID) {
   float h = r - _planetRadius;
   float cosHorizon = -safeSqrt(h * (2 * _planetRadius + h)) / (_planetRadius + h);
   float step = 1.0/_resMSAcc.x;
-  d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
+  // d.y = (d.y > cosHorizon) ? clamp(d.y, cosHorizon + step, 1) : clamp(d.y, -1, cosHorizon - step);
 
   /* Trace a ray to see what we hit. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
