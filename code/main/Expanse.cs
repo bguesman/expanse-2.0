@@ -88,9 +88,15 @@ public MinFloatParameter layerMultipleScatteringMultiplier0, layerMultipleScatte
 [Tooltip("Whether or not this celestial body is enabled.")]
 public BoolParameter bodyEnabled0, bodyEnabled1, bodyEnabled2,
   bodyEnabled3, bodyEnabled4, bodyEnabled5, bodyEnabled6, bodyEnabled7;
+[Tooltip("Whether or not to use date/time mode to control this body's direction.")]
+public BoolParameter bodyUseDateTime0, bodyUseDateTime1, bodyUseDateTime2,
+  bodyUseDateTime3, bodyUseDateTime4, bodyUseDateTime5, bodyUseDateTime6, bodyUseDateTime7;
 [Tooltip("Celestial body's direction.")]
 public Vector3Parameter bodyDirection0, bodyDirection1, bodyDirection2,
   bodyDirection3, bodyDirection4, bodyDirection5, bodyDirection6, bodyDirection7;
+[Tooltip("Date and time for this celestial body, used to compute direction.")]
+public DateTimeParameter bodyDateTime0, bodyDateTime1, bodyDateTime2,
+  bodyDateTime3, bodyDateTime4, bodyDateTime5, bodyDateTime6, bodyDateTime7;
 [Tooltip("Celestial body's angular radius in the sky, specified in degrees.")]
 public ClampedFloatParameter bodyAngularRadius0, bodyAngularRadius1, bodyAngularRadius2,
   bodyAngularRadius3, bodyAngularRadius4, bodyAngularRadius5, bodyAngularRadius6, bodyAngularRadius7;
@@ -466,6 +472,8 @@ public Expanse() : base() {
   for (int i = 0; i < ExpanseCommon.kMaxCelestialBodies; i++) {
     /* Enable only the first celestial body by default. */
     this.GetType().GetField("bodyEnabled" + i).SetValue(this, new BoolParameter(i==0));
+    this.GetType().GetField("bodyUseDateTime" + i).SetValue(this, new BoolParameter(false));
+    this.GetType().GetField("bodyDateTime" + i).SetValue(this, new DateTimeParameter(DateTimeParameter.dateTimeToString(new DateTime(2020, 11, 6))));
     this.GetType().GetField("bodyDirection" + i).SetValue(this, new Vector3Parameter(new Vector3(0, 0, 0)));
     this.GetType().GetField("bodyAngularRadius" + i).SetValue(this, new ClampedFloatParameter(0.5f, 0.001f, 90));
     this.GetType().GetField("bodyDistance" + i).SetValue(this, new MinFloatParameter(1.5e8f, 0));
@@ -527,7 +535,9 @@ public override int GetHashCode() {
     /* Celestial bodies. */
     for (int i = 0; i < ExpanseCommon.kMaxCelestialBodies; i++) {
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyEnabled" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyUseDateTime" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("bodyDirection" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((DateTimeParameter) this.GetType().GetField("bodyDateTime" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("bodyAngularRadius" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyDistance" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyReceivesLight" + i).GetValue(this)).value.GetHashCode();

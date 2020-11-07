@@ -900,12 +900,27 @@ private void setGlobalCBufferCelestialBodies(CommandBuffer cmd, Expanse sky) {
     for (int i = 0; i < ExpanseCommon.kMaxCelestialBodies; i++) {
       bool enabled = (((BoolParameter) sky.GetType().GetField("bodyEnabled" + i).GetValue(sky)).value);
       if (enabled) {
-        /* Only set up remaining properties if this body is enabled. */
         bodyAngularRadius[numActiveBodies] = Mathf.PI * (((ClampedFloatParameter) sky.GetType().GetField("bodyAngularRadius" + i).GetValue(sky)).value / 180);
-        Vector3 angles = ((Vector3Parameter) sky.GetType().GetField("bodyDirection" + i).GetValue(sky)).value;
-        Quaternion bodyLightRotation = Quaternion.Euler(angles.x, angles.y, angles.z);
-        Vector3 direction = bodyLightRotation * (new Vector3(0, 0, -1));
-        m_bodyDirections[numActiveBodies] = new Vector4(direction.x, direction.y, direction.z, 0);
+
+        /* Only set up remaining properties if this body is enabled. */
+        bool usesDateTime = (((BoolParameter) sky.GetType().GetField("bodyUseDateTime" + i).GetValue(sky)).value);
+        if (usesDateTime) {
+          /* Get the date time. */
+          DateTime dateTime = ((ExpanseCommonNamespace.DateTimeParameter) sky.GetType().GetField("bodyDateTime" + i).GetValue(sky)).getDateTime();
+          /* Convert date time to azimuth and zenith. */
+          double azimuthAngle, zenithAngle;
+          ExpanseDateTimeControl.CalculateSunPosition(dateTime, 30, 3, out azimuthAngle, out zenithAngle);
+          float x = Mathf.Sin((float) zenithAngle) * Mathf.Cos((float) azimuthAngle);
+          float y = Mathf.Sin((float) zenithAngle) * Mathf.Sin((float) azimuthAngle);
+          float z = Mathf.Cos((float) zenithAngle);
+          Vector3 direction = new Vector3(x, y, z);
+          m_bodyDirections[numActiveBodies] = new Vector4(direction.x, direction.y, direction.z, 0);
+        } else {
+          Vector3 angles = ((Vector3Parameter) sky.GetType().GetField("bodyDirection" + i).GetValue(sky)).value;
+          Quaternion bodyLightRotation = Quaternion.Euler(angles.x, angles.y, angles.z);
+          Vector3 direction = bodyLightRotation * (new Vector3(0, 0, -1));
+          m_bodyDirections[numActiveBodies] = new Vector4(direction.x, direction.y, direction.z, 0);
+        }
 
         bool useTemperature = ((BoolParameter) sky.GetType().GetField("bodyUseTemperature" + i).GetValue(sky)).value;
         float lightIntensity = ((MinFloatParameter) sky.GetType().GetField("bodyLightIntensity" + i).GetValue(sky)).value;

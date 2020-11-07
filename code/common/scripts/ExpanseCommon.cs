@@ -5,6 +5,7 @@ using UnityEngine.Rendering;
 namespace ExpanseCommonNamespace {
 
 public class ExpanseCommon {
+
 /* Enum for atmosphere layers. Currently we support up to 8 different
  * atmosphere layers. */
 public enum AtmosphereLayer {

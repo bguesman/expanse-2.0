@@ -89,7 +89,11 @@ SerializedDataParameter[] layerMultipleScatteringMultiplier
 /* Celestial Bodies. */
 SerializedDataParameter[] bodyEnabled
   = new SerializedDataParameter[ExpanseCommon.kMaxCelestialBodies];
+SerializedDataParameter[] bodyUseDateTime
+  = new SerializedDataParameter[ExpanseCommon.kMaxCelestialBodies];
 SerializedDataParameter[] bodyDirection
+  = new SerializedDataParameter[ExpanseCommon.kMaxCelestialBodies];
+SerializedDataParameter[] bodyDateTime
   = new SerializedDataParameter[ExpanseCommon.kMaxCelestialBodies];
 SerializedDataParameter[] bodyAngularRadius
   = new SerializedDataParameter[ExpanseCommon.kMaxCelestialBodies];
@@ -507,7 +511,12 @@ private void celestialBody(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle
   if (UnityEditor.EditorGUILayout.BeginFadeGroup(m_showCelestialBody[bodySelectIndex].faded))
   {
     PropertyField(bodyEnabled[bodySelectIndex], new UnityEngine.GUIContent("Enabled"));
-    PropertyField(bodyDirection[bodySelectIndex], new UnityEngine.GUIContent("Direction"));
+    PropertyField(bodyUseDateTime[bodySelectIndex], new UnityEngine.GUIContent("Date/Time Mode"));
+    if (bodyUseDateTime[bodySelectIndex].value.boolValue) {
+      PropertyField(bodyDateTime[bodySelectIndex], new UnityEngine.GUIContent("Date/Time"));
+    } else {
+      PropertyField(bodyDirection[bodySelectIndex], new UnityEngine.GUIContent("Direction"));
+    }
     PropertyField(bodyAngularRadius[bodySelectIndex], new UnityEngine.GUIContent("Angular Radius"));
     PropertyField(bodyDistance[bodySelectIndex], new UnityEngine.GUIContent("Distance"));
 
@@ -852,7 +861,9 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   /* Celestial bodies. */
   for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
     bodyEnabled[i] = Unpack(o.Find("bodyEnabled" + i));
+    bodyUseDateTime[i] = Unpack(o.Find("bodyUseDateTime" + i));
     bodyDirection[i] = Unpack(o.Find("bodyDirection" + i));
+    bodyDateTime[i] = Unpack(o.Find("bodyDateTime" + i));
     bodyAngularRadius[i] = Unpack(o.Find("bodyAngularRadius" + i));
     bodyDistance[i] = Unpack(o.Find("bodyDistance" + i));
     bodyReceivesLight[i] = Unpack(o.Find("bodyReceivesLight" + i));

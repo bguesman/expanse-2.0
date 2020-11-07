@@ -24,5 +24,8 @@ todo list:
  -weird fog ap flicker bug? perhaps when sun is just right on horizon? can't
  seem to repro... bad state maybe?
 
+ -datetime control: DONE.
+ -don't support moon datetime because of eclipse handling
+
 new params:
   -possibly on hold but probably useful: nebula color gradients. is there a gradient ui parameter?
