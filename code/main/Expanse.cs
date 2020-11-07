@@ -94,7 +94,7 @@ public BoolParameter bodyUseDateTime0, bodyUseDateTime1, bodyUseDateTime2,
 [Tooltip("Celestial body's direction.")]
 public Vector3Parameter bodyDirection0, bodyDirection1, bodyDirection2,
   bodyDirection3, bodyDirection4, bodyDirection5, bodyDirection6, bodyDirection7;
-[Tooltip("Date and time for this celestial body, used to compute direction.")]
+[Tooltip("Date and time for this celestial body, used to compute direction. Only accurate from 1 March 1900 to 28 February 2100.")]
 public DateTimeParameter bodyDateTime0, bodyDateTime1, bodyDateTime2,
   bodyDateTime3, bodyDateTime4, bodyDateTime5, bodyDateTime6, bodyDateTime7;
 [Tooltip("Celestial body's angular radius in the sky, specified in degrees.")]
