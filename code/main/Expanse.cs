@@ -421,7 +421,7 @@ public BoolParameter useImportanceSampling = new BoolParameter(false);
 public BoolParameter aerialPerspectiveUseImportanceSampling = new BoolParameter(false);
 [Tooltip("Skews precomputed aerial perspective samples to be further from the camera (if less than 1) or closer to the camera (if greater than 1). This is useful for environments with very heavy fog, where it can be more important to capture scattering close to the camera.")]
 public ClampedFloatParameter aerialPerspectiveDepthSkew = new ClampedFloatParameter(1, 0.25f, 5);
-[Tooltip("Whether or not to use MSAA 8x anti-aliasing. This does negatively affect performance.")]
+[Tooltip("Whether or not to use MSAA 8x anti-aliasing. Expanse uses conditional MSAA, only multisampling on the edges of celestial bodies and the ground, so this should not be much of a performance hit.")]
 public BoolParameter useAntiAliasing = new BoolParameter(false);
 [Tooltip("Amount of dithering used to reduce color banding. If this is too high, noise will be visible.")]
 public ClampedFloatParameter ditherAmount = new ClampedFloatParameter(0.05f, 0.0f, 1.0f);

@@ -157,47 +157,53 @@ Varyings Vert(Attributes input)
  * as a texture array, but in that case all textures need to be the same
  * resolution. So we have to do something hacky. */
 
-float3 sampleBodyEmissionTexture(float3 uv, int i) {
+float3 sampleBodyEmissionTexture(float3 uv, int i, float angularRadius) {
+  // HACK: not actually implementing proper mip selection, just this hack.
+  float angularRadiusDegrees = (angularRadius / PI) * 180;
+  int sampleLevel = (int) (pow(max(0, 18 - angularRadiusDegrees) / 18, 1.5) * 7);
   switch(i) {
     case 0:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture0, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture0, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     case 1:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture1, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture1, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     case 2:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture2, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture2, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     case 3:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture3, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture3, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     case 4:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture4, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture4, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     case 5:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture5, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture5, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     case 6:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture6, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture6, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     case 7:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture7, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyEmissionTexture7, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     default:
       return float3(0, 0, 0);
   }
 }
 
-float3 sampleBodyAlbedoTexture(float3 uv, int i) {
+float3 sampleBodyAlbedoTexture(float3 uv, int i, float angularRadius) {
+  // HACK: not actually implementing proper mip selection, just this hack.
+  float angularRadiusDegrees = (angularRadius / PI) * 180;
+  int sampleLevel = (int) (pow(max(0, 18 - angularRadiusDegrees) / 18, 1.5) * 7);
   switch(i) {
     case 0:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture0, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture0, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     case 1:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture1, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture1, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     case 2:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture2, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture2, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     case 3:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture3, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture3, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     case 4:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture4, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture4, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     case 5:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture5, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture5, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     case 6:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture6, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture6, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     case 7:
-      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture7, s_linear_clamp_sampler, uv, 0).xyz;
+      return SAMPLE_TEXTURECUBE_LOD(_bodyAlbedoTexture7, s_linear_clamp_sampler, uv, sampleLevel).xyz;
     default:
       return float3(0, 0, 0);
   }
@@ -246,27 +252,35 @@ float3 shadeGround(float3 endPoint) {
 }
 
 /* Given direction to sample in, shades closest celestial body. Returns
- * negative number if nothing is hit. */
-float3 shadeClosestCelestialBody(float3 d) {
+ * negative number if nothing is hit. W coordinate specifies if the
+ * direction was close to the edge of the body or not, for conditional MSAA.
+ * If not close to edge, it's negative. If close to edge, it's positive. */
+float4 shadeClosestCelestialBody(float3 d) {
+  bool closeToEdge = false;
+  const float closeToEdgeThreshold = 0.5;
+
   /* First, compute closest intersection. */
   int minIdx = -1;
   float minDist = FLT_MAX;
   for (int i = 0; i < _numActiveBodies; i++) {
     float3 L = _bodyDirection[i];
     float cosTheta = dot(L, d);
-    if (cosTheta > cos(_bodyAngularRadius[i]) && _bodyDistance[i] < minDist) {
+    float cosAngularRadius = cos(_bodyAngularRadius[i]);
+    if (cosTheta > cosAngularRadius && _bodyDistance[i] < minDist) {
       minIdx = i;
       minDist = _bodyDistance[i];
     }
+    closeToEdge = abs(cosTheta - cosAngularRadius) < (closeToEdgeThreshold * (_bodyAngularRadius[i]/90)) || closeToEdge;
   }
 
   /* If we didn't hit anything, there's nothing to shade. Return negative
    * number to indicate that we hit nothing. */
   if (minIdx < 0) {
-    return float3(-1, -1, -1);
+    return float4(-1, -1, -1, closeToEdge ? 1 : -1);
   }
 
-  /* Otherwise, compute lighting. */
+
+  /* And compute lighting. */
   float3 directLighting = float3(0, 0, 0);
 
   /* Compute illumination. */
@@ -289,7 +303,7 @@ float3 shadeClosestCelestialBody(float3 d) {
     float3 albedo = _bodyAlbedoTint[minIdx].xyz;
     if (_bodyAlbedoTextureEnabled[minIdx]) {
       float3 albedoTex = sampleBodyAlbedoTexture(
-        mul(surfaceNormal, (float3x3) _bodyAlbedoTextureRotation[minIdx]), minIdx);
+        mul(surfaceNormal, (float3x3) _bodyAlbedoTextureRotation[minIdx]), minIdx, _bodyAngularRadius[minIdx]);
       albedo *= albedoTex * 2;
     } else {
       albedo /= PI;
@@ -327,7 +341,7 @@ float3 shadeClosestCelestialBody(float3 d) {
         + minNonNegative(bodyIntersection.x, bodyIntersection.y) * d;
       float3 surfaceNormal = normalize(bodyIntersectionPoint);
       float3 emissionTex = sampleBodyEmissionTexture(
-        mul(surfaceNormal, (float3x3) _bodyEmissionTextureRotation[minIdx]), minIdx);
+        mul(surfaceNormal, (float3x3) _bodyEmissionTextureRotation[minIdx]), minIdx, _bodyAngularRadius[minIdx]);
       emission *= emissionTex;
     } else {
       emission *= _bodyLightColor[minIdx].xyz;
@@ -337,7 +351,7 @@ float3 shadeClosestCelestialBody(float3 d) {
     directLighting += emission;
   }
 
-  return directLighting;
+  return float4(directLighting, closeToEdge ? 1 : -1);
 }
 
 /* Given direction to sample in, shades direct light from night sky. */
@@ -409,7 +423,16 @@ float3 shadeNightSky(float3 d) {
   }
 }
 
-float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
+struct SkyRenderResult {
+  float4 color;
+  bool closeToEdge;
+};
+
+SkyRenderResult RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
+  /* Final result. */
+  SkyRenderResult result;
+  result.closeToEdge = false;
+
   /* Trace a ray to see what we hit. */
   SkyIntersectionData intersection = traceSkyVolume(O, d, _planetRadius,
     _atmosphereRadius);
@@ -437,7 +460,9 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
       directLight = shadeGround(endPoint);
     } else {
       /* Shade the closest celestial body and the stars. */
-      directLight = shadeClosestCelestialBody(d);
+      float4 directLightAndEdgeCloseness = shadeClosestCelestialBody(d);
+      directLight = directLightAndEdgeCloseness.xyz;
+      result.closeToEdge = (directLightAndEdgeCloseness.w > 0);
       if (directLight.x < 0) {
         /* If we didn't shade any celestial bodies, shade the stars. */
         directLight = shadeNightSky(d);
@@ -449,10 +474,11 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
    * light. */
   if (!intersection.groundHit && !intersection.atmoHit) {
     if (depth < farClip - 0.001) {
-      return float4(0, 0, 0, 1);
+      result.color = float4(0, 0, 0, 1);
     } else {
-      return float4(directLight, 0);
+      result.color = float4(directLight, 0);
     }
+    return result;
   }
 
   /* Compute 2D texture coordinate. */
@@ -492,16 +518,23 @@ float4 RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
       /* Add an estimate of the night sky color for ambient lighting. */
       skyColor += _nightSkyTint * _nightSkyAmbientMultiplier;
     }
+
+    /* Figure out how close we are to the horizon for conditional MSAA. */
+    float h = r - _planetRadius;
+    float cos_h = -safeSqrt(h * (2 * _planetRadius + h)) / (_planetRadius + h);
+    const float closeToHorizonEdgeThreshold = 0.005;
+    result.closeToEdge = result.closeToEdge || (abs(cos_h - mu) < closeToHorizonEdgeThreshold);
   }
 
-  return float4(skyColor + transmittance * directLight, blendTransmittance);
+  result.color = float4(skyColor + transmittance * directLight, blendTransmittance);
+  return result;
 }
 
 float4 SkyCubemap(Varyings input) : SV_Target {
   /* Compute origin point and sample direction. */
   float3 O = GetCameraPositionPlanetSpace();
   float3 d = -GetSkyViewDirWS(input.positionCS.xy);
-  return RenderSky(input, O, d, true);
+  return RenderSky(input, O, d, true).color;
 }
 
 float4 SkyFullscreen(Varyings input) : SV_Target {
@@ -511,27 +544,24 @@ float4 SkyFullscreen(Varyings input) : SV_Target {
   float3 O = GetCameraPositionPlanetSpace();
   float3 d = -GetSkyViewDirWS(input.positionCS.xy);
 
-  /* If we aren't using anti-aliasing, just render. */
-  if (!_useAntiAliasing) {
-      return RenderSky(input, O, d, false);
+  /* Render. */
+  SkyRenderResult result = RenderSky(input, O, d, false);
+
+  /* If we aren't using anti-aliasing or we weren't close to an edge,
+   * don't do MSAA, just return the result. */
+  if (!_useAntiAliasing || !result.closeToEdge) {
+      return result.color;
   }
 
-  /* Otherwise, see how close we are to the planet or celestial body's edge,
-   * and if we are close, then use MSAA 8x. TODO: do this. */
-  bool closeToEdge = true;
-  if (closeToEdge) {
-    float MSAA_8X_OFFSETS_X[8] = {1.0/16.0, -1.0/16.0, 5.0/16.0, -3.0/16.0, -5.0/16.0, -7.0/16.0, 3.0/16.0, 7.0/16.0};
-    float MSAA_8X_OFFSETS_Y[8] =  {-3.0/16.0, 3.0/16.0, 1.0/16.0, -5.0/16.0, 5.0/16.0, -1.0/16.0, 7.0/16.0, -7.0/16.0};
-    float4 result = float4(0, 0, 0, 0);
-    for (int i = 0; i < 8; i++) {
-      float3 dOffset = -GetSkyViewDirWS(input.positionCS.xy
-        + float2(MSAA_8X_OFFSETS_X[i], MSAA_8X_OFFSETS_Y[i]));
-      result += RenderSky(input, O, dOffset, false);
-    }
-    return result / 8.0;
+  /* Otherwise, use AA. */
+  float MSAA_8X_OFFSETS_X[8] = {1.0/16.0, -1.0/16.0, 5.0/16.0, -3.0/16.0, -5.0/16.0, -7.0/16.0, 3.0/16.0, 7.0/16.0};
+  float MSAA_8X_OFFSETS_Y[8] =  {-3.0/16.0, 3.0/16.0, 1.0/16.0, -5.0/16.0, 5.0/16.0, -1.0/16.0, 7.0/16.0, -7.0/16.0};
+  for (int i = 0; i < 8; i++) {
+    float3 dOffset = -GetSkyViewDirWS(input.positionCS.xy
+      + float2(MSAA_8X_OFFSETS_X[i], MSAA_8X_OFFSETS_Y[i]));
+    result.color += RenderSky(input, O, dOffset, false).color;
   }
-
-  return RenderSky(input, O, d, false);
+  return result.color / 9.0;
 }
 
 /******************************************************************************/

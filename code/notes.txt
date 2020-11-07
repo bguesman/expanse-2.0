@@ -1,5 +1,5 @@
 todo list:
- -conditional MSAA
+ -conditional MSAA. DONE, and it's pretty fast (2x as slow as regular, vs what was around 8x before).
  -lighting based on visible sun fraction (debatable if this matters). seems
  important for getting rid of edge in sky during sunsets. can have a
  visibility factor function that replaces shadowing.
@@ -9,6 +9,8 @@ todo list:
  -UI title size hierarchy. General UI tweaks.
  -reverse importance sample if looking at ground? edit: not important enough.
  -dithering
+ -sample correct mip levels for celestial body textures (hack based on radius?).
+ DONE, but HACK.
 
 new params:
   -possibly on hold but probably useful: nebula color gradients. is there a gradient ui parameter?
