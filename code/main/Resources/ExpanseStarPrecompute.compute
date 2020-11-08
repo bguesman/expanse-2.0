@@ -59,11 +59,11 @@ void STAR(uint3 id : SV_DispatchThreadID) {
     float sizeRandom = random_3_1_seeded(noiseBig.coordinate, _starSizeSeed.xyz);
     /* HACK: zero values screw up our biasing and result in artifacts. */
     float3 stars = float3(0, 0, 0);
-    if (sizeRandom > 0) {
+    if (sizeRandom > 0.1) {
       sizeRandom = saturate(bias0To1(saturate(sizeRandom), _starSizeBias, 500));
       float sizeMinExponent = 5 + pow(1 - _starSizeMax, 1) * 100;
       float sizeMaxExponent = 5 + pow(1 - _starSizeMin, 1) * 100;
-      stars = pow(noiseBig.result, sizeMinExponent + (sizeMaxExponent - sizeMinExponent) * sizeRandom);
+      stars = pow(noiseBig.result, sizeMinExponent + max(0, sizeMaxExponent - sizeMinExponent) * sizeRandom);
     }
 
     /* Random intensity multiplier based on seed. */
@@ -160,6 +160,19 @@ void NEBULAE(uint3 id : SV_DispatchThreadID) {
   float3 fineCurl = curlNoise3DSeeded(saturate(textureCoordinate),
     float3(_nebulaFineStrandWarpScale, _nebulaFineStrandWarpScale, _nebulaFineStrandWarpScale),
       _nebulaFineStrandWarpSeedX, _nebulaFineStrandWarpSeedY, _nebulaFineStrandWarpSeedZ);
+
+  /* HACK: to avoid artifacts we get from warping at the poles, scale back the
+   * warping effect as we approach a pole. */
+  float dotx = abs(dot(d, float3(1, 0, 0)));
+  float doty = abs(dot(d, float3(0, 1, 0)));
+  float dotz = abs(dot(d, float3(0, 0, 1)));
+  float distFromPole = min(min(safeSqrt(dotz * dotz + dotx * dotx),
+    safeSqrt(dotx * dotx + doty * doty)),
+    safeSqrt(dotz * dotz + doty * doty));
+  if (distFromPole < 0.1) {
+    coarseCurl *= (pow(saturate(distFromPole) / (0.1), 3));
+    fineCurl *= (pow(saturate(distFromPole) / (0.1), 3));
+  }
 
   /* 3. Layered voronoi noise to create coarse strands. */
   float3 warpedCoarseStrandTextureCoordinate = (normalize(d - _nebulaCoarseStrandWarp * WARP_MAX * coarseCurl) + 1) / 2;

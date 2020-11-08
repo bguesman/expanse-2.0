@@ -3,9 +3,10 @@ TODO LIST:
 
 
 KNOWN BUGS:
-  -nebulae no texture assigned
-
-  -nebulae hole bug
+  -big stars that aren't affected by the size params
+    -UPDATE: this is just a function of how the intensity feature works.
+    This should be documented in whatever guide we have for the star
+    feature.
 
   -weird fog ap flicker bug? perhaps when sun is just right on horizon? can't
   seem to repro... bad state maybe?
@@ -14,6 +15,11 @@ KNOWN BUGS:
     sampling the horizon line.
     -UPDATE: keeping tabs on this, but for now just going to limit the depth
     of the AP texture to 32.
+    -UPDATE: it still seems to appear in small cases, in a way that's unrelated
+    to the AP resolution. So maybe it does have something to do with the
+    horizon line sampling. I'm not really sure at this point.
+    -maybe it's a little jankness in the depth buffer?
+    -or some floating point comparison in the AP precompute code?
 
   -top of sky circle bug if we feel like it
 

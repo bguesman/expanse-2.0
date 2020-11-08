@@ -139,8 +139,15 @@ RTHandle allocateSky3DTable(Vector3 resolution, int index, string name) {
 /************************ END SKY PRECOMPUTATION TABLES ***********************/
 /******************************************************************************/
 
+
+
+/******************************************************************************/
+/****************************** PROCEDURAL STARS ******************************/
+/******************************************************************************/
+
 private RTHandle m_proceduralStarTexture;
 private RTHandle m_proceduralNebulaeTexture;
+private RTHandle m_defaultNebulaeTexture;
 private ExpanseCommon.StarTextureResolution m_starTextureResolution;
 private ExpanseCommon.StarTextureResolution m_nebulaeTextureResolution;
 
@@ -153,6 +160,19 @@ RTHandle allocateProceduralStarTexture(Vector2 resolution, string name) {
                               colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                               enableRandomWrite: true,
                               name: name);
+
+  Debug.Assert(table != null);
+
+  return table;
+}
+
+RTHandle allocateDefaultNebulaeTexture() {
+  var table = RTHandles.Alloc(16, // Make extremely small to make performance hit negligible.
+                              16,
+                              dimension: TextureDimension.Cube,
+                              colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
+                              enableRandomWrite: true,
+                              name: "DefaultNebulaeTexture");
 
   Debug.Assert(table != null);
 
@@ -173,6 +193,9 @@ void allocateStarTextures(Expanse sky) {
     ExpanseCommon.StarTextureResolution nebRes = ExpanseCommon.StarQualityToStarTextureResolution(sky.nebulaeTextureQuality.value);
     m_proceduralNebulaeTexture = allocateProceduralStarTexture(nebRes.Star, "Nebulae");
     m_nebulaeTextureResolution = nebRes;
+
+    /* Reallocate default texture as well. */
+    m_defaultNebulaeTexture = allocateDefaultNebulaeTexture();
   }
 }
 
@@ -184,13 +207,9 @@ void cleanupStarTextures() {
 void cleanupNebulaeTextures() {
   RTHandles.Release(m_proceduralNebulaeTexture);
   m_proceduralNebulaeTexture = null;
+  RTHandles.Release(m_defaultNebulaeTexture);
+  m_defaultNebulaeTexture = null;
 }
-
-/******************************************************************************/
-/****************************** PROCEDURAL STARS ******************************/
-/******************************************************************************/
-
-
 
 /******************************************************************************/
 /**************************** END PROCEDURAL STARS ****************************/
@@ -1000,7 +1019,15 @@ private void setGlobalCBufferNightSky(CommandBuffer cmd, Expanse sky) {
     cmd.SetGlobalFloat("_hasNebulaeTexture", (sky.nebulaeTexture.value == null) ? 0 : 1);
     // Set either way so that star precompute can be used. But be diligent
     // about only sampling it when _hasNebulaTexture is true.
-    cmd.SetGlobalTexture("_nebulaeTexture", sky.nebulaeTexture.value);
+    if (sky.nebulaeTexture.value) {
+      cmd.SetGlobalTexture("_nebulaeTexture", sky.nebulaeTexture.value);
+    } else {
+      /* HACK: to avoid errors when no nebula texture is set, use
+       * a super low res default nebula texture. */
+      cmd.SetGlobalTexture("_nebulaeTexture", m_defaultNebulaeTexture);
+    }
+    /* Set the procedural nebulae texture for use in the star generation. */
+    cmd.SetGlobalTexture("_proceduralNebulae", m_proceduralNebulaeTexture);
     cmd.SetGlobalFloat("_nebulaOverallIntensity", sky.nebulaOverallIntensity.value);
 
     if (sky.useProceduralNebulae.value) {
@@ -1081,9 +1108,6 @@ private void setGlobalCBufferNightSky(CommandBuffer cmd, Expanse sky) {
       cmd.SetGlobalVector("_nebulaTransmittanceSeedX", sky.nebulaTransmittanceSeedX.value);
       cmd.SetGlobalVector("_nebulaTransmittanceSeedY", sky.nebulaTransmittanceSeedY.value);
       cmd.SetGlobalVector("_nebulaTransmittanceSeedZ", sky.nebulaTransmittanceSeedZ.value);
-
-      /* Set the procedural nebulae texture for use in the star generation. */
-      cmd.SetGlobalTexture("_proceduralNebulae", m_proceduralNebulaeTexture);
     }
   }
 }
