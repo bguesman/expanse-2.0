@@ -111,7 +111,7 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
         MS = new Vector2(32, 32),
         SS = new Vector2(256, 64),
         MSAccumulation = new Vector2(128, 64),
-        AP = new Vector3(32, 32, 64)
+        AP = new Vector3(16, 16, 32)
       };
     case SkyTextureQuality.Ultra:
       return new SkyTextureResolution() {
@@ -120,7 +120,7 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
         MS = new Vector2(64, 64),
         SS = new Vector2(512, 64),
         MSAccumulation = new Vector2(128, 64),
-        AP = new Vector3(32, 32, 128)
+        AP = new Vector3(32, 32, 32)
       };
     case SkyTextureQuality.RippingThroughTheMetaverse:
       return new SkyTextureResolution() {
@@ -129,7 +129,7 @@ public static SkyTextureResolution skyQualityToSkyTextureResolution(SkyTextureQu
         MS = new Vector2(64, 64),
         SS = new Vector2(512, 128),
         MSAccumulation = new Vector2(256, 128),
-        AP = new Vector3(32, 32, 128)
+        AP = new Vector3(32, 32, 32)
       };
     default:
       /* To be safe, default case. Returns potato quality. */

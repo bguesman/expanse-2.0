@@ -29,6 +29,23 @@ AnimBool[] m_showCelestialBody =
 /* Which atmosphere layer is currently shown for editing. */
 ExpanseCommon.CelestialBody m_celestialBodySelect = ExpanseCommon.CelestialBody.Body0;
 
+/* Foldout state. */
+bool planetFoldout = false;
+bool atmosphereFoldout = false;
+bool celestialBodyFoldout = false;
+/* Begin night sky foldouts. */
+bool nightSkyFoldout = false;
+bool nightSkySkyFoldout = false;
+bool nightSkyStarsFoldout = false;
+bool nightSkyTwinkleFoldout = false;
+bool nightSkyLightPollutionFoldout = false;
+bool nightSkyNebulaeFoldout = false;
+bool nightSkyNebulaeGeneralFoldout = false;
+bool nightSkyNebulaeLayerEditorFoldout = false;
+/* End night sky foldouts. */
+bool aerialPerspectiveFoldout = false;
+bool qualityFoldout = false;
+
 /******************************************************************************/
 /****************************** END UI VARIABLES ******************************/
 /******************************************************************************/
@@ -275,7 +292,6 @@ SerializedDataParameter skyTextureQuality;
 SerializedDataParameter numberOfTransmittanceSamples;
 SerializedDataParameter numberOfAerialPerspectiveSamples;
 SerializedDataParameter numberOfSingleScatteringSamples;
-SerializedDataParameter numberOfGroundIrradianceSamples;
 SerializedDataParameter numberOfMultipleScatteringSamples;
 SerializedDataParameter numberOfMultipleScatteringAccumulationSamples;
 SerializedDataParameter useImportanceSampling;
@@ -340,11 +356,13 @@ public override void OnInspectorGUI()
   /* Styles for the GUI. */
   UnityEngine.GUIStyle mainHeaderStyle = new UnityEngine.GUIStyle();
   mainHeaderStyle.fontSize = 18;
+  mainHeaderStyle.fontStyle = FontStyle.Bold;
   mainHeaderStyle.normal.textColor = UnityEngine.Color.white;
-  UnityEngine.GUIStyle titleStyle = new UnityEngine.GUIStyle();
+  GUIStyle titleStyle = new GUIStyle(EditorStyles.foldoutHeader);
   titleStyle.fontSize = 14;
+  titleStyle.margin = new RectOffset(0, 0, 5, 5);
   titleStyle.normal.textColor = UnityEngine.Color.white;
-  UnityEngine.GUIStyle subtitleStyle = new UnityEngine.GUIStyle();
+  GUIStyle subtitleStyle = new UnityEngine.GUIStyle(EditorStyles.foldoutHeader);
   subtitleStyle.fontSize = 12;
   subtitleStyle.normal.textColor = UnityEngine.Color.white;
 
@@ -355,39 +373,14 @@ public override void OnInspectorGUI()
   EditorGUILayout.LabelField("Sky", mainHeaderStyle);
   EditorGUILayout.Space();
 
-  /* Planet. */
-  EditorGUILayout.Space();
   planet(titleStyle, subtitleStyle);
-  EditorGUILayout.Space();
-
-  /* Atmosphere layers. */
-  EditorGUILayout.Space();
   atmosphereLayer(titleStyle, subtitleStyle);
-  EditorGUILayout.Space();
-
-  /* Celestial bodies. */
-  EditorGUILayout.Space();
   celestialBody(titleStyle, subtitleStyle);
-  EditorGUILayout.Space();
-
-  /* Night Sky. */
-  EditorGUILayout.Space();
   nightSky(titleStyle, subtitleStyle);
-  EditorGUILayout.Space();
-
-  /* Night Sky. */
-  EditorGUILayout.Space();
   aerialPerspective(titleStyle, subtitleStyle);
-  EditorGUILayout.Space();
-
-  /* Quality. */
-  EditorGUILayout.Space();
   quality(titleStyle, subtitleStyle);
-  base.CommonSkySettingsGUI();
-  EditorGUILayout.Space();
+  // base.CommonSkySettingsGUI();
 
-  EditorGUILayout.Space();
-  EditorGUILayout.Space();
 
   /***********************/
   /******* Clouds ********/
@@ -395,33 +388,34 @@ public override void OnInspectorGUI()
   EditorGUILayout.Space();
   EditorGUILayout.LabelField("Clouds", mainHeaderStyle);
   EditorGUILayout.Space();
+  EditorGUILayout.LabelField("Coming soon...", subtitleStyle);
 
   /* Lighting. */
   /* TODO: density control goes here. */
-  EditorGUILayout.Space();
-  cloudLighting(titleStyle, subtitleStyle);
-  EditorGUILayout.Space();
-
-  /* Noise generation. */
-  EditorGUILayout.Space();
-  cloudNoise(titleStyle, subtitleStyle);
-  EditorGUILayout.Space();
-
-  /* Movement---sampling offsets primarily. */
-  EditorGUILayout.Space();
-  cloudMovement(titleStyle, subtitleStyle);
-  EditorGUILayout.Space();
-
-  /* Geometry. */
-  EditorGUILayout.Space();
-  cloudGeometry(titleStyle, subtitleStyle);
-  EditorGUILayout.Space();
-
-  /* Sampling. */
-  /* TODO: debug goes here. */
-  EditorGUILayout.Space();
-  cloudSampling(titleStyle, subtitleStyle);
-  EditorGUILayout.Space();
+  // EditorGUILayout.Space();
+  // cloudLighting(titleStyle, subtitleStyle);
+  // EditorGUILayout.Space();
+  //
+  // /* Noise generation. */
+  // EditorGUILayout.Space();
+  // cloudNoise(titleStyle, subtitleStyle);
+  // EditorGUILayout.Space();
+  //
+  // /* Movement---sampling offsets primarily. */
+  // EditorGUILayout.Space();
+  // cloudMovement(titleStyle, subtitleStyle);
+  // EditorGUILayout.Space();
+  //
+  // /* Geometry. */
+  // EditorGUILayout.Space();
+  // cloudGeometry(titleStyle, subtitleStyle);
+  // EditorGUILayout.Space();
+  //
+  // /* Sampling. */
+  // /* TODO: debug goes here. */
+  // EditorGUILayout.Space();
+  // cloudSampling(titleStyle, subtitleStyle);
+  // EditorGUILayout.Space();
 }
 
 /******************************************************************************/
@@ -435,384 +429,524 @@ public override void OnInspectorGUI()
 /******************************************************************************/
 
 private void planet(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
-  /* Planet. */
-  EditorGUILayout.LabelField("Planet", titleStyle);
-  PropertyField(atmosphereThickness);
-  PropertyField(planetRadius);
-  PropertyField(planetOriginOffset);
-  PropertyField(groundAlbedoTexture);
-  PropertyField(groundTint);
-  PropertyField(groundEmissionTexture);
-  PropertyField(groundEmissionMultiplier);
-  if (groundAlbedoTexture.value.objectReferenceValue != null
-    || groundEmissionTexture.value.objectReferenceValue != null) {
-    PropertyField(planetRotation);
+  planetFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(planetFoldout, "Planet", titleStyle);
+
+  if (planetFoldout) {
+    PropertyField(atmosphereThickness);
+    PropertyField(planetRadius);
+    PropertyField(planetOriginOffset);
+    PropertyField(groundAlbedoTexture);
+    PropertyField(groundTint);
+    PropertyField(groundEmissionTexture);
+    PropertyField(groundEmissionMultiplier);
+    if (groundAlbedoTexture.value.objectReferenceValue != null
+      || groundEmissionTexture.value.objectReferenceValue != null) {
+      PropertyField(planetRotation);
+    }
+    EditorGUILayout.Space();
   }
+
+  EditorGUILayout.EndFoldoutHeaderGroup();
 }
+
 
 private void atmosphereLayer(UnityEngine.GUIStyle titleStyle,
   UnityEngine.GUIStyle subtitleStyle) {
-  EditorGUILayout.LabelField("Atmosphere", titleStyle);
-  m_atmosphereLayerSelect = (ExpanseCommon.AtmosphereLayer)
-    EditorGUILayout.EnumPopup("Layer", m_atmosphereLayerSelect);
+  atmosphereFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(atmosphereFoldout, "Atmosphere", titleStyle);
 
-  /* Set the atmosphere layer select. */
-  int atmosphereSelectIndex = setEnumSelect(m_showAtmosphereLayer,
-    (int) m_atmosphereLayerSelect);
+  if (atmosphereFoldout) {
+    /* Set the atmosphere layer select. */
+    m_atmosphereLayerSelect = (ExpanseCommon.AtmosphereLayer)
+      EditorGUILayout.EnumPopup("Layer", m_atmosphereLayerSelect);
+    int atmosphereSelectIndex = setEnumSelect(m_showAtmosphereLayer,
+      (int) m_atmosphereLayerSelect);
 
-  /* Display atmosphere params for it. */
-  if (UnityEditor.EditorGUILayout.BeginFadeGroup(m_showAtmosphereLayer[atmosphereSelectIndex].faded))
-  {
-
-    PropertyField(layerEnabled[atmosphereSelectIndex], new UnityEngine.GUIContent("Enabled"));
-    PropertyField(layerCoefficientsA[atmosphereSelectIndex], new UnityEngine.GUIContent("Absorption Coefficients"));
-    PropertyField(layerCoefficientsS[atmosphereSelectIndex], new UnityEngine.GUIContent("Scattering Coefficients"));
-    PropertyField(layerDensity[atmosphereSelectIndex], new UnityEngine.GUIContent("Density"));
-
-    /* Density distribution selection dropdown. */
-    PropertyField(layerDensityDistribution[atmosphereSelectIndex], new UnityEngine.GUIContent("Layer Density Distribution"));
-    if ((ExpanseCommon.DensityDistribution) layerDensityDistribution[atmosphereSelectIndex].value.enumValueIndex == ExpanseCommon.DensityDistribution.Tent) {
-      /* Only display height control if tent distribution is enabled. */
-      PropertyField(layerHeight[atmosphereSelectIndex], new UnityEngine.GUIContent("Height"));
-    }
-    PropertyField(layerThickness[atmosphereSelectIndex], new UnityEngine.GUIContent("Thickness"));
-
-    if ((ExpanseCommon.DensityDistribution) layerDensityDistribution[atmosphereSelectIndex].value.enumValueIndex == ExpanseCommon.DensityDistribution.ExponentialAttenuated) {
-      PropertyField(layerDensityAttenuationPlayerOrigin[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuate From Camera Position"));
-      if (!layerDensityAttenuationPlayerOrigin[atmosphereSelectIndex].value.boolValue) {
-        PropertyField(layerDensityAttenuationOrigin[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuation Origin"));
+    /* Display atmosphere params for it. */
+    if (UnityEditor.EditorGUILayout.BeginFadeGroup(m_showAtmosphereLayer[atmosphereSelectIndex].faded))
+    {
+      PropertyField(layerEnabled[atmosphereSelectIndex], new UnityEngine.GUIContent("Enabled"));
+      if (layerEnabled[atmosphereSelectIndex].value.boolValue) {
+        PropertyField(layerCoefficientsA[atmosphereSelectIndex], new UnityEngine.GUIContent("Absorption Coefficients"));
+        PropertyField(layerCoefficientsS[atmosphereSelectIndex], new UnityEngine.GUIContent("Scattering Coefficients"));
+        PropertyField(layerDensity[atmosphereSelectIndex], new UnityEngine.GUIContent("Density"));
+        /* Density distribution selection dropdown. */
+        PropertyField(layerDensityDistribution[atmosphereSelectIndex], new UnityEngine.GUIContent("Density Distribution"));
+        if ((ExpanseCommon.DensityDistribution) layerDensityDistribution[atmosphereSelectIndex].value.enumValueIndex == ExpanseCommon.DensityDistribution.Tent) {
+          /* Only display height control if tent distribution is enabled. */
+          PropertyField(layerHeight[atmosphereSelectIndex], new UnityEngine.GUIContent("Height"));
+        }
+        PropertyField(layerThickness[atmosphereSelectIndex], new UnityEngine.GUIContent("Thickness"));
+        if ((ExpanseCommon.DensityDistribution) layerDensityDistribution[atmosphereSelectIndex].value.enumValueIndex == ExpanseCommon.DensityDistribution.ExponentialAttenuated) {
+          PropertyField(layerDensityAttenuationPlayerOrigin[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuate From Camera Position"));
+          if (!layerDensityAttenuationPlayerOrigin[atmosphereSelectIndex].value.boolValue) {
+            PropertyField(layerDensityAttenuationOrigin[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuation Origin"));
+          }
+          /* Only display density attenuation parameters if we use density attenuation. */
+          PropertyField(layerAttenuationDistance[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuation Distance"));
+          // TODO: current integration strategy makes attenuation bias non-physical
+          // PropertyField(layerAttenuationBias[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuation Bias"));
+        }
+        /* Phase function selection dropdown. */
+        PropertyField(layerPhaseFunction[atmosphereSelectIndex], new UnityEngine.GUIContent("Phase Function"));
+        if ((ExpanseCommon.PhaseFunction) layerPhaseFunction[atmosphereSelectIndex].value.enumValueIndex == ExpanseCommon.PhaseFunction.Mie) {
+          /* Only display anisotropy control if Mie scattering is enabled. */
+          PropertyField(layerAnisotropy[atmosphereSelectIndex], new UnityEngine.GUIContent("Anisotropy"));
+        }
+        PropertyField(layerTint[atmosphereSelectIndex], new UnityEngine.GUIContent("Tint"));
+        PropertyField(layerMultipleScatteringMultiplier[atmosphereSelectIndex], new UnityEngine.GUIContent("Multiple Scattering Multiplier"));
       }
-      /* Only display density attenuation parameters if we use density attenuation. */
-      PropertyField(layerAttenuationDistance[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuation Distance"));
-      // TODO: current integration strategy makes attenuation bias non-physical
-      // PropertyField(layerAttenuationBias[atmosphereSelectIndex], new UnityEngine.GUIContent("Attenuation Bias"));
     }
 
-    /* Phase function selection dropdown. */
-    PropertyField(layerPhaseFunction[atmosphereSelectIndex], new UnityEngine.GUIContent("Layer Phase Function"));
-    if ((ExpanseCommon.PhaseFunction) layerPhaseFunction[atmosphereSelectIndex].value.enumValueIndex == ExpanseCommon.PhaseFunction.Mie) {
-      /* Only display anisotropy control if Mie scattering is enabled. */
-      PropertyField(layerAnisotropy[atmosphereSelectIndex], new UnityEngine.GUIContent("Anisotropy"));
-    }
+    EditorGUILayout.EndFadeGroup();
 
-    PropertyField(layerTint[atmosphereSelectIndex], new UnityEngine.GUIContent("Tint"));
-    PropertyField(layerMultipleScatteringMultiplier[atmosphereSelectIndex], new UnityEngine.GUIContent("Multiple Scattering Multiplier"));
+    EditorGUILayout.Space();
   }
 
-  UnityEditor.EditorGUILayout.EndFadeGroup();
+  EditorGUILayout.EndFoldoutHeaderGroup();
 }
+
 
 private void celestialBody(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
-  EditorGUILayout.LabelField("Celestial Bodies", titleStyle);
-  m_celestialBodySelect = (ExpanseCommon.CelestialBody) EditorGUILayout.EnumPopup("Body", m_celestialBodySelect);
+  celestialBodyFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(celestialBodyFoldout, "Celestial Bodies", titleStyle);
 
-  /* Set the celestial body select. */
-  int bodySelectIndex = setEnumSelect(m_showCelestialBody, (int) m_celestialBodySelect);
+  if (celestialBodyFoldout) {
+    /* Set the celestial body select. */
+    m_celestialBodySelect = (ExpanseCommon.CelestialBody) EditorGUILayout.EnumPopup("Body", m_celestialBodySelect);
+    int bodySelectIndex = setEnumSelect(m_showCelestialBody, (int) m_celestialBodySelect);
 
-  /* Display celestial body params for it. */
-  if (UnityEditor.EditorGUILayout.BeginFadeGroup(m_showCelestialBody[bodySelectIndex].faded))
-  {
-    PropertyField(bodyEnabled[bodySelectIndex], new UnityEngine.GUIContent("Enabled"));
-    PropertyField(bodyUseDateTime[bodySelectIndex], new UnityEngine.GUIContent("Date/Time Mode"));
-    if (bodyUseDateTime[bodySelectIndex].value.boolValue) {
-      PropertyField(bodyDateTime[bodySelectIndex], new UnityEngine.GUIContent("Date/Time"));
-      PropertyField(bodyPlayerLatitudeLongitude[bodySelectIndex], new UnityEngine.GUIContent("Latitude/Longitude"));
-    } else {
-      PropertyField(bodyDirection[bodySelectIndex], new UnityEngine.GUIContent("Direction"));
-    }
-    PropertyField(bodyAngularRadius[bodySelectIndex], new UnityEngine.GUIContent("Angular Radius"));
-    PropertyField(bodyDistance[bodySelectIndex], new UnityEngine.GUIContent("Distance"));
+    /* Display celestial body params for it. */
+    if (UnityEditor.EditorGUILayout.BeginFadeGroup(m_showCelestialBody[bodySelectIndex].faded)) {
+      PropertyField(bodyEnabled[bodySelectIndex], new UnityEngine.GUIContent("Enabled"));
+      if (bodyEnabled[bodySelectIndex].value.boolValue) {
+        PropertyField(bodyUseDateTime[bodySelectIndex], new UnityEngine.GUIContent("Date/Time Mode"));
+        if (bodyUseDateTime[bodySelectIndex].value.boolValue) {
+          PropertyField(bodyDateTime[bodySelectIndex], new UnityEngine.GUIContent("Date/Time"));
+          PropertyField(bodyPlayerLatitudeLongitude[bodySelectIndex], new UnityEngine.GUIContent("Latitude/Longitude"));
+        } else {
+          PropertyField(bodyDirection[bodySelectIndex], new UnityEngine.GUIContent("Direction"));
+        }
+        PropertyField(bodyAngularRadius[bodySelectIndex], new UnityEngine.GUIContent("Angular Radius"));
+        PropertyField(bodyDistance[bodySelectIndex], new UnityEngine.GUIContent("Distance"));
 
-    PropertyField(bodyLightIntensity[bodySelectIndex], new UnityEngine.GUIContent("Light Intensity"));
-    PropertyField(bodyUseTemperature[bodySelectIndex], new UnityEngine.GUIContent("Color Temperature"));
-    if (bodyUseTemperature[bodySelectIndex].value.boolValue) {
-      PropertyField(bodyLightColor[bodySelectIndex], new UnityEngine.GUIContent("Filter"));
-      PropertyField(bodyLightTemperature[bodySelectIndex], new UnityEngine.GUIContent("Temperature"));
-    } else {
-      PropertyField(bodyLightColor[bodySelectIndex], new UnityEngine.GUIContent("Color"));
-    }
+        PropertyField(bodyLightIntensity[bodySelectIndex], new UnityEngine.GUIContent("Light Intensity"));
+        PropertyField(bodyUseTemperature[bodySelectIndex], new UnityEngine.GUIContent("Color Temperature"));
+        if (bodyUseTemperature[bodySelectIndex].value.boolValue) {
+          PropertyField(bodyLightColor[bodySelectIndex], new UnityEngine.GUIContent("Filter"));
+          PropertyField(bodyLightTemperature[bodySelectIndex], new UnityEngine.GUIContent("Temperature"));
+        } else {
+          PropertyField(bodyLightColor[bodySelectIndex], new UnityEngine.GUIContent("Color"));
+        }
 
-    PropertyField(bodyReceivesLight[bodySelectIndex], new UnityEngine.GUIContent("Receives Light"));
-    if (bodyReceivesLight[bodySelectIndex].value.boolValue) {
-      PropertyField(bodyAlbedoTexture[bodySelectIndex], new UnityEngine.GUIContent("Albedo Texture"));
-      if (bodyAlbedoTexture[bodySelectIndex].value.objectReferenceValue != null) {
-        PropertyField(bodyAlbedoTextureRotation[bodySelectIndex], new UnityEngine.GUIContent("Albedo Texture Rotation"));
+        PropertyField(bodyReceivesLight[bodySelectIndex], new UnityEngine.GUIContent("Receives Light"));
+        if (bodyReceivesLight[bodySelectIndex].value.boolValue) {
+          PropertyField(bodyAlbedoTexture[bodySelectIndex], new UnityEngine.GUIContent("Albedo Texture"));
+          if (bodyAlbedoTexture[bodySelectIndex].value.objectReferenceValue != null) {
+            PropertyField(bodyAlbedoTextureRotation[bodySelectIndex], new UnityEngine.GUIContent("Albedo Texture Rotation"));
+          }
+          PropertyField(bodyAlbedoTint[bodySelectIndex], new UnityEngine.GUIContent("Albedo Tint"));
+        }
+
+        PropertyField(bodyEmissive[bodySelectIndex], new UnityEngine.GUIContent("Emissive"));
+        if (bodyEmissive[bodySelectIndex].value.boolValue) {
+          PropertyField(bodyLimbDarkening[bodySelectIndex], new UnityEngine.GUIContent("Limb Darkening"));
+          PropertyField(bodyEmissionTexture[bodySelectIndex], new UnityEngine.GUIContent("Emission Texture"));
+          if (bodyEmissionTexture[bodySelectIndex].value.objectReferenceValue != null) {
+            PropertyField(bodyEmissionTextureRotation[bodySelectIndex], new UnityEngine.GUIContent("Emission Texture Rotation"));
+          }
+          PropertyField(bodyEmissionTint[bodySelectIndex], new UnityEngine.GUIContent("Emission Tint"));
+          PropertyField(bodyEmissionMultiplier[bodySelectIndex], new UnityEngine.GUIContent("Emission Multiplier"));
+        }
       }
-      PropertyField(bodyAlbedoTint[bodySelectIndex], new UnityEngine.GUIContent("Albedo Tint"));
     }
 
-    PropertyField(bodyEmissive[bodySelectIndex], new UnityEngine.GUIContent("Emissive"));
-    if (bodyEmissive[bodySelectIndex].value.boolValue) {
-      PropertyField(bodyLimbDarkening[bodySelectIndex], new UnityEngine.GUIContent("Limb Darkening"));
-      PropertyField(bodyEmissionTexture[bodySelectIndex], new UnityEngine.GUIContent("Emission Texture"));
-      if (bodyEmissionTexture[bodySelectIndex].value.objectReferenceValue != null) {
-        PropertyField(bodyEmissionTextureRotation[bodySelectIndex], new UnityEngine.GUIContent("Emission Texture Rotation"));
-      }
-      PropertyField(bodyEmissionTint[bodySelectIndex], new UnityEngine.GUIContent("Emission Tint"));
-      PropertyField(bodyEmissionMultiplier[bodySelectIndex], new UnityEngine.GUIContent("Emission Multiplier"));
-    }
+    EditorGUILayout.EndFadeGroup();
+    EditorGUILayout.Space();
   }
 
-  UnityEditor.EditorGUILayout.EndFadeGroup();
+  EditorGUILayout.EndFoldoutHeaderGroup();
 }
+
 
 private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
-  EditorGUILayout.LabelField("Night Sky", titleStyle);
-  PropertyField(useProceduralNightSky, new UnityEngine.GUIContent("Procedural Mode"));
-  if (useProceduralNightSky.value.boolValue) {
+  nightSkyFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(nightSkyFoldout, "Night Sky", titleStyle);
+  if (nightSkyFoldout) {
+
+    PropertyField(useProceduralNightSky, new UnityEngine.GUIContent("Procedural Mode"));
+    EditorGUILayout.Space();
+
     /* Procedural sky controls. */
-    EditorGUILayout.Space();
-    EditorGUILayout.LabelField("Sky", subtitleStyle);
-    PropertyField(nightSkyRotation, new UnityEngine.GUIContent("Rotation"));
-    PropertyField(nightSkyIntensity, new UnityEngine.GUIContent("Intensity"));
-    PropertyField(nightSkyTint, new UnityEngine.GUIContent("Tint"));
-    PropertyField(nightSkyScatterIntensity, new UnityEngine.GUIContent("Scatter Intensity"));
-    PropertyField(nightSkyScatterTint, new UnityEngine.GUIContent("Scatter Tint"));
-    PropertyField(nightSkyAmbientMultiplier, new UnityEngine.GUIContent("Ambient Multiplier"));
+    if (useProceduralNightSky.value.boolValue) {
+      /* End the first main foldout group. */
+      EditorGUILayout.EndFoldoutHeaderGroup();
+      /* Create an indented style for the "nested" foldout groups. */
+      GUIStyle indented = new GUIStyle(subtitleStyle);
+      indented.margin = new RectOffset(30, 0, 0, 0);
 
-    EditorGUILayout.Space();
-    EditorGUILayout.LabelField("Light Pollution", subtitleStyle);
-    PropertyField(lightPollutionTint, new UnityEngine.GUIContent("Tint"));
-    PropertyField(lightPollutionIntensity, new UnityEngine.GUIContent("Intensity"));
+      /* Sky and stars. */
+      nightSkySkyFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(nightSkySkyFoldout, "Sky", indented);
+      EditorGUI.indentLevel++;
+      if (nightSkySkyFoldout) {
+        PropertyField(nightSkyRotation, new UnityEngine.GUIContent("Rotation"));
+        PropertyField(nightSkyIntensity, new UnityEngine.GUIContent("Intensity"));
+        PropertyField(nightSkyTint, new UnityEngine.GUIContent("Tint"));
+        PropertyField(nightSkyScatterIntensity, new UnityEngine.GUIContent("Scatter Intensity"));
+        PropertyField(nightSkyScatterTint, new UnityEngine.GUIContent("Scatter Tint"));
+        PropertyField(nightSkyAmbientMultiplier, new UnityEngine.GUIContent("Ambient Multiplier"));
+        EditorGUILayout.Space();
+      }
+      EditorGUI.indentLevel--;
+      EditorGUILayout.EndFoldoutHeaderGroup();
 
-    EditorGUILayout.Space();
-    EditorGUILayout.LabelField("Stars", titleStyle);
-    PropertyField(starTextureQuality, new UnityEngine.GUIContent("Texture Quality"));
-    PropertyField(showStarSeeds, new UnityEngine.GUIContent("Show Seeds"));
-    if (showStarSeeds.value.boolValue) {
-      PropertyField(useHighDensityMode);
-      PropertyField(starDensity, new UnityEngine.GUIContent("Density"));
-      PropertyField(starDensitySeed, new UnityEngine.GUIContent("Density Seed"));
-      PropertyField(starSizeRange, new UnityEngine.GUIContent("Size Range"));
-      PropertyField(starSizeBias, new UnityEngine.GUIContent("Size Bias"));
-      PropertyField(starSizeSeed, new UnityEngine.GUIContent("Size Seed"));
-      PropertyField(starIntensityRange, new UnityEngine.GUIContent("Intensity Range"));
-      PropertyField(starIntensityBias, new UnityEngine.GUIContent("Intensity Bias"));
-      PropertyField(starIntensitySeed, new UnityEngine.GUIContent("Intensity Seed"));
-      PropertyField(starTemperatureRange, new UnityEngine.GUIContent("Temperature Range"));
-      PropertyField(starTemperatureBias, new UnityEngine.GUIContent("Temperature Bias"));
-      PropertyField(starTemperatureSeed, new UnityEngine.GUIContent("Temperature Seed"));
-      PropertyField(starTint, new UnityEngine.GUIContent("Tint"));
-    } else {
-      PropertyField(useHighDensityMode);
-      PropertyField(starDensity, new UnityEngine.GUIContent("Density"));
-      PropertyField(starSizeRange, new UnityEngine.GUIContent("Size Range"));
-      PropertyField(starSizeBias, new UnityEngine.GUIContent("Size Bias"));
-      PropertyField(starIntensityRange, new UnityEngine.GUIContent("Intensity Range"));
-      PropertyField(starIntensityBias, new UnityEngine.GUIContent("Intensity Bias"));
-      PropertyField(starTemperatureRange, new UnityEngine.GUIContent("Temperature Range"));
-      PropertyField(starTemperatureBias, new UnityEngine.GUIContent("Temperature Bias"));
-      PropertyField(starTint, new UnityEngine.GUIContent("Tint"));
+      /* Light Pollution. */
+      nightSkyLightPollutionFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(nightSkyLightPollutionFoldout, "Light Pollution", indented);
+      EditorGUI.indentLevel++;
+      if (nightSkyLightPollutionFoldout) {
+        PropertyField(lightPollutionTint, new UnityEngine.GUIContent("Tint"));
+        PropertyField(lightPollutionIntensity, new UnityEngine.GUIContent("Intensity"));
+        EditorGUILayout.Space();
+      }
+      EditorGUI.indentLevel--;
+      EditorGUILayout.EndFoldoutHeaderGroup();
+
+      /* Stars. */
+      nightSkyStarsFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(nightSkyStarsFoldout, "Stars", indented);
+      EditorGUI.indentLevel++;
+      if (nightSkyStarsFoldout) {
+        PropertyField(starTextureQuality, new UnityEngine.GUIContent("Texture Quality"));
+        PropertyField(showStarSeeds, new UnityEngine.GUIContent("Show Seeds"));
+        if (showStarSeeds.value.boolValue) {
+          PropertyField(useHighDensityMode);
+          PropertyField(starDensity, new UnityEngine.GUIContent("Density"));
+          PropertyField(starDensitySeed, new UnityEngine.GUIContent("Density Seed"));
+          PropertyField(starSizeRange, new UnityEngine.GUIContent("Size Range"));
+          PropertyField(starSizeBias, new UnityEngine.GUIContent("Size Bias"));
+          PropertyField(starSizeSeed, new UnityEngine.GUIContent("Size Seed"));
+          PropertyField(starIntensityRange, new UnityEngine.GUIContent("Intensity Range"));
+          PropertyField(starIntensityBias, new UnityEngine.GUIContent("Intensity Bias"));
+          PropertyField(starIntensitySeed, new UnityEngine.GUIContent("Intensity Seed"));
+          PropertyField(starTemperatureRange, new UnityEngine.GUIContent("Temperature Range"));
+          PropertyField(starTemperatureBias, new UnityEngine.GUIContent("Temperature Bias"));
+          PropertyField(starTemperatureSeed, new UnityEngine.GUIContent("Temperature Seed"));
+          PropertyField(starTint, new UnityEngine.GUIContent("Tint"));
+        } else {
+          PropertyField(useHighDensityMode);
+          PropertyField(starDensity, new UnityEngine.GUIContent("Density"));
+          PropertyField(starSizeRange, new UnityEngine.GUIContent("Size Range"));
+          PropertyField(starSizeBias, new UnityEngine.GUIContent("Size Bias"));
+          PropertyField(starIntensityRange, new UnityEngine.GUIContent("Intensity Range"));
+          PropertyField(starIntensityBias, new UnityEngine.GUIContent("Intensity Bias"));
+          PropertyField(starTemperatureRange, new UnityEngine.GUIContent("Temperature Range"));
+          PropertyField(starTemperatureBias, new UnityEngine.GUIContent("Temperature Bias"));
+          PropertyField(starTint, new UnityEngine.GUIContent("Tint"));
+        }
+        EditorGUILayout.Space();
+      }
+      EditorGUI.indentLevel--;
+      EditorGUILayout.EndFoldoutHeaderGroup();
+
+      /* Twinkle. */
+      nightSkyTwinkleFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(nightSkyTwinkleFoldout, "Star Twinkle", indented);
+      EditorGUI.indentLevel++;
+      if (nightSkyTwinkleFoldout) {
+        PropertyField(useTwinkle);
+        if (useTwinkle.value.boolValue) {
+          PropertyField(twinkleThreshold, new UnityEngine.GUIContent("Threshold"));
+          PropertyField(twinkleFrequencyRange, new UnityEngine.GUIContent("Frequency Range"));
+          PropertyField(twinkleBias, new UnityEngine.GUIContent("Bias"));
+          PropertyField(twinkleSmoothAmplitude, new UnityEngine.GUIContent("Smooth Intensity"));
+          PropertyField(twinkleChaoticAmplitude, new UnityEngine.GUIContent("Chaotic Intensity"));
+        }
+        EditorGUILayout.Space();
+      }
+      EditorGUI.indentLevel--;
+      EditorGUILayout.EndFoldoutHeaderGroup();
+
+      /* Nebulae. */
+      nightSkyNebulaeFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(nightSkyNebulaeFoldout, "Nebulae", indented);
+      EditorGUI.indentLevel++;
+      if (nightSkyNebulaeFoldout) {
+        PropertyField(useProceduralNebulae, new UnityEngine.GUIContent("Procedural"));
+        if (useProceduralNebulae.value.boolValue) {
+          /* End the nebulae foldout group. */
+          EditorGUILayout.EndFoldoutHeaderGroup();
+          EditorGUILayout.Space();
+          /* Create an indented style for the "nested" nebulae foldout groups. */
+          GUIStyle nebulaeIndented = new GUIStyle(subtitleStyle);
+          nebulaeIndented.margin = new RectOffset(60, 0, 0, 0);
+
+          // bool nightSkyNebulaeGeneralFoldout = false;
+          // bool nightSkyNebulaeLayerEditorFoldout = false;
+          nightSkyNebulaeGeneralFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(nightSkyNebulaeGeneralFoldout, "General", nebulaeIndented);
+          EditorGUI.indentLevel++;
+          if (nightSkyNebulaeGeneralFoldout) {
+            PropertyField(nebulaeTextureQuality, new UnityEngine.GUIContent("Texture Quality"));
+            PropertyField(showNebulaeSeeds, new UnityEngine.GUIContent("Show Seeds"));
+            PropertyField(nebulaOverallDefinition, new UnityEngine.GUIContent("Overall Definition"));
+            PropertyField(nebulaOverallIntensity, new UnityEngine.GUIContent("Overall Intensity"));
+            PropertyField(starNebulaFollowAmount, new UnityEngine.GUIContent("Star Follow Amount"));
+            PropertyField(starNebulaFollowSpread, new UnityEngine.GUIContent("Star Follow Spread"));
+            PropertyField(nebulaCoverageScale, new UnityEngine.GUIContent("Coverage Scale"));
+            if (showNebulaeSeeds.value.boolValue) {
+              PropertyField(nebulaCoverageSeed, new UnityEngine.GUIContent("Coverage Seed"));
+            }
+            PropertyField(nebulaTransmittanceRange, new UnityEngine.GUIContent("Transmittance Range"));
+            PropertyField(nebulaTransmittanceScale, new UnityEngine.GUIContent("Transmittance Scale"));
+            if (showNebulaeSeeds.value.boolValue) {
+              PropertyField(nebulaTransmittanceSeedX, new UnityEngine.GUIContent("Transmittance X Seed"));
+              PropertyField(nebulaTransmittanceSeedY, new UnityEngine.GUIContent("Transmittance Y Seed"));
+              PropertyField(nebulaTransmittanceSeedZ, new UnityEngine.GUIContent("Transmittance Z Seed"));
+            }
+            EditorGUILayout.Space();
+          }
+          EditorGUI.indentLevel--;
+          EditorGUILayout.EndFoldoutHeaderGroup();
+          nightSkyNebulaeLayerEditorFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(nightSkyNebulaeLayerEditorFoldout, "Layer Editor", nebulaeIndented);
+          EditorGUI.indentLevel++;
+          if (nightSkyNebulaeLayerEditorFoldout) {
+            EditorGUILayout.Space();
+            GUIStyle nebulaeLayerDropdownStyle = new GUIStyle(EditorStyles.popup);
+            nebulaeLayerDropdownStyle.margin = new RectOffset(38, 0, 0, 0);
+            nebulaLayerDropdownSelection = EditorGUILayout.Popup("Nebula Layer", nebulaLayerDropdownSelection, nebulaLayerDropdownOptions, nebulaeLayerDropdownStyle);
+            switch (nebulaLayerDropdownSelection) {
+              case 0: {
+                PropertyField(nebulaHazeBrightness, new UnityEngine.GUIContent("Haze Intensity"));
+                PropertyField(nebulaHazeColor, new UnityEngine.GUIContent("Haze Color"));
+                PropertyField(nebulaHazeScale, new UnityEngine.GUIContent("Haze Scale"));
+                PropertyField(nebulaHazeScaleFactor, new UnityEngine.GUIContent("Haze Detail"));
+                PropertyField(nebulaHazeDetailBalance, new UnityEngine.GUIContent("Haze Detail Balance"));
+                PropertyField(nebulaHazeOctaves, new UnityEngine.GUIContent("Haze Octaves"));
+                PropertyField(nebulaHazeBias, new UnityEngine.GUIContent("Haze Bias"));
+                PropertyField(nebulaHazeStrength, new UnityEngine.GUIContent("Haze Strength"));
+                PropertyField(nebulaHazeCoverage, new UnityEngine.GUIContent("Haze Coverage"));
+                PropertyField(nebulaHazeSpread, new UnityEngine.GUIContent("Haze Spread"));
+                if (showNebulaeSeeds.value.boolValue) {
+                  PropertyField(nebulaHazeSeedX, new UnityEngine.GUIContent("Haze X Seed"));
+                  PropertyField(nebulaHazeSeedY, new UnityEngine.GUIContent("Haze Y Seed"));
+                  PropertyField(nebulaHazeSeedZ, new UnityEngine.GUIContent("Haze Z Seed"));
+                }
+                break;
+              }
+              case 1: {
+                PropertyField(nebulaCloudBrightness, new UnityEngine.GUIContent("Cloud Intensity"));
+                PropertyField(nebulaCloudColor, new UnityEngine.GUIContent("Cloud Color"));
+                PropertyField(nebulaCloudScale, new UnityEngine.GUIContent("Cloud Scale"));
+                PropertyField(nebulaCloudScaleFactor, new UnityEngine.GUIContent("Cloud Detail"));
+                PropertyField(nebulaCloudDetailBalance, new UnityEngine.GUIContent("Cloud Detail Balance"));
+                PropertyField(nebulaCloudOctaves, new UnityEngine.GUIContent("Cloud Octaves"));
+                PropertyField(nebulaCloudBias, new UnityEngine.GUIContent("Cloud Bias"));
+                PropertyField(nebulaCloudStrength, new UnityEngine.GUIContent("Cloud Strength"));
+                PropertyField(nebulaCloudCoverage, new UnityEngine.GUIContent("Cloud Coverage"));
+                PropertyField(nebulaCloudSpread, new UnityEngine.GUIContent("Cloud Spread"));
+                if (showNebulaeSeeds.value.boolValue) {
+                  PropertyField(nebulaCloudSeedX, new UnityEngine.GUIContent("Cloud X Seed"));
+                  PropertyField(nebulaCloudSeedY, new UnityEngine.GUIContent("Cloud Y Seed"));
+                  PropertyField(nebulaCloudSeedZ, new UnityEngine.GUIContent("Cloud Z Seed"));
+                }
+                break;
+              }
+              case 2: {
+                PropertyField(nebulaCoarseStrandBrightness, new UnityEngine.GUIContent("Big Strand Intensity"));
+                PropertyField(nebulaCoarseStrandColor, new UnityEngine.GUIContent("Big Strand Color"));
+                PropertyField(nebulaCoarseStrandScale, new UnityEngine.GUIContent("Big Strand Scale"));
+                PropertyField(nebulaCoarseStrandScaleFactor, new UnityEngine.GUIContent("Big Strand Detail"));
+                PropertyField(nebulaCoarseStrandDetailBalance, new UnityEngine.GUIContent("Big Strand Detail Balance"));
+                PropertyField(nebulaCoarseStrandOctaves, new UnityEngine.GUIContent("Big Strand Octaves"));
+                PropertyField(nebulaCoarseStrandBias, new UnityEngine.GUIContent("Big Strand Bias"));
+                PropertyField(nebulaCoarseStrandStrength, new UnityEngine.GUIContent("Big Strand Strength"));
+                PropertyField(nebulaCoarseStrandDefinition, new UnityEngine.GUIContent("Big Strand Definition"));
+                PropertyField(nebulaCoarseStrandCoverage, new UnityEngine.GUIContent("Big Strand Coverage"));
+                PropertyField(nebulaCoarseStrandSpread, new UnityEngine.GUIContent("Big Strand Spread"));
+                PropertyField(nebulaCoarseStrandWarp, new UnityEngine.GUIContent("Big Strand Warp"));
+                PropertyField(nebulaCoarseStrandWarpScale, new UnityEngine.GUIContent("Big Strand Warp Scale"));
+                if (showNebulaeSeeds.value.boolValue) {
+                  PropertyField(nebulaCoarseStrandSeedX, new UnityEngine.GUIContent("Big Strand X Seed"));
+                  PropertyField(nebulaCoarseStrandSeedY, new UnityEngine.GUIContent("Big Strand Y Seed"));
+                  PropertyField(nebulaCoarseStrandSeedZ, new UnityEngine.GUIContent("Big Strand Z Seed"));
+                  PropertyField(nebulaCoarseStrandWarpSeedX, new UnityEngine.GUIContent("Big Strand Warp X Seed"));
+                  PropertyField(nebulaCoarseStrandWarpSeedY, new UnityEngine.GUIContent("Big Strand Warp Y Seed"));
+                  PropertyField(nebulaCoarseStrandWarpSeedZ, new UnityEngine.GUIContent("Big Strand Warp Z Seed"));
+                }
+                break;
+              }
+              case 3: {
+                PropertyField(nebulaFineStrandBrightness, new UnityEngine.GUIContent("Small Strand Intensity"));
+                PropertyField(nebulaFineStrandColor, new UnityEngine.GUIContent("Small Strand Color"));
+                PropertyField(nebulaFineStrandScale, new UnityEngine.GUIContent("Small Strand Scale"));
+                PropertyField(nebulaFineStrandScaleFactor, new UnityEngine.GUIContent("Small Strand Detail"));
+                PropertyField(nebulaFineStrandDetailBalance, new UnityEngine.GUIContent("Small Strand Detail Balance"));
+                PropertyField(nebulaFineStrandOctaves, new UnityEngine.GUIContent("Small Strand Octaves"));
+                PropertyField(nebulaFineStrandBias, new UnityEngine.GUIContent("Small Strand Bias"));
+                PropertyField(nebulaFineStrandStrength, new UnityEngine.GUIContent("Small Strand Strength"));
+                PropertyField(nebulaFineStrandDefinition, new UnityEngine.GUIContent("Small Strand Definition"));
+                PropertyField(nebulaFineStrandCoverage, new UnityEngine.GUIContent("Small Strand Coverage"));
+                PropertyField(nebulaFineStrandSpread, new UnityEngine.GUIContent("Small Strand Spread"));
+                PropertyField(nebulaFineStrandWarp, new UnityEngine.GUIContent("Small Strand Warp"));
+                PropertyField(nebulaFineStrandWarpScale, new UnityEngine.GUIContent("Small Strand Warp Scale"));
+                if (showNebulaeSeeds.value.boolValue) {
+                  PropertyField(nebulaFineStrandSeedX, new UnityEngine.GUIContent("Small Strand X Seed"));
+                  PropertyField(nebulaFineStrandSeedY, new UnityEngine.GUIContent("Small Strand Y Seed"));
+                  PropertyField(nebulaFineStrandSeedZ, new UnityEngine.GUIContent("Small Strand Z Seed"));
+                  PropertyField(nebulaFineStrandWarpSeedX, new UnityEngine.GUIContent("Small Strand Warp X Seed"));
+                  PropertyField(nebulaFineStrandWarpSeedY, new UnityEngine.GUIContent("Small Strand Warp Y Seed"));
+                  PropertyField(nebulaFineStrandWarpSeedZ, new UnityEngine.GUIContent("Small Strand Warp Z Seed"));
+                }
+                break;
+              }
+              default: {
+                /* Show an error. */
+                EditorGUILayout.LabelField("ERROR: Invalid nebula layer selected. If you're a user, this error is not your fault.", subtitleStyle);
+                break;
+              }
+            }
+            EditorGUILayout.Space();
+          }
+          EditorGUI.indentLevel--;
+          EditorGUILayout.EndFoldoutHeaderGroup();
+        }
+        else {
+          /* Nebulae is a texture. */
+          PropertyField(nebulaeTexture, new UnityEngine.GUIContent("Nebulae Texture"));
+          PropertyField(nebulaOverallIntensity, new UnityEngine.GUIContent("Intensity"));
+          PropertyField(starNebulaFollowAmount, new UnityEngine.GUIContent("Star Follow Amount"));
+          PropertyField(starNebulaFollowSpread, new UnityEngine.GUIContent("Star Follow Spread"));
+        }
+        EditorGUILayout.Space();
+      }
+      EditorGUI.indentLevel--;
+      EditorGUILayout.EndFoldoutHeaderGroup();
+
+        // EditorGUILayout.Space();
+
     }
 
-    EditorGUILayout.Space();
-    EditorGUILayout.LabelField("Star Twinkle", subtitleStyle);
-    PropertyField(useTwinkle);
-    if (useTwinkle.value.boolValue) {
-      PropertyField(twinkleThreshold, new UnityEngine.GUIContent("Threshold"));
-      PropertyField(twinkleFrequencyRange, new UnityEngine.GUIContent("Frequency Range"));
-      PropertyField(twinkleBias, new UnityEngine.GUIContent("Bias"));
-      PropertyField(twinkleSmoothAmplitude, new UnityEngine.GUIContent("Smooth Intensity"));
-      PropertyField(twinkleChaoticAmplitude, new UnityEngine.GUIContent("Chaotic Intensity"));
-    }
-
-
-    EditorGUILayout.Space();
-    EditorGUILayout.LabelField("Nebulae", titleStyle);
-    PropertyField(useProceduralNebulae, new UnityEngine.GUIContent("Procedural"));
-    if (useProceduralNebulae.value.boolValue) {
-      PropertyField(nebulaeTextureQuality, new UnityEngine.GUIContent("Texture Quality"));
-      PropertyField(showNebulaeSeeds, new UnityEngine.GUIContent("Show Seeds"));
-      PropertyField(nebulaOverallDefinition, new UnityEngine.GUIContent("Overall Definition"));
-      PropertyField(nebulaOverallIntensity, new UnityEngine.GUIContent("Overall Intensity"));
-      PropertyField(starNebulaFollowAmount, new UnityEngine.GUIContent("Star Follow Amount"));
-      PropertyField(starNebulaFollowSpread, new UnityEngine.GUIContent("Star Follow Spread"));
-      PropertyField(nebulaCoverageScale, new UnityEngine.GUIContent("Coverage Scale"));
-      if (showNebulaeSeeds.value.boolValue) {
-        PropertyField(nebulaCoverageSeed, new UnityEngine.GUIContent("Coverage Seed"));
-      }
-      PropertyField(nebulaTransmittanceRange, new UnityEngine.GUIContent("Transmittance Range"));
-      PropertyField(nebulaTransmittanceScale, new UnityEngine.GUIContent("Transmittance Scale"));
-      if (showNebulaeSeeds.value.boolValue) {
-        PropertyField(nebulaTransmittanceSeedX, new UnityEngine.GUIContent("Transmittance X Seed"));
-        PropertyField(nebulaTransmittanceSeedY, new UnityEngine.GUIContent("Transmittance Y Seed"));
-        PropertyField(nebulaTransmittanceSeedZ, new UnityEngine.GUIContent("Transmittance Z Seed"));
-      }
-
-      EditorGUILayout.Space();
-      nebulaLayerDropdownSelection = EditorGUILayout.Popup("Nebula Layer", nebulaLayerDropdownSelection, nebulaLayerDropdownOptions);
-      switch (nebulaLayerDropdownSelection) {
-        case 0: {
-          PropertyField(nebulaHazeBrightness, new UnityEngine.GUIContent("Intensity"));
-          PropertyField(nebulaHazeColor, new UnityEngine.GUIContent("Color"));
-          PropertyField(nebulaHazeScale, new UnityEngine.GUIContent("Scale"));
-          PropertyField(nebulaHazeScaleFactor, new UnityEngine.GUIContent("Detail"));
-          PropertyField(nebulaHazeDetailBalance, new UnityEngine.GUIContent("Detail Balance"));
-          PropertyField(nebulaHazeOctaves, new UnityEngine.GUIContent("Octaves"));
-          PropertyField(nebulaHazeBias, new UnityEngine.GUIContent("Bias"));
-          PropertyField(nebulaHazeStrength, new UnityEngine.GUIContent("Strength"));
-          PropertyField(nebulaHazeCoverage, new UnityEngine.GUIContent("Coverage"));
-          PropertyField(nebulaHazeSpread, new UnityEngine.GUIContent("Spread"));
-          if (showNebulaeSeeds.value.boolValue) {
-            PropertyField(nebulaHazeSeedX, new UnityEngine.GUIContent("Haze X Seed"));
-            PropertyField(nebulaHazeSeedY, new UnityEngine.GUIContent("Haze Y Seed"));
-            PropertyField(nebulaHazeSeedZ, new UnityEngine.GUIContent("Haze Z Seed"));
-          }
-          break;
-        }
-        case 1: {
-          PropertyField(nebulaCloudBrightness, new UnityEngine.GUIContent("Intensity"));
-          PropertyField(nebulaCloudColor, new UnityEngine.GUIContent("Color"));
-          PropertyField(nebulaCloudScale, new UnityEngine.GUIContent("Scale"));
-          PropertyField(nebulaCloudScaleFactor, new UnityEngine.GUIContent("Detail"));
-          PropertyField(nebulaCloudDetailBalance, new UnityEngine.GUIContent("Detail Balance"));
-          PropertyField(nebulaCloudOctaves, new UnityEngine.GUIContent("Octaves"));
-          PropertyField(nebulaCloudBias, new UnityEngine.GUIContent("Bias"));
-          PropertyField(nebulaCloudStrength, new UnityEngine.GUIContent("Strength"));
-          PropertyField(nebulaCloudCoverage, new UnityEngine.GUIContent("Coverage"));
-          PropertyField(nebulaCloudSpread, new UnityEngine.GUIContent("Spread"));
-          if (showNebulaeSeeds.value.boolValue) {
-            PropertyField(nebulaCloudSeedX, new UnityEngine.GUIContent("Cloud X Seed"));
-            PropertyField(nebulaCloudSeedY, new UnityEngine.GUIContent("Cloud Y Seed"));
-            PropertyField(nebulaCloudSeedZ, new UnityEngine.GUIContent("Cloud Z Seed"));
-          }
-          break;
-        }
-        case 2: {
-          PropertyField(nebulaCoarseStrandBrightness, new UnityEngine.GUIContent("Intensity"));
-          PropertyField(nebulaCoarseStrandColor, new UnityEngine.GUIContent("Color"));
-          PropertyField(nebulaCoarseStrandScale, new UnityEngine.GUIContent("Scale"));
-          PropertyField(nebulaCoarseStrandScaleFactor, new UnityEngine.GUIContent("Detail"));
-          PropertyField(nebulaCoarseStrandDetailBalance, new UnityEngine.GUIContent("Detail Balance"));
-          PropertyField(nebulaCoarseStrandOctaves, new UnityEngine.GUIContent("Octaves"));
-          PropertyField(nebulaCoarseStrandBias, new UnityEngine.GUIContent("Bias"));
-          PropertyField(nebulaCoarseStrandStrength, new UnityEngine.GUIContent("Strength"));
-          PropertyField(nebulaCoarseStrandDefinition, new UnityEngine.GUIContent("Definition"));
-          PropertyField(nebulaCoarseStrandCoverage, new UnityEngine.GUIContent("Coverage"));
-          PropertyField(nebulaCoarseStrandSpread, new UnityEngine.GUIContent("Spread"));
-          PropertyField(nebulaCoarseStrandWarp, new UnityEngine.GUIContent("Warp"));
-          PropertyField(nebulaCoarseStrandWarpScale, new UnityEngine.GUIContent("Warp Scale"));
-          if (showNebulaeSeeds.value.boolValue) {
-            PropertyField(nebulaCoarseStrandSeedX, new UnityEngine.GUIContent("Coarse Strand X Seed"));
-            PropertyField(nebulaCoarseStrandSeedY, new UnityEngine.GUIContent("Coarse Strand Y Seed"));
-            PropertyField(nebulaCoarseStrandSeedZ, new UnityEngine.GUIContent("Coarse Strand Z Seed"));
-            PropertyField(nebulaCoarseStrandWarpSeedX, new UnityEngine.GUIContent("Coarse Strand Warp X Seed"));
-            PropertyField(nebulaCoarseStrandWarpSeedY, new UnityEngine.GUIContent("Coarse Strand Warp Y Seed"));
-            PropertyField(nebulaCoarseStrandWarpSeedZ, new UnityEngine.GUIContent("Coarse Strand Warp Z Seed"));
-          }
-          break;
-        }
-        case 3: {
-          PropertyField(nebulaFineStrandBrightness, new UnityEngine.GUIContent("Intensity"));
-          PropertyField(nebulaFineStrandColor, new UnityEngine.GUIContent("Color"));
-          PropertyField(nebulaFineStrandScale, new UnityEngine.GUIContent("Scale"));
-          PropertyField(nebulaFineStrandScaleFactor, new UnityEngine.GUIContent("Detail"));
-          PropertyField(nebulaFineStrandDetailBalance, new UnityEngine.GUIContent("Detail Balance"));
-          PropertyField(nebulaFineStrandOctaves, new UnityEngine.GUIContent("Octaves"));
-          PropertyField(nebulaFineStrandBias, new UnityEngine.GUIContent("Bias"));
-          PropertyField(nebulaFineStrandStrength, new UnityEngine.GUIContent("Strength"));
-          PropertyField(nebulaFineStrandDefinition, new UnityEngine.GUIContent("Definition"));
-          PropertyField(nebulaFineStrandCoverage, new UnityEngine.GUIContent("Coverage"));
-          PropertyField(nebulaFineStrandSpread, new UnityEngine.GUIContent("Spread"));
-          PropertyField(nebulaFineStrandWarp, new UnityEngine.GUIContent("Warp"));
-          PropertyField(nebulaFineStrandWarpScale, new UnityEngine.GUIContent("Warp Scale"));
-          if (showNebulaeSeeds.value.boolValue) {
-            PropertyField(nebulaFineStrandSeedX, new UnityEngine.GUIContent("Fine Strand X Seed"));
-            PropertyField(nebulaFineStrandSeedY, new UnityEngine.GUIContent("Fine Strand Y Seed"));
-            PropertyField(nebulaFineStrandSeedZ, new UnityEngine.GUIContent("Fine Strand Z Seed"));
-            PropertyField(nebulaFineStrandWarpSeedX, new UnityEngine.GUIContent("Fine Strand Warp X Seed"));
-            PropertyField(nebulaFineStrandWarpSeedY, new UnityEngine.GUIContent("Fine Strand Warp Y Seed"));
-            PropertyField(nebulaFineStrandWarpSeedZ, new UnityEngine.GUIContent("Fine Strand Warp Z Seed"));
-          }
-          break;
-        }
-        default: {
-          /* Show an error. */
-          EditorGUILayout.LabelField("ERROR: Invalid nebula layer selected. If you're a user, this error is not your fault.", subtitleStyle);
-          break;
-        }
-      }
-    } else {
-      /* Nebulae is a texture. */
-      PropertyField(nebulaeTexture);
-      PropertyField(nebulaOverallIntensity, new UnityEngine.GUIContent("Intensity"));
-      PropertyField(starNebulaFollowAmount, new UnityEngine.GUIContent("Star Follow Amount"));
-      PropertyField(starNebulaFollowSpread, new UnityEngine.GUIContent("Star Follow Spread"));
-    }
-  } else {
     /* Texture sky controls. */
-    EditorGUILayout.Space();
-    EditorGUILayout.LabelField("Sky and Stars", subtitleStyle);
-    PropertyField(nightSkyTexture, new UnityEngine.GUIContent("Star Texture"));
-    if (nightSkyTexture.value.objectReferenceValue != null) {
-      PropertyField(nightSkyRotation, new UnityEngine.GUIContent("Rotation"));
+    else {
+
+      /* End the first main foldout group. */
+      EditorGUILayout.EndFoldoutHeaderGroup();
+      /* Create an indented style for the "nested" foldout groups. */
+      GUIStyle indented = new GUIStyle(EditorStyles.foldoutHeader);
+      indented.margin = new RectOffset(30, 0, 0, 0);
+
+      // bool nightSkySkyFoldout = false;
+      // bool nightSkyStarsFoldout = false;
+      // bool nightSkyTwinkleFoldout = false;
+      // bool nightSkyLightPollutionFoldout = false;
+      // bool nightSkyNebulaeFoldout = false;
+
+      /* Sky and stars. */
+      nightSkySkyFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(nightSkySkyFoldout, "Sky and Stars", indented);
+      EditorGUI.indentLevel++;
+      if (nightSkySkyFoldout) {
+        PropertyField(nightSkyTexture, new UnityEngine.GUIContent("Star Texture"));
+        if (nightSkyTexture.value.objectReferenceValue != null) {
+          PropertyField(nightSkyRotation, new UnityEngine.GUIContent("Rotation"));
+        }
+        PropertyField(nightSkyIntensity, new UnityEngine.GUIContent("Intensity"));
+        PropertyField(nightSkyAmbientMultiplier, new UnityEngine.GUIContent("Ambient Multiplier"));
+        PropertyField(nightSkyTint, new UnityEngine.GUIContent("Tint"));
+        PropertyField(nightSkyScatterIntensity, new UnityEngine.GUIContent("Scatter Intensity"));
+        PropertyField(nightSkyScatterTint, new UnityEngine.GUIContent("Scatter Tint"));
+        EditorGUILayout.Space();
+      }
+      EditorGUI.indentLevel--;
+      EditorGUILayout.EndFoldoutHeaderGroup();
+
+      /* Twinkle. */
+      nightSkyTwinkleFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(nightSkyTwinkleFoldout, "Star Twinkle", indented);
+      EditorGUI.indentLevel++;
+      if (nightSkyTwinkleFoldout) {
+        PropertyField(useTwinkle, new UnityEngine.GUIContent("Star Twinkle"));
+        if (useTwinkle.value.boolValue) {
+          PropertyField(twinkleThreshold, new UnityEngine.GUIContent("Threshold"));
+          PropertyField(twinkleFrequencyRange, new UnityEngine.GUIContent("Frequency Range"));
+          PropertyField(twinkleBias, new UnityEngine.GUIContent("Bias"));
+          PropertyField(twinkleSmoothAmplitude, new UnityEngine.GUIContent("Smooth Intensity"));
+          PropertyField(twinkleChaoticAmplitude, new UnityEngine.GUIContent("Chaotic Intensity"));
+        }
+        EditorGUILayout.Space();
+      }
+      EditorGUI.indentLevel--;
+      EditorGUILayout.EndFoldoutHeaderGroup();
+
+      /* Light Pollution. */
+      nightSkyLightPollutionFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(nightSkyLightPollutionFoldout, "Light Pollution", indented);
+      EditorGUI.indentLevel++;
+      if (nightSkyLightPollutionFoldout) {
+        PropertyField(lightPollutionTint, new UnityEngine.GUIContent("Tint"));
+        PropertyField(lightPollutionIntensity, new UnityEngine.GUIContent("Intensity"));
+        EditorGUILayout.Space();
+      }
+      EditorGUI.indentLevel--;
+      EditorGUILayout.EndFoldoutHeaderGroup();
+
     }
-    PropertyField(nightSkyIntensity, new UnityEngine.GUIContent("Intensity"));
-    PropertyField(nightSkyAmbientMultiplier, new UnityEngine.GUIContent("Ambient Multiplier"));
-    PropertyField(nightSkyTint, new UnityEngine.GUIContent("Tint"));
-    PropertyField(nightSkyScatterIntensity, new UnityEngine.GUIContent("Scatter Intensity"));
-    PropertyField(nightSkyScatterTint, new UnityEngine.GUIContent("Scatter Tint"));
 
     EditorGUILayout.Space();
-    EditorGUILayout.LabelField("Star Twinkle", subtitleStyle);
-    PropertyField(useTwinkle, new UnityEngine.GUIContent("Star Twinkle"));
-    if (useTwinkle.value.boolValue) {
-      PropertyField(twinkleThreshold, new UnityEngine.GUIContent("Threshold"));
-      PropertyField(twinkleFrequencyRange, new UnityEngine.GUIContent("Frequency Range"));
-      PropertyField(twinkleBias, new UnityEngine.GUIContent("Bias"));
-      PropertyField(twinkleSmoothAmplitude, new UnityEngine.GUIContent("Smooth Intensity"));
-      PropertyField(twinkleChaoticAmplitude, new UnityEngine.GUIContent("Chaotic Intensity"));
-    }
-
-    EditorGUILayout.Space();
-    EditorGUILayout.LabelField("Light Pollution", subtitleStyle);
-    PropertyField(lightPollutionTint, new UnityEngine.GUIContent("Tint"));
-    PropertyField(lightPollutionIntensity, new UnityEngine.GUIContent("Intensity"));
+  }
+  else {
+    EditorGUILayout.EndFoldoutHeaderGroup();
   }
 }
 
+
 private void aerialPerspective(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
-  EditorGUILayout.LabelField("Aerial Perspective", titleStyle);
-  PropertyField(aerialPerspectiveOcclusionPowerUniform, new UnityEngine.GUIContent("Uniform Occlusion Spread"));
-  PropertyField(aerialPerspectiveOcclusionBiasUniform, new UnityEngine.GUIContent("Uniform Occlusion Bias"));
-  PropertyField(aerialPerspectiveOcclusionPowerDirectional, new UnityEngine.GUIContent("Directional Occlusion Spread"));
-  PropertyField(aerialPerspectiveOcclusionBiasDirectional, new UnityEngine.GUIContent("Directional Occlusion Bias"));
-  PropertyField(aerialPerspectiveNightScatteringMultiplier, new UnityEngine.GUIContent("Night Scattering Multiplier"));
+  aerialPerspectiveFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(aerialPerspectiveFoldout, "Aerial Perspective", titleStyle);
+
+  if (aerialPerspectiveFoldout) {
+    PropertyField(aerialPerspectiveOcclusionPowerUniform, new UnityEngine.GUIContent("Uniform Occlusion Spread"));
+    PropertyField(aerialPerspectiveOcclusionBiasUniform, new UnityEngine.GUIContent("Uniform Occlusion Bias"));
+    PropertyField(aerialPerspectiveOcclusionPowerDirectional, new UnityEngine.GUIContent("Directional Occlusion Spread"));
+    PropertyField(aerialPerspectiveOcclusionBiasDirectional, new UnityEngine.GUIContent("Directional Occlusion Bias"));
+    PropertyField(aerialPerspectiveNightScatteringMultiplier, new UnityEngine.GUIContent("Night Scattering Multiplier"));
+    EditorGUILayout.Space();
+  }
+
+  EditorGUILayout.EndFoldoutHeaderGroup();
 }
 
 
 private void quality(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
-  EditorGUILayout.LabelField("Quality", titleStyle);
-  /* Texture quality selection dropdown. */
-  PropertyField(skyTextureQuality, new UnityEngine.GUIContent("Texture Quality"));
-  PropertyField(numberOfTransmittanceSamples, new UnityEngine.GUIContent("Transmittance Samples"));
-  PropertyField(numberOfSingleScatteringSamples, new UnityEngine.GUIContent("Single Scattering Samples"));
-  PropertyField(numberOfMultipleScatteringSamples, new UnityEngine.GUIContent("Multiple Scattering Samples"));
-  PropertyField(numberOfMultipleScatteringAccumulationSamples, new UnityEngine.GUIContent("Multiple Scattering Accumulation Samples"));
-  PropertyField(numberOfAerialPerspectiveSamples, new UnityEngine.GUIContent("Aerial Perspective Samples"));
-  PropertyField(numberOfGroundIrradianceSamples, new UnityEngine.GUIContent("Ground Irradiance Samples"));
-  PropertyField(useImportanceSampling, new UnityEngine.GUIContent("Importance Sampling"));
-  PropertyField(aerialPerspectiveUseImportanceSampling, new UnityEngine.GUIContent("Aerial Perspective Importance Sampling"));
-  PropertyField(aerialPerspectiveDepthSkew, new UnityEngine.GUIContent("Aerial Perspective Depth Skew"));
-  PropertyField(useAntiAliasing, new UnityEngine.GUIContent("Anti-Aliasing"));
-  PropertyField(useDither, new UnityEngine.GUIContent("Dither"));
+  qualityFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(qualityFoldout, "Quality", titleStyle);
+
+  if (qualityFoldout) {
+    PropertyField(skyTextureQuality, new UnityEngine.GUIContent("Texture Quality"));
+    PropertyField(numberOfTransmittanceSamples, new UnityEngine.GUIContent("Transmittance Samples"));
+    PropertyField(numberOfSingleScatteringSamples, new UnityEngine.GUIContent("Single Scattering Samples"));
+    PropertyField(numberOfMultipleScatteringSamples, new UnityEngine.GUIContent("Multiple Scattering Samples"));
+    PropertyField(numberOfMultipleScatteringAccumulationSamples, new UnityEngine.GUIContent("Multiple Scattering Accumulation Samples"));
+    PropertyField(numberOfAerialPerspectiveSamples, new UnityEngine.GUIContent("Aerial Perspective Samples"));
+    PropertyField(useImportanceSampling, new UnityEngine.GUIContent("Importance Sampling"));
+    PropertyField(aerialPerspectiveUseImportanceSampling, new UnityEngine.GUIContent("Aerial Perspective Importance Sampling"));
+    PropertyField(aerialPerspectiveDepthSkew, new UnityEngine.GUIContent("Aerial Perspective Depth Skew"));
+    PropertyField(useAntiAliasing, new UnityEngine.GUIContent("Anti-Aliasing"));
+    PropertyField(useDither, new UnityEngine.GUIContent("Dithering"));
+    EditorGUILayout.Space();
+  }
+
+  EditorGUILayout.EndFoldoutHeaderGroup();
 }
+
 
 private void cloudLighting(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
   EditorGUILayout.LabelField("Lighting", titleStyle);
 }
 
+
 private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
   EditorGUILayout.LabelField("Noise", titleStyle);
 }
+
 
 private void cloudMovement(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
   EditorGUILayout.LabelField("Movement", titleStyle);
 }
 
+
 private void cloudGeometry(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
   EditorGUILayout.LabelField("Geometry", titleStyle);
 }
+
 
 private void cloudSampling(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
   EditorGUILayout.LabelField("Sampling", titleStyle);
@@ -1017,7 +1151,6 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   numberOfTransmittanceSamples = Unpack(o.Find(x => x.numberOfTransmittanceSamples));
   numberOfAerialPerspectiveSamples = Unpack(o.Find(x => x.numberOfAerialPerspectiveSamples));
   numberOfSingleScatteringSamples = Unpack(o.Find(x => x.numberOfSingleScatteringSamples));
-  numberOfGroundIrradianceSamples = Unpack(o.Find(x => x.numberOfGroundIrradianceSamples));
   numberOfMultipleScatteringSamples = Unpack(o.Find(x => x.numberOfMultipleScatteringSamples));
   numberOfMultipleScatteringAccumulationSamples = Unpack(o.Find(x => x.numberOfMultipleScatteringAccumulationSamples));
   useImportanceSampling = Unpack(o.Find(x => x.useImportanceSampling));

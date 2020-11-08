@@ -1001,11 +1001,11 @@ private void setGlobalCBufferNightSky(CommandBuffer cmd, Expanse sky) {
     // Set either way so that star precompute can be used. But be diligent
     // about only sampling it when _hasNebulaTexture is true.
     cmd.SetGlobalTexture("_nebulaeTexture", sky.nebulaeTexture.value);
+    cmd.SetGlobalFloat("_nebulaOverallIntensity", sky.nebulaOverallIntensity.value);
 
     if (sky.useProceduralNebulae.value) {
       cmd.SetGlobalVector("_resNebulae", m_nebulaeTextureResolution.Star);
       cmd.SetGlobalFloat("_nebulaOverallDefinition", sky.nebulaOverallDefinition.value);
-      cmd.SetGlobalFloat("_nebulaOverallIntensity", sky.nebulaOverallIntensity.value);
       cmd.SetGlobalFloat("_nebulaCoverageScale", sky.nebulaCoverageScale.value);
 
       cmd.SetGlobalVector("_nebulaHazeColor", sky.nebulaHazeBrightness.value * sky.nebulaHazeColor.value);

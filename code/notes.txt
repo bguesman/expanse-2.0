@@ -1,12 +1,24 @@
 todo list:
  -clean up remaining warnings
- -UI title size hierarchy. General UI tweaks.
 
 known bugs:
   -nebulae no texture assigned
+  -nebulae hole bug
   -weird fog ap flicker bug? perhaps when sun is just right on horizon? can't
   seem to repro... bad state maybe?
+    -May want to put d.y hack back for aerial perspective.
+    -Might also be fixed by putting a bigger threshold in ExpanseSkyMapping.hlsl.
+    -UPDATE: neither of these fix it, but they do both change its behavior.
+    -What's more is that I'm only seeing it appear on the higher resolution modes.
+    Modes High->Ripping exhibit it, but Potato->Medium don't.
+    A hack to fix it could be to just limit the resolution of the AP texture.
+    -UPDATE: it appears that it has to do with the "depth" of the AP texture,
+    not the horizontal or vertical resolution.
+    -UPDATE: keeping tabs on this, but for now just going to limit the depth
+    of the AP texture to 32.
+
   -top of sky circle bug if we feel like it
+
   -AP rippling bug
 
 future feature list:
@@ -14,3 +26,4 @@ future feature list:
   -lighting based on visible celestial body fraction
   -volumetric shadowing for one body via directional light's cascaded shadow
   map
+  -if anybody asks for it, enable/disable aerial perspective switch.

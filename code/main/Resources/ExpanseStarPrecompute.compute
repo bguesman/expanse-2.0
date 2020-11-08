@@ -24,7 +24,7 @@ void STAR(uint3 id : SV_DispatchThreadID) {
   float3 textureCoordinate = (d + 1) / 2;
 
   /* Sample some noise. */
-  float bigCells = 512;
+  float bigCells = 768;
   float smallCells = 2048;
   NoiseResultAndCoordinate noiseBig = worley3D(textureCoordinate,
     float3(bigCells, bigCells, bigCells));
@@ -40,13 +40,11 @@ void STAR(uint3 id : SV_DispatchThreadID) {
     float3 nebulaeColor = SAMPLE_TEXTURE2D_ARRAY_LOD(_proceduralNebulae,
       s_linear_clamp_sampler, uv, id.z, 0).xyz;
       nebulaeDensityModifier += _starNebulaFollowAmount * pow(dot(saturate(nebulaeColor), saturate(nebulaeColor))/3, _starNebulaFollowSpread);
+  } else if (_hasNebulaeTexture) {
+    float3 nebulaeColor = SAMPLE_TEXTURECUBE_LOD(_nebulaeTexture,
+      s_linear_clamp_sampler, d, 0);
+      nebulaeDensityModifier += _starNebulaFollowAmount * pow(dot(saturate(nebulaeColor), saturate(nebulaeColor))/3, _starNebulaFollowSpread);
   }
-  // TODO: doesn't work.
-  // else if (_hasNebulaeTexture) {
-  //   float3 nebulaeColor = SAMPLE_TEXTURECUBE_LOD(_nebulaeTexture,
-  //     s_linear_clamp_sampler, d, 0);
-  //     nebulaeDensityModifier += _starNebulaFollowAmount * pow(dot(saturate(nebulaeColor), saturate(nebulaeColor))/3, _starNebulaFollowSpread);
-  // }
 
   /*****************************************************/
   /******* Compute everything for the big stars. *******/
@@ -61,7 +59,7 @@ void STAR(uint3 id : SV_DispatchThreadID) {
     float sizeRandom = random_3_1_seeded(noiseBig.coordinate, _starSizeSeed.xyz);
     /* HACK: zero values screw up our biasing and result in artifacts. */
     float3 stars = float3(0, 0, 0);
-    if (sizeRandom != 0) {
+    if (sizeRandom > 0) {
       sizeRandom = saturate(bias0To1(saturate(sizeRandom), _starSizeBias, 500));
       float sizeMinExponent = 5 + pow(1 - _starSizeMax, 1) * 100;
       float sizeMaxExponent = 5 + pow(1 - _starSizeMin, 1) * 100;
