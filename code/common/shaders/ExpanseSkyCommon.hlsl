@@ -69,7 +69,7 @@ bool _useImportanceSampling;
 bool _aerialPerspectiveUseImportanceSampling;
 bool _useAntiAliasing;
 float _aerialPerspectiveDepthSkew;
-float _ditherAmount;
+bool _useDither;
 
 float3 _WorldSpaceCameraPos1;
 float4 _currentScreenSize;

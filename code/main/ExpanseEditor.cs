@@ -95,6 +95,8 @@ SerializedDataParameter[] bodyDirection
   = new SerializedDataParameter[ExpanseCommon.kMaxCelestialBodies];
 SerializedDataParameter[] bodyDateTime
   = new SerializedDataParameter[ExpanseCommon.kMaxCelestialBodies];
+SerializedDataParameter[] bodyPlayerLatitudeLongitude
+  = new SerializedDataParameter[ExpanseCommon.kMaxCelestialBodies];
 SerializedDataParameter[] bodyAngularRadius
   = new SerializedDataParameter[ExpanseCommon.kMaxCelestialBodies];
 SerializedDataParameter[] bodyDistance
@@ -280,7 +282,7 @@ SerializedDataParameter useImportanceSampling;
 SerializedDataParameter aerialPerspectiveUseImportanceSampling;
 SerializedDataParameter aerialPerspectiveDepthSkew;
 SerializedDataParameter useAntiAliasing;
-SerializedDataParameter ditherAmount;
+SerializedDataParameter useDither;
 
 /***********************/
 /******* Clouds ********/
@@ -514,6 +516,7 @@ private void celestialBody(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle
     PropertyField(bodyUseDateTime[bodySelectIndex], new UnityEngine.GUIContent("Date/Time Mode"));
     if (bodyUseDateTime[bodySelectIndex].value.boolValue) {
       PropertyField(bodyDateTime[bodySelectIndex], new UnityEngine.GUIContent("Date/Time"));
+      PropertyField(bodyPlayerLatitudeLongitude[bodySelectIndex], new UnityEngine.GUIContent("Latitude/Longitude"));
     } else {
       PropertyField(bodyDirection[bodySelectIndex], new UnityEngine.GUIContent("Direction"));
     }
@@ -792,7 +795,7 @@ private void quality(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subti
   PropertyField(aerialPerspectiveUseImportanceSampling, new UnityEngine.GUIContent("Aerial Perspective Importance Sampling"));
   PropertyField(aerialPerspectiveDepthSkew, new UnityEngine.GUIContent("Aerial Perspective Depth Skew"));
   PropertyField(useAntiAliasing, new UnityEngine.GUIContent("Anti-Aliasing"));
-  PropertyField(ditherAmount);
+  PropertyField(useDither, new UnityEngine.GUIContent("Dither"));
 }
 
 private void cloudLighting(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
@@ -864,6 +867,7 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     bodyUseDateTime[i] = Unpack(o.Find("bodyUseDateTime" + i));
     bodyDirection[i] = Unpack(o.Find("bodyDirection" + i));
     bodyDateTime[i] = Unpack(o.Find("bodyDateTime" + i));
+    bodyPlayerLatitudeLongitude[i] = Unpack(o.Find("bodyPlayerLatitudeLongitude" + i));
     bodyAngularRadius[i] = Unpack(o.Find("bodyAngularRadius" + i));
     bodyDistance[i] = Unpack(o.Find("bodyDistance" + i));
     bodyReceivesLight[i] = Unpack(o.Find("bodyReceivesLight" + i));
@@ -1020,7 +1024,7 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   aerialPerspectiveUseImportanceSampling = Unpack(o.Find(x => x.aerialPerspectiveUseImportanceSampling));
   aerialPerspectiveDepthSkew = Unpack(o.Find(x => x.aerialPerspectiveDepthSkew));
   useAntiAliasing = Unpack(o.Find(x => x.useAntiAliasing));
-  ditherAmount = Unpack(o.Find(x => x.ditherAmount));
+  useDither = Unpack(o.Find(x => x.useDither));
 
   /***********************/
   /******* Clouds ********/

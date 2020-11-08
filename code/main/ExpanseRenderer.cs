@@ -909,7 +909,8 @@ private void setGlobalCBufferCelestialBodies(CommandBuffer cmd, Expanse sky) {
           DateTime dateTime = ((ExpanseCommonNamespace.DateTimeParameter) sky.GetType().GetField("bodyDateTime" + i).GetValue(sky)).getDateTime();
           /* Convert date time to azimuth and zenith. */
           double azimuthAngle, zenithAngle;
-          ExpanseDateTimeControl.CalculateSunPosition(dateTime, 30, 3, out azimuthAngle, out zenithAngle);
+          Vector2 latLong = ((Vector2Parameter) sky.GetType().GetField("bodyPlayerLatitudeLongitude" + i).GetValue(sky)).value;
+          ExpanseDateTimeControl.CalculateSunPosition(dateTime, latLong.x, latLong.y, out azimuthAngle, out zenithAngle);
           float x = Mathf.Sin((float) zenithAngle) * Mathf.Cos((float) azimuthAngle);
           float y = Mathf.Sin((float) zenithAngle) * Mathf.Sin((float) azimuthAngle);
           float z = Mathf.Cos((float) zenithAngle);
@@ -1105,7 +1106,7 @@ private void setGlobalCBufferQuality(CommandBuffer cmd, Expanse sky) {
   cmd.SetGlobalFloat("_aerialPerspectiveUseImportanceSampling", sky.aerialPerspectiveUseImportanceSampling.value ? 1 : 0);
   cmd.SetGlobalFloat("_useAntiAliasing", sky.useAntiAliasing.value ? 1 : 0);
   cmd.SetGlobalFloat("_aerialPerspectiveDepthSkew", sky.aerialPerspectiveDepthSkew.value);
-  cmd.SetGlobalFloat("_ditherAmount", sky.ditherAmount.value);
+  cmd.SetGlobalFloat("_useDither", sky.useDither.value ? 1 : 0);
 }
 
 /******************************************************************************/

@@ -94,9 +94,12 @@ public BoolParameter bodyUseDateTime0, bodyUseDateTime1, bodyUseDateTime2,
 [Tooltip("Celestial body's direction.")]
 public Vector3Parameter bodyDirection0, bodyDirection1, bodyDirection2,
   bodyDirection3, bodyDirection4, bodyDirection5, bodyDirection6, bodyDirection7;
-[Tooltip("Date and time for this celestial body, used to compute direction. Only accurate from 1 March 1900 to 28 February 2100.")]
+[Tooltip("Date and time for this celestial body, in universal time (UTC), used to compute direction. Only accurate from 1 March 1900 to 28 February 2100.")]
 public DateTimeParameter bodyDateTime0, bodyDateTime1, bodyDateTime2,
   bodyDateTime3, bodyDateTime4, bodyDateTime5, bodyDateTime6, bodyDateTime7;
+[Tooltip("Latitude (first) and longitude (second) of the player, in degrees. Used for calculating this body's position from the date and time.")]
+public Vector2Parameter bodyPlayerLatitudeLongitude0, bodyPlayerLatitudeLongitude1, bodyPlayerLatitudeLongitude2,
+  bodyPlayerLatitudeLongitude3, bodyPlayerLatitudeLongitude4, bodyPlayerLatitudeLongitude5, bodyPlayerLatitudeLongitude6, bodyPlayerLatitudeLongitude7;
 [Tooltip("Celestial body's angular radius in the sky, specified in degrees.")]
 public ClampedFloatParameter bodyAngularRadius0, bodyAngularRadius1, bodyAngularRadius2,
   bodyAngularRadius3, bodyAngularRadius4, bodyAngularRadius5, bodyAngularRadius6, bodyAngularRadius7;
@@ -423,8 +426,8 @@ public BoolParameter aerialPerspectiveUseImportanceSampling = new BoolParameter(
 public ClampedFloatParameter aerialPerspectiveDepthSkew = new ClampedFloatParameter(1, 0.25f, 5);
 [Tooltip("Whether or not to use MSAA 8x anti-aliasing. Expanse uses conditional MSAA, only multisampling on the edges of celestial bodies and the ground, so this should not be much of a performance hit.")]
 public BoolParameter useAntiAliasing = new BoolParameter(false);
-[Tooltip("Amount of dithering used to reduce color banding. If this is too high, noise will be visible.")]
-public ClampedFloatParameter ditherAmount = new ClampedFloatParameter(0.05f, 0.0f, 1.0f);
+[Tooltip("Whether or not to use dithering, to reduce color banding. Since expanse computes everything in floating point HDR values, this is more of a de-band operation than a true dither, and you may be better off using a dither post-process step on your camera.")]
+public BoolParameter useDither = new BoolParameter(true);
 
 /***********************/
 /******* Clouds ********/
@@ -474,6 +477,7 @@ public Expanse() : base() {
     this.GetType().GetField("bodyEnabled" + i).SetValue(this, new BoolParameter(i==0));
     this.GetType().GetField("bodyUseDateTime" + i).SetValue(this, new BoolParameter(false));
     this.GetType().GetField("bodyDateTime" + i).SetValue(this, new DateTimeParameter(DateTimeParameter.dateTimeToString(new DateTime(2020, 11, 6))));
+    this.GetType().GetField("bodyPlayerLatitudeLongitude" + i).SetValue(this, new Vector2Parameter(new Vector2(39, 122)));
     this.GetType().GetField("bodyDirection" + i).SetValue(this, new Vector3Parameter(new Vector3(0, 0, 0)));
     this.GetType().GetField("bodyAngularRadius" + i).SetValue(this, new ClampedFloatParameter(0.5f, 0.001f, 90));
     this.GetType().GetField("bodyDistance" + i).SetValue(this, new MinFloatParameter(1.5e8f, 0));
@@ -538,6 +542,7 @@ public override int GetHashCode() {
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyUseDateTime" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("bodyDirection" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((DateTimeParameter) this.GetType().GetField("bodyDateTime" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("bodyPlayerLatitudeLongitude" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("bodyAngularRadius" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyDistance" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyReceivesLight" + i).GetValue(this)).value.GetHashCode();
@@ -690,7 +695,7 @@ public override int GetHashCode() {
     hash = hash * 23 + useImportanceSampling.value.GetHashCode();
     hash = hash * 23 + aerialPerspectiveUseImportanceSampling.value.GetHashCode();
     hash = hash * 23 + useAntiAliasing.value.GetHashCode();
-    hash = hash * 23 + ditherAmount.value.GetHashCode();
+    hash = hash * 23 + useDither.value.GetHashCode();
 
   }
   return hash;

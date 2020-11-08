@@ -547,21 +547,23 @@ float4 SkyFullscreen(Varyings input) : SV_Target {
   /* Render. */
   SkyRenderResult result = RenderSky(input, O, d, false);
 
-  /* If we aren't using anti-aliasing or we weren't close to an edge,
-   * don't do MSAA, just return the result. */
-  if (!_useAntiAliasing || !result.closeToEdge) {
-      return result.color;
+  /* Use AA if we are close enough to an edge */
+  if (_useAntiAliasing && result.closeToEdge) {
+    float MSAA_8X_OFFSETS_X[8] = {1.0/16.0, -1.0/16.0, 5.0/16.0, -3.0/16.0, -5.0/16.0, -7.0/16.0, 3.0/16.0, 7.0/16.0};
+    float MSAA_8X_OFFSETS_Y[8] =  {-3.0/16.0, 3.0/16.0, 1.0/16.0, -5.0/16.0, 5.0/16.0, -1.0/16.0, 7.0/16.0, -7.0/16.0};
+    for (int i = 0; i < 8; i++) {
+      float3 dOffset = -GetSkyViewDirWS(input.positionCS.xy
+        + float2(MSAA_8X_OFFSETS_X[i], MSAA_8X_OFFSETS_Y[i]));
+      result.color += RenderSky(input, O, dOffset, false).color;
+    }
+    result.color /= 9.0;
   }
 
-  /* Otherwise, use AA. */
-  float MSAA_8X_OFFSETS_X[8] = {1.0/16.0, -1.0/16.0, 5.0/16.0, -3.0/16.0, -5.0/16.0, -7.0/16.0, 3.0/16.0, 7.0/16.0};
-  float MSAA_8X_OFFSETS_Y[8] =  {-3.0/16.0, 3.0/16.0, 1.0/16.0, -5.0/16.0, 5.0/16.0, -1.0/16.0, 7.0/16.0, -7.0/16.0};
-  for (int i = 0; i < 8; i++) {
-    float3 dOffset = -GetSkyViewDirWS(input.positionCS.xy
-      + float2(MSAA_8X_OFFSETS_X[i], MSAA_8X_OFFSETS_Y[i]));
-    result.color += RenderSky(input, O, dOffset, false).color;
+  /* Optionally, dither. */
+  if (_useDither) {
+    result.color *= 1 + (1.0/32.0) * random_3_1(d);
   }
-  return result.color / 9.0;
+  return result.color;
 }
 
 /******************************************************************************/
