@@ -182,7 +182,7 @@ float3 blackbodyTempToColor(float t) {
     result.r = 255;
   } else {
     result.r = t - 60;
-    result.r = 329.698727446f * (pow(result.r, -0.1332047592f));
+    result.r = 329.698727446f * (pow(abs(result.r), -0.1332047592f));
   }
 
   /* Green. */
@@ -190,7 +190,7 @@ float3 blackbodyTempToColor(float t) {
     result.g = t;
     result.g = 99.4708025861f * log(t) - 161.1195681661f;
   } else {
-    result.g = 288.1221695283f * (pow((t-60), -0.0755148492f));
+    result.g = 288.1221695283f * (pow(abs(t-60), -0.0755148492f));
   }
 
   /* Blue. */

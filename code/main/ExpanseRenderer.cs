@@ -333,6 +333,15 @@ private static int m_RenderFullscreenCloudsID = 3;
 private static int m_CompositeCubemapSkyAndCloudsID = 4;
 private static int m_CompositeFullscreenSkyAndCloudsID = 5;
 
+/* Profiling samplers. */
+ProfilingSampler m_DrawProfilingSampler = new ProfilingSampler("Expanse: Draw Sky");
+ProfilingSampler m_SkyViewLUTProfilingSampler = new ProfilingSampler("Expanse: Compute Sky View LUT");
+ProfilingSampler m_SkyAPLUTProfilingSampler = new ProfilingSampler("Expanse: Compute Aerial Perspective LUT");
+ProfilingSampler m_SkyTLUTProfilingSampler = new ProfilingSampler("Expanse: Compute Transmittance LUT");
+ProfilingSampler m_SkyMSLUTProfilingSampler = new ProfilingSampler("Expanse: Compute Multiple Scattering LUT");
+ProfilingSampler m_StarProfilingSampler = new ProfilingSampler("Expanse: Generate Star Texture");
+ProfilingSampler m_NebulaeProfilingSampler = new ProfilingSampler("Expanse: Generate Nebulae Texture");
+
 /******************************************************************************/
 /**************************** END MEMBER VARIABLES ****************************/
 /******************************************************************************/
@@ -636,9 +645,9 @@ private void checkAndResizeFramebuffers(BuiltinSkyParameters builtinParams, bool
   }
 }
 
-public override void RenderSky(BuiltinSkyParameters builtinParams, bool renderForCubemap, bool renderSunDisk) {
-  using (new ProfilingSample(builtinParams.commandBuffer, "Draw sky"))
-  {
+public override void RenderSky(BuiltinSkyParameters builtinParams,
+  bool renderForCubemap, bool renderSunDisk) {
+  using (new ProfilingScope(builtinParams.commandBuffer, m_DrawProfilingSampler)) {
     /* Check whether or not we have to resize the framebuffers, and do it
      * if we have to. */
     checkAndResizeFramebuffers(builtinParams, renderForCubemap);
@@ -665,16 +674,17 @@ public override void RenderSky(BuiltinSkyParameters builtinParams, bool renderFo
 /******************************************************************************/
 
 private void DispatchSkyPrecompute(CommandBuffer cmd) {
-  using (new ProfilingSample(cmd, "Precompute Expanse Sky Tables"))
-  {
-    if (m_numAtmosphereLayersEnabled > 0) {
-      int handle_T = m_skyCS.FindKernel("T");
-      int handle_MS = m_skyCS.FindKernel("MS");
+  if (m_numAtmosphereLayersEnabled > 0) {
+    int handle_T = m_skyCS.FindKernel("T");
+    int handle_MS = m_skyCS.FindKernel("MS");
 
+    using (new ProfilingScope(cmd, m_SkyTLUTProfilingSampler)) {
       cmd.DispatchCompute(m_skyCS, handle_T,
         (int) m_skyTextureResolution.T.x / 8,
         (int) m_skyTextureResolution.T.y / 8, 1);
+    }
 
+    using (new ProfilingScope(cmd, m_SkyMSLUTProfilingSampler)) {
       cmd.DispatchCompute(m_skyCS, handle_MS,
         (int) m_skyTextureResolution.MS.x / 8,
         (int) m_skyTextureResolution.MS.y / 8, 1);
@@ -683,13 +693,12 @@ private void DispatchSkyPrecompute(CommandBuffer cmd) {
 }
 
 private void DispatchSkyRealtimeCompute(CommandBuffer cmd) {
-  using (new ProfilingSample(cmd, "Compute Realtime Expanse Sky Tables"))
-  {
-    if (m_numAtmosphereLayersEnabled > 0) {
-      int handle_SS = m_skyCS.FindKernel("SS");
-      int handle_MSAcc = m_skyCS.FindKernel("MSAcc");
-      int handle_AP = m_skyCS.FindKernel("AP");
+  if (m_numAtmosphereLayersEnabled > 0) {
+    int handle_SS = m_skyCS.FindKernel("SS");
+    int handle_MSAcc = m_skyCS.FindKernel("MSAcc");
+    int handle_AP = m_skyCS.FindKernel("AP");
 
+    using (new ProfilingScope(cmd, m_SkyViewLUTProfilingSampler)) {
       cmd.DispatchCompute(m_skyCS, handle_SS,
         (int) (m_skyTextureResolution.SS.x) / 8,
         (int) (m_skyTextureResolution.SS.y) / 8, 1);
@@ -697,7 +706,9 @@ private void DispatchSkyRealtimeCompute(CommandBuffer cmd) {
       cmd.DispatchCompute(m_skyCS, handle_MSAcc,
         (int) (m_skyTextureResolution.MSAccumulation.x) / 8,
         (int) (m_skyTextureResolution.MSAccumulation.y) / 8, 1);
+    }
 
+    using (new ProfilingScope(cmd, m_SkyAPLUTProfilingSampler)) {
       cmd.DispatchCompute(m_skyCS, handle_AP,
         (int) (m_skyTextureResolution.AP.x) / 4,
         (int) (m_skyTextureResolution.AP.y) / 4,
@@ -707,7 +718,7 @@ private void DispatchSkyRealtimeCompute(CommandBuffer cmd) {
 }
 
 private void DispatchStarCompute(CommandBuffer cmd) {
-  using (new ProfilingSample(cmd, "Precompute Expanse Star Texture")) {
+  using (new ProfilingScope(cmd, m_StarProfilingSampler)) {
     int handle_Star = m_starCS.FindKernel("STAR");
 
     cmd.DispatchCompute(m_starCS, handle_Star,
@@ -717,7 +728,7 @@ private void DispatchStarCompute(CommandBuffer cmd) {
 }
 
 private void DispatchNebulaeCompute(CommandBuffer cmd) {
-  using (new ProfilingSample(cmd, "Precompute Expanse Nebula Texture")) {
+  using (new ProfilingScope(cmd, m_NebulaeProfilingSampler)) {
     int handle_Nebulae = m_starCS.FindKernel("NEBULAE");
 
     cmd.DispatchCompute(m_starCS, handle_Nebulae,

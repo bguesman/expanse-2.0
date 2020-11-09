@@ -63,7 +63,6 @@ namespace ExpanseCommonNamespace {
 
         scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
         EditorGUILayout.LabelField(title);
-        // TODO: possibly clamp these to allowed values?
         int year = EditorGUILayout.IntField("Year", dateTime.Year, options);
         int month = EditorGUILayout.IntField("Month", dateTime.Month, options);
         int day = EditorGUILayout.IntField("Day", dateTime.Day, options);

@@ -310,7 +310,7 @@ SkyIntersectionData traceSkyVolumeValid(float3 O, float3 d, float planetRadius,
 /******************************************************************************/
 
 float3 GetCameraPositionPlanetSpace() {
-  return _WorldSpaceCameraPos1 - (float3(0, -_planetRadius, 0) + _planetOriginOffset);
+  return _WorldSpaceCameraPos1.xyz - (float3(0, -_planetRadius, 0) + _planetOriginOffset.xyz);
 }
 
 /******************************************************************************/
@@ -383,18 +383,6 @@ bool useDensityAttenuation(int densityDistribution) {
  * Assumes the planet is centered at the origin. */
 float computeDensityExponential(float3 p, float thickness, float density) {
   return density * exp((_planetRadius - length(p))/thickness);
-  // float x = (length(p)-_planetRadius) / thickness;
-  // float x2 = x * x;
-  // float x3 = x * x2;
-  // float x4 = x2 * x2;
-  // float x5 = x3 * x2;
-  // float a0 = 0.997934481;
-  // float a1 = -0.976409309;
-  // float a2 = 0.44438792;
-  // float a3 = -0.11334505;
-  // float a4 = 0.0154856521;
-  // float a5 = -0.000873834901;
-  // return density * max(0, a5 * x5 + a4 * x4 + a3 * x3 + a2 * x2 + a1 * x + a0);
 }
 
 /* Computes density at a point for tent distributed atmosphere.

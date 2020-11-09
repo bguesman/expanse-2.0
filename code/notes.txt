@@ -1,6 +1,5 @@
 TODO LIST:
- -clean up remaining warnings
-
+  -done!
 
 KNOWN BUGS:
   -big stars that aren't affected by the size params
@@ -25,6 +24,13 @@ KNOWN BUGS:
 
   -AP rippling bug
 
+  -AP heavy fog attenuation artifacts
+    -more on this: for some reason if you make the fog super super dense
+    for an analytical layer, and then dive down into it, you can sometimes
+    see this huge circle artifact around the zenith of the sky.
+
+  -Perlin noise grid size < 3 bug
+
 
 FUTURE FEATURE LIST:
   -clouds
@@ -33,3 +39,10 @@ FUTURE FEATURE LIST:
   -nebula color gradients. is there a gradient ui parameter?
   -lighting based on visible celestial body fraction
   -if anybody asks for it, enable/disable aerial perspective switch.
+  -analytical integration for exponential and tent layers via polynomial
+  approximation for realtime transmittance
+  -analytical integration for attenuation bias
+  -shadowing and eclipses for celestial bodies
+    -in this vein, perhaps an acceleration structure on top? or maybe
+    it's not slow enough to matter
+    -maybe abstract out body occlusion queries to a function

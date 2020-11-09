@@ -516,7 +516,7 @@ SkyRenderResult RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
 
     if (cubemap) {
       /* Add an estimate of the night sky color for ambient lighting. */
-      skyColor += _nightSkyTint * _nightSkyAmbientMultiplier;
+      skyColor += _nightSkyTint.xyz * _nightSkyAmbientMultiplier;
     }
 
     /* Figure out how close we are to the horizon for conditional MSAA. */
@@ -584,11 +584,11 @@ CloudResult RenderClouds(Varyings input, bool cubemap) {
   return r;
 }
 
-CloudResult CloudsCubemap(Varyings input) : SV_Target {
+CloudResult CloudsCubemap(Varyings input) {
   return RenderClouds(input, true);
 }
 
-CloudResult CloudsFullscreen(Varyings input) : SV_Target {
+CloudResult CloudsFullscreen(Varyings input) {
   UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
   return RenderClouds(input, false);
 }

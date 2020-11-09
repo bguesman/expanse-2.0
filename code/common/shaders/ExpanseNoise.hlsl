@@ -310,7 +310,7 @@ float value3DLayeredSeeded(float3 uv, float3 startingGrid,
   return noise / maxValue;
 }
 
-// TODO HACK: fails for grid size of less than 3,3,3. TODO: also fails
+// TODO BUG: fails for grid size of less than 3,3,3. TODO BUG: also fails
 // when being warped. Something is wrong with this implementation...
 // default z seed maybe? probably not since it works fine for voronoi
 NoiseResultAndCoordinate perlin3DSeeded(float3 uv, float3 cells, float3 seed_x,
@@ -366,27 +366,27 @@ NoiseResultAndCoordinate perlin3DSeeded(float3 uv, float3 cells, float3 seed_x,
   float3 gradient_111 = normalize(random_3_3_seeded(grid_111, seed_x, seed_y, seed_z));
 
   /* Noise values. */
-  float3 noise_000 = dot(gradient_000, offset_000);
-  float3 noise_001 = dot(gradient_001, offset_001);
-  float3 noise_010 = dot(gradient_010, offset_010);
-  float3 noise_011 = dot(gradient_011, offset_011);
-  float3 noise_100 = dot(gradient_100, offset_100);
-  float3 noise_101 = dot(gradient_101, offset_101);
-  float3 noise_110 = dot(gradient_110, offset_110);
-  float3 noise_111 = dot(gradient_111, offset_111);
+  float noise_000 = dot(gradient_000, offset_000);
+  float noise_001 = dot(gradient_001, offset_001);
+  float noise_010 = dot(gradient_010, offset_010);
+  float noise_011 = dot(gradient_011, offset_011);
+  float noise_100 = dot(gradient_100, offset_100);
+  float noise_101 = dot(gradient_101, offset_101);
+  float noise_110 = dot(gradient_110, offset_110);
+  float noise_111 = dot(gradient_111, offset_111);
 
   /* Lerp. */
   float3 a = saturate(frac(p));
   /* z. */
-  float noise_00 = lerp(noise_000, noise_001, a.z);// smoothstep(0, 1, a.z));
-  float noise_01 = lerp(noise_010, noise_011, a.z);//smoothstep(0, 1, a.z));
-  float noise_10 = lerp(noise_100, noise_101, a.z);//smoothstep(0, 1, a.z));
-  float noise_11 = lerp(noise_110, noise_111, a.z);//smoothstep(0, 1, a.z));
+  float noise_00 = lerp(noise_000, noise_001, a.z);
+  float noise_01 = lerp(noise_010, noise_011, a.z);
+  float noise_10 = lerp(noise_100, noise_101, a.z);
+  float noise_11 = lerp(noise_110, noise_111, a.z);
   /* y. */
-  float noise_0 = lerp(noise_00, noise_01, a.y);//smoothstep(0, 1, a.y));
-  float noise_1 = lerp(noise_10, noise_11, a.y);//smoothstep(0, 1, a.y));
+  float noise_0 = lerp(noise_00, noise_01, a.y);
+  float noise_1 = lerp(noise_10, noise_11, a.y);
   /* x. */
-  float noise = lerp(noise_0, noise_1, a.x);//smoothstep(0, 1, a.x));
+  float noise = lerp(noise_0, noise_1, a.x);
 
   result.result = (noise+1)/2;
   result.coordinate = p;
@@ -464,10 +464,10 @@ float3 curlNoise3DSeeded(float3 uv, float3 cells, float3 seed_x, float3 seed_y,
   // float zf = perlin3DSeeded(uvzf, cells, seed_x, seed_y, seed_z).result;
   float x0 = value3DSeeded(uvx0, cells, seed_x).result;
   float xf = value3DSeeded(uvxf, cells, seed_x).result;
-  float y0 = value3DSeeded(uvy0, cells, seed_x).result;
-  float yf = value3DSeeded(uvyf, cells, seed_x).result;
-  float z0 = value3DSeeded(uvz0, cells, seed_x).result;
-  float zf = value3DSeeded(uvzf, cells, seed_x).result;
+  float y0 = value3DSeeded(uvy0, cells, seed_y).result;
+  float yf = value3DSeeded(uvyf, cells, seed_y).result;
+  float z0 = value3DSeeded(uvz0, cells, seed_z).result;
+  float zf = value3DSeeded(uvzf, cells, seed_z).result;
 
   /* Compute the derivatives via finite differencing. */
   float dx = (xf - x0) / (2 * epsilon);

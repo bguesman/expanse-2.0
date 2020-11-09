@@ -19,7 +19,7 @@ RW_TEXTURE2D(float3, _T_RW);
 RW_TEXTURE2D(float3, _SS_RW);
 
 /* Aerial perspective. */
-RW_TEXTURE3D(float3, _AP_RW);
+RW_TEXTURE3D(float4, _AP_RW);
 
 /* Multiple scattering. */
 RW_TEXTURE2D(float3, _MS_RW);

@@ -33,7 +33,7 @@ float3 computeTransmittanceDensityAttenuation(float3 O, float3 d, float endT) {
       // attnenuation function.
       // float k = _layerAttenuationBias[i];
       float H = _layerThickness[i];
-      float3 P = _layerDensityAttenuationOrigin[i];
+      float3 P = _layerDensityAttenuationOrigin[i].xyz;
       float3 deltaPO = O - P;
       float a = 1 / (m * m);
       float b = ((-2 * dot(deltaPO, d)) / (m * m)) - (dot(d, normalize(O)) / H);
@@ -69,6 +69,8 @@ struct SSLayersResult {
 
 SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
   bool groundHit, float3 L, float lightAngularRadius, bool useOcclusionMultiplier, int numSamples, bool useImportanceSampling) {
+  /* Loop variables. */
+  int i, j;
 
   /* Final result */
   SSLayersResult result;
@@ -80,13 +82,14 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
 
   /* Initialize accumulators to zero. */
   float scaledDensity[MAX_LAYERS];
-  for (int j = 0; j < _numActiveLayers; j++) {
-    scaledDensity[j] = 0;
-    result.shadows[j] = float3(0, 0, 0);
-    result.noShadows[j] = float3(0, 0, 0);
+  [unroll(MAX_LAYERS)]
+  for (i = 0; i < _numActiveLayers; i++) {
+    scaledDensity[i] = 0;
+    result.shadows[i] = float3(0, 0, 0);
+    result.noShadows[i] = float3(0, 0, 0);
   }
 
-  for (int i = 0; i < numSamples; i++) {
+  for (i = 0; i < numSamples; i++) {
     /* Generate the sample. */
     float2 t_ds;
     if (useImportanceSampling) {
@@ -100,10 +103,13 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
     float3 normalizedSamplePoint = normalize(samplePoint);
 
     /* Compute the scaled density of the layer at the sample point. */
+
+    [unroll(MAX_LAYERS)]
     for (int j = 0; j < _numActiveLayers; j++) {
       scaledDensity[j] = ds * computeDensity(_layerDensityDistribution[j],
         samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
-        length(samplePoint - _layerDensityAttenuationOrigin[j]), _layerAttenuationBias[j], _layerAttenuationDistance[j]);
+        length(samplePoint - _layerDensityAttenuationOrigin[j].xyz),
+        _layerAttenuationBias[j], _layerAttenuationDistance[j]);
     }
 
     /* Our transmittance value for O to the sample point is too large---we
@@ -116,7 +122,8 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
     float3 T_oToSample = T_oOut - sampleSkyTTextureRaw(sampleOut) +
       computeTransmittanceDensityAttenuation(O, d, sampleT);
 
-    for (int j = 0; j < _numActiveLayers; j++) {
+    [unroll(MAX_LAYERS)]
+    for (j = 0; j < _numActiveLayers; j++) {
       result.noShadows[j] += scaledDensity[j] * saturate(exp(T_oToSample));
     }
 
@@ -135,7 +142,8 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
       float3 T = exp(T_oToSample + sampleSkyTTextureRaw(sampleToL) +
         computeTransmittanceDensityAttenuation(samplePoint, L, lightIntersection.endT));
 
-      for (int j = 0; j < _numActiveLayers; j++) {
+      [unroll(MAX_LAYERS)]
+      for (j = 0; j < _numActiveLayers; j++) {
         result.shadows[j] += scaledDensity[j] * T;
       }
     }
@@ -150,7 +158,8 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
       + (1-_aerialPerspectiveOcclusionBiasDirectional) * pow(1-saturate(dot_L_d),
       _aerialPerspectiveOcclusionPowerDirectional);
 
-    for (int j = 0; j < _numActiveLayers; j++) {
+    [unroll(MAX_LAYERS)]
+    for (j = 0; j < _numActiveLayers; j++) {
       if (_layerPhaseFunction[j] == 2) {
         /* Special case for mie scattering. */
         result.shadows[j] *= occlusionMultiplierDirectional;
@@ -211,6 +220,9 @@ SSResult computeSSForMS(float3 O, float3 d, float dist, float t_hit,
  * another conditional. */
 SSLayersResult computeSSLPLayers(float3 O, float3 d, float dist, float t_hit,
   bool groundHit, int numSamples, bool useImportanceSampling) {
+  /* Loop variables. */
+  int i, j;
+
   /* Final result */
   SSLayersResult result;
 
@@ -221,13 +233,14 @@ SSLayersResult computeSSLPLayers(float3 O, float3 d, float dist, float t_hit,
 
   /* Initialize accumulators to zero. */
   float scaledDensity[MAX_LAYERS];
-  for (int j = 0; j < _numActiveLayers; j++) {
-    scaledDensity[j] = 0;
-    result.shadows[j] = float3(0, 0, 0);
-    result.noShadows[j] = float3(0, 0, 0);
+  [unroll(MAX_LAYERS)]
+  for (i = 0; i < _numActiveLayers; i++) {
+    scaledDensity[i] = 0;
+    result.shadows[i] = float3(0, 0, 0);
+    result.noShadows[i] = float3(0, 0, 0);
   }
 
-  for (int i = 0; i < numSamples; i++) {
+  for (i = 0; i < numSamples; i++) {
     /* Generate the sample. */
     float2 t_ds;
     if (useImportanceSampling) {
@@ -241,10 +254,10 @@ SSLayersResult computeSSLPLayers(float3 O, float3 d, float dist, float t_hit,
     float3 normalizedSamplePoint = normalize(samplePoint);
 
     /* Compute the scaled density of the layer at the sample point. */
-    for (int j = 0; j < _numActiveLayers; j++) {
+    for (j = 0; j < _numActiveLayers; j++) {
       scaledDensity[j] = ds * computeDensity(_layerDensityDistribution[j],
         samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
-        length(samplePoint - _layerDensityAttenuationOrigin[j]), _layerAttenuationBias[j], _layerAttenuationDistance[j]);
+        length(samplePoint - _layerDensityAttenuationOrigin[j].xyz), _layerAttenuationBias[j], _layerAttenuationDistance[j]);
     }
 
     /* Our transmittance value for O to the sample point is too large---we
@@ -259,6 +272,7 @@ SSLayersResult computeSSLPLayers(float3 O, float3 d, float dist, float t_hit,
     float2 sampleToGround = mapSky2DCoord(length(samplePoint), -1, _atmosphereRadius,
       _planetRadius, length(samplePoint) - _planetRadius, true, _resT.y);
     float3 T = exp(T_oToSample + sampleSkyTTextureRaw(sampleToGround));
+    [unroll(MAX_LAYERS)]
     for (int j = 0; j < _numActiveLayers; j++) {
       result.noShadows[j] += scaledDensity[j] * T;
       result.shadows[j] += scaledDensity[j] * T;
@@ -326,6 +340,7 @@ MSLayersResult computeMSLayers(float3 O, float3 d, float dist, float t_hit,
   bool groundHit, float3 L, int numSamples, bool useImportanceSampling) {
   /* Final result. */
   MSLayersResult result;
+  [unroll(MAX_LAYERS)]
   for (int j = 0; j < _numActiveLayers; j++) {
     result.shadows[j] = float3(0, 0, 0);
   }
@@ -348,10 +363,11 @@ MSLayersResult computeMSLayers(float3 O, float3 d, float dist, float t_hit,
     float3 msContrib = sampleSkyMSTexture(msUV);
 
     /* Compute the scaled density of the layer at the sample point. */
+    [unroll(MAX_LAYERS)]
     for (int j = 0; j < _numActiveLayers; j++) {
       float scaledDensity = ds * computeDensity(_layerDensityDistribution[j],
         samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
-        length(samplePoint - _layerDensityAttenuationOrigin[j]), _layerAttenuationBias[j], _layerAttenuationDistance[j]);
+        length(samplePoint - _layerDensityAttenuationOrigin[j].xyz), _layerAttenuationBias[j], _layerAttenuationDistance[j]);
       result.shadows[j] += msContrib * scaledDensity;
     }
   }
@@ -403,7 +419,7 @@ MSLayersResult computeMSLPLayers(float3 O, float3 d, float dist, float t_hit,
     for (int j = 0; j < _numActiveLayers; j++) {
       float scaledDensity = ds * computeDensity(_layerDensityDistribution[j],
         samplePoint, _layerHeight[j], _layerThickness[j], _layerDensity[j],
-        length(samplePoint - _layerDensityAttenuationOrigin[j]), _layerAttenuationBias[j], _layerAttenuationDistance[j]);
+        length(samplePoint - _layerDensityAttenuationOrigin[j].xyz), _layerAttenuationBias[j], _layerAttenuationDistance[j]);
       result.shadows[j] += msContrib * scaledDensity;
     }
   }
