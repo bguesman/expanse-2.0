@@ -118,8 +118,12 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
     float2 sampleOut = mapSky2DCoord(length(samplePoint),
       clampCosine(dot(normalizedSamplePoint, d)), _atmosphereRadius,
       _planetRadius, t_hit - sampleT, groundHit, _resT.y);
-    // float3 T_oToSample = T_oOut - sampleSkyTTextureRaw(sampleOut);
-    float3 T_oToSample = T_oOut - sampleSkyTTextureRaw(sampleOut) +
+    /* The max() here is necessary to eliminate bright artifacts that come
+     * from a discrepancy between sampling above the horizon line for
+     * T_oOut and blow the horizon lie for sampleOut. It is a HACK, but
+     * it helps. It does not, however, mitigate the issue of the other
+     * way around. */
+    float3 T_oToSample = T_oOut - max(T_oOut, sampleSkyTTextureRaw(sampleOut)) +
       computeTransmittanceDensityAttenuation(O, d, sampleT);
 
     [unroll(MAX_LAYERS)]
@@ -138,7 +142,6 @@ SSLayersResult computeSSLayers(float3 O, float3 d, float dist, float t_hit,
       float2 sampleToL = mapSky2DCoord(length(samplePoint),
         clampCosine(dot(normalizedSamplePoint, L)), _atmosphereRadius,
         _planetRadius, lightIntersection.endT, lightIntersection.groundHit, _resT.y);
-      // float3 T = exp(T_oToSample + sampleSkyTTextureRaw(sampleToL));
       float3 T = exp(T_oToSample + sampleSkyTTextureRaw(sampleToL) +
         computeTransmittanceDensityAttenuation(samplePoint, L, lightIntersection.endT));
 
@@ -266,7 +269,7 @@ SSLayersResult computeSSLPLayers(float3 O, float3 d, float dist, float t_hit,
     float2 sampleOut = mapSky2DCoord(length(samplePoint),
       clampCosine(dot(normalizedSamplePoint, d)), _atmosphereRadius,
       _planetRadius, t_hit - sampleT, groundHit, _resT.y);
-    float3 T_oToSample = T_oOut - sampleSkyTTextureRaw(sampleOut);
+    float3 T_oToSample = T_oOut - max(T_oOut, sampleSkyTTextureRaw(sampleOut));
 
     /* Compute the transmittance to the ground. */
     float2 sampleToGround = mapSky2DCoord(length(samplePoint), -1, _atmosphereRadius,
