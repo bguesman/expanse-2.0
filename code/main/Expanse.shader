@@ -26,6 +26,8 @@ HLSLINCLUDE
 #include "../sky/ExpanseStarCommon.hlsl"
 #include "../sky/ExpanseSky.hlsl"
 
+#include "../clouds/ExpanseClouds.hlsl"
+
 /******************************************************************************/
 /******************************** END INCLUDES ********************************/
 /******************************************************************************/
@@ -576,21 +578,28 @@ float4 SkyFullscreen(Varyings input) : SV_Target {
 /*************************** CLOUDS FRAGMENT SHADER ***************************/
 /******************************************************************************/
 
-CloudResult RenderClouds(Varyings input, bool cubemap) {
+CloudResult RenderClouds(Varyings input, float3 O, float3 d, bool cubemap) {
+  /* Shade the clouds. */
+  CloudShadingResult result = shadeClouds(O, d);
+
   /* Final result. */
   CloudResult r;
-  r.color = float4(1, 1, 1, 1);
+  r.color = float4(result.color, 1);
   r.transmittance = float4(1, 1, 1, 1);
   return r;
 }
 
 CloudResult CloudsCubemap(Varyings input) {
-  return RenderClouds(input, true);
+  float3 O = GetCameraPositionPlanetSpace();
+  float3 d = -GetSkyViewDirWS(input.positionCS.xy);
+  return RenderClouds(input, O, d, true);
 }
 
 CloudResult CloudsFullscreen(Varyings input) {
+  float3 O = GetCameraPositionPlanetSpace();
+  float3 d = -GetSkyViewDirWS(input.positionCS.xy);
   UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-  return RenderClouds(input, false);
+  return RenderClouds(input, O, d, false);
 }
 
 /******************************************************************************/
@@ -607,9 +616,11 @@ float4 Composite(Varyings input, bool cubemap, float exposure) {
   /* Get screenspace texture coordinate. */
   float2 textureCoordinate = input.screenPosition;
 
-  /* Sample all of our fullscreen textures. */
+  /* Sample the sky fullscreen texture. */
   float4 skyCol = SAMPLE_TEXTURE2D_LOD(_fullscreenSkyColorRT,
     s_linear_clamp_sampler, textureCoordinate, 0);
+
+  /* Sample the cloud fullscreen textures. */
   float3 cloudCol = SAMPLE_TEXTURE2D_LOD(_currFullscreenCloudColorRT,
     s_linear_clamp_sampler, textureCoordinate, 0).xyz;
   float4 cloudTAndBlend = SAMPLE_TEXTURE2D_LOD(_currFullscreenCloudTransmittanceRT,
@@ -617,7 +628,8 @@ float4 Composite(Varyings input, bool cubemap, float exposure) {
   float3 cloudT = cloudTAndBlend.xyz;
   float3 cloudBlend = cloudTAndBlend.w;
 
-  float3 finalColor = (exposure * skyCol.xyz);
+  /* TODO: blend clouds properly. */
+  float3 finalColor = exposure * (cloudCol + skyCol.xyz);
 
   return float4(finalColor, skyCol.w);
 }

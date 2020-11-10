@@ -432,13 +432,35 @@ public BoolParameter useDither = new BoolParameter(true);
 /***********************/
 /******* Clouds ********/
 /***********************/
-/* Lighting. TODO */
+/* General. */
+[Tooltip("Whether or not this cloud layer is enabled.")]
+public BoolParameter cloudLayerEnabled0, cloudLayerEnabled1, cloudLayerEnabled2,
+  cloudLayerEnabled3, cloudLayerEnabled4, cloudLayerEnabled5, cloudLayerEnabled6, cloudLayerEnabled7;
+
+/* Geometry. TODO */
+[Tooltip("Type of geometry for this cloud layer.")]
+public EnumParameter<ExpanseCommon.CloudGeometryType> cloudGeometryType0, cloudGeometryType1, cloudGeometryType2,
+  cloudGeometryType3, cloudGeometryType4, cloudGeometryType5, cloudGeometryType6, cloudGeometryType7;
+[Tooltip("X extent of this cloud layer's geometry.")]
+public Vector2Parameter cloudGeometryXExtent0, cloudGeometryXExtent1, cloudGeometryXExtent2,
+  cloudGeometryXExtent3, cloudGeometryXExtent4, cloudGeometryXExtent5, cloudGeometryXExtent6, cloudGeometryXExtent7;
+[Tooltip("Z extent of this cloud layer's geometry.")]
+public Vector2Parameter cloudGeometryZExtent0, cloudGeometryZExtent1, cloudGeometryZExtent2,
+  cloudGeometryZExtent3, cloudGeometryZExtent4, cloudGeometryZExtent5, cloudGeometryZExtent6, cloudGeometryZExtent7;
+/* For box volume. */
+[Tooltip("Y extent of this cloud layer's geometry.")]
+public Vector2Parameter cloudGeometryYExtent0, cloudGeometryYExtent1, cloudGeometryYExtent2,
+  cloudGeometryYExtent3, cloudGeometryYExtent4, cloudGeometryYExtent5, cloudGeometryYExtent6, cloudGeometryYExtent7;
+/* For plane and sphere. */
+[Tooltip("Height of this cloud layer's geometry.")]
+public FloatParameter cloudGeometryHeight0, cloudGeometryHeight1, cloudGeometryHeight2,
+  cloudGeometryHeight3, cloudGeometryHeight4, cloudGeometryHeight5, cloudGeometryHeight6, cloudGeometryHeight7;
 
 /* Noise generation. TODO */
 
 /* Movement---sampling offsets primarily. TODO */
 
-/* Geometry. TODO */
+/* Lighting. TODO */
 
 /* Sampling. TODO */
 /* TODO: debug goes here. */
@@ -495,6 +517,17 @@ public Expanse() : base() {
     this.GetType().GetField("bodyEmissionTextureRotation" + i).SetValue(this, new Vector3Parameter(new Vector3(0, 0, 0)));
     this.GetType().GetField("bodyEmissionTint" + i).SetValue(this, new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true));
     this.GetType().GetField("bodyEmissionMultiplier" + i).SetValue(this, new MinFloatParameter(1, 0));
+  }
+
+  /* Cloud layer initialization. */
+  for (int i = 0; i < ExpanseCommon.kMaxCloudLayers; i++) {
+    /* Enable only the first layer by default. */
+    this.GetType().GetField("cloudLayerEnabled" + i).SetValue(this, new BoolParameter(i==0));
+    this.GetType().GetField("cloudGeometryType" + i).SetValue(this, new EnumParameter<ExpanseCommon.CloudGeometryType>(ExpanseCommon.CloudGeometryType.BoxVolume));
+    this.GetType().GetField("cloudGeometryXExtent" + i).SetValue(this, new Vector2Parameter(new Vector2(-1000, 1000)));
+    this.GetType().GetField("cloudGeometryYExtent" + i).SetValue(this, new Vector2Parameter(new Vector2(2000, 3000)));
+    this.GetType().GetField("cloudGeometryZExtent" + i).SetValue(this, new Vector2Parameter(new Vector2(-1000, 1000)));
+    this.GetType().GetField("cloudGeometryHeight" + i).SetValue(this, new FloatParameter(10000));
   }
 }
 
@@ -697,6 +730,15 @@ public override int GetHashCode() {
     hash = hash * 23 + useAntiAliasing.value.GetHashCode();
     hash = hash * 23 + useDither.value.GetHashCode();
 
+    /* Cloud Layers. */
+    for (int i = 0; i < ExpanseCommon.kMaxCloudLayers; i++) {
+      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudLayerEnabled" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudGeometryType>) this.GetType().GetField("cloudGeometryType" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryXExtent" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryYExtent" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryZExtent" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((FloatParameter) this.GetType().GetField("cloudGeometryHeight" + i).GetValue(this)).value.GetHashCode();
+    }
   }
   return hash;
 }
@@ -751,10 +793,17 @@ public int GetSkyHashCode() {
 }
 
 public int GetCloudHashCode() {
-  /* TODO */
   int hash = base.GetHashCode();
   unchecked {
-
+    /* Cloud Layers. TODO: Unclear if all this is necessary. */
+    for (int i = 0; i < ExpanseCommon.kMaxCloudLayers; i++) {
+      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudLayerEnabled" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudGeometryType>) this.GetType().GetField("cloudGeometryType" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryXExtent" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryYExtent" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryZExtent" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((FloatParameter) this.GetType().GetField("cloudGeometryHeight" + i).GetValue(this)).value.GetHashCode();
+    }
   }
   return hash;
 }

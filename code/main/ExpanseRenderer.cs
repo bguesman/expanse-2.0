@@ -510,7 +510,7 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
   /* Check the sky hash and recompute if necessary. */
   int currentSkyHash = sky.GetSkyHashCode();
   if (currentSkyHash != m_LastSkyHash) {
-    setSkyPrecomputateTables();
+    setSkyPrecomputationTables();
     DispatchSkyPrecompute(builtinParams.commandBuffer);
     m_skyTNeedsUpdate = true;
     m_LastSkyHash = currentSkyHash;
@@ -747,7 +747,7 @@ private void DispatchNebulaeCompute(CommandBuffer cmd) {
 /****************************** RW TEXTURE SETTERS ****************************/
 /******************************************************************************/
 
-private void setSkyPrecomputateTables() {
+private void setSkyPrecomputationTables() {
   int handle_T = m_skyCS.FindKernel("T");
   int handle_MS = m_skyCS.FindKernel("MS");
   if (m_numAtmosphereLayersEnabled > 0) {
@@ -811,6 +811,9 @@ private void setGlobalCBuffer(BuiltinSkyParameters builtinParams) {
 
   /* Quality. */
   setGlobalCBufferQuality(builtinParams.commandBuffer, sky);
+
+  /* Clouds. */
+  setGlobalCBufferClouds(builtinParams.commandBuffer, sky);
 
   /* Camera params. */
   builtinParams.commandBuffer.SetGlobalVector(_WorldSpaceCameraPos1ID, builtinParams.worldSpaceCameraPos);
@@ -1142,6 +1145,54 @@ private void setGlobalCBufferQuality(CommandBuffer cmd, Expanse sky) {
   cmd.SetGlobalFloat("_useAntiAliasing", sky.useAntiAliasing.value ? 1 : 0);
   cmd.SetGlobalFloat("_aerialPerspectiveDepthSkew", sky.aerialPerspectiveDepthSkew.value);
   cmd.SetGlobalFloat("_useDither", sky.useDither.value ? 1 : 0);
+}
+
+private void setGlobalCBufferClouds(CommandBuffer cmd, Expanse sky) {
+  int n = (int) ExpanseCommon.kMaxCloudLayers;
+
+  /* Geometry. */
+  float[] cloudGeometryType = new float[n]; /* Should be int, but unity can only set float arrays. */
+  float[] cloudGeometryXMin = new float[n];
+  float[] cloudGeometryXMax = new float[n];
+  float[] cloudGeometryYMin = new float[n];
+  float[] cloudGeometryYMax = new float[n];
+  float[] cloudGeometryZMin = new float[n];
+  float[] cloudGeometryZMax = new float[n];
+  float[] cloudGeometryHeight = new float[n];
+
+  int numActiveLayers = 0;
+  for (int i = 0; i < n; i++) {
+    bool enabled = (((BoolParameter) sky.GetType().GetField("cloudLayerEnabled" + i).GetValue(sky)).value);
+    if (enabled) {
+      cloudGeometryType[numActiveLayers] = (float) ((EnumParameter<ExpanseCommon.CloudGeometryType>) sky.GetType().GetField("cloudGeometryType" + i).GetValue(sky)).value;
+
+      Vector2 xExtent = ((Vector2Parameter) sky.GetType().GetField("cloudGeometryXExtent" + i).GetValue(sky)).value;
+      cloudGeometryXMin[numActiveLayers] = xExtent.x;
+      cloudGeometryXMax[numActiveLayers] = xExtent.y;
+
+      Vector2 yExtent = ((Vector2Parameter) sky.GetType().GetField("cloudGeometryYExtent" + i).GetValue(sky)).value;
+      cloudGeometryYMin[numActiveLayers] = yExtent.x;
+      cloudGeometryYMax[numActiveLayers] = yExtent.y;
+
+      Vector2 zExtent = ((Vector2Parameter) sky.GetType().GetField("cloudGeometryZExtent" + i).GetValue(sky)).value;
+      cloudGeometryZMin[numActiveLayers] = zExtent.x;
+      cloudGeometryZMax[numActiveLayers] = zExtent.y;
+
+      cloudGeometryHeight[numActiveLayers] = ((FloatParameter) sky.GetType().GetField("cloudGeometryHeight" + i).GetValue(sky)).value;
+
+      numActiveLayers++;
+    }
+  }
+
+  cmd.SetGlobalInt("_numActiveCloudLayers", numActiveLayers);
+  cmd.SetGlobalFloatArray("_cloudGeometryType", cloudGeometryType);
+  cmd.SetGlobalFloatArray("_cloudGeometryXMin", cloudGeometryXMin);
+  cmd.SetGlobalFloatArray("_cloudGeometryXMax", cloudGeometryXMax);
+  cmd.SetGlobalFloatArray("_cloudGeometryYMin", cloudGeometryYMin);
+  cmd.SetGlobalFloatArray("_cloudGeometryYMax", cloudGeometryYMax);
+  cmd.SetGlobalFloatArray("_cloudGeometryZMin", cloudGeometryZMin);
+  cmd.SetGlobalFloatArray("_cloudGeometryZMax", cloudGeometryZMax);
+  cmd.SetGlobalFloatArray("_cloudGeometryHeight", cloudGeometryHeight);
 }
 
 /******************************************************************************/

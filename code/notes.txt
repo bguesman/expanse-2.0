@@ -1,3 +1,7 @@
+///////////////
+SKY
+///////////////
+
 TODO LIST:
   -done!
 
@@ -40,3 +44,16 @@ FUTURE FEATURE LIST:
     -in this vein, perhaps an acceleration structure on top? or maybe
     it's not slow enough to matter
     -maybe abstract out body occlusion queries to a function
+
+
+
+
+
+
+
+///////////////
+CLOUDS
+///////////////
+
+TODO LIST:
+  -

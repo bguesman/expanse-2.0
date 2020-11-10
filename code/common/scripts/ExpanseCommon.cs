@@ -6,6 +6,10 @@ namespace ExpanseCommonNamespace {
 
 public class ExpanseCommon {
 
+/******************************************************************************/
+/************************************ SKY *************************************/
+/******************************************************************************/
+
 /* Enum for atmosphere layers. Currently we support up to 8 different
  * atmosphere layers. */
 public enum AtmosphereLayer {
@@ -197,6 +201,47 @@ public static StarTextureResolution StarQualityToStarTextureResolution(StarTextu
   }
 }
 
+/******************************************************************************/
+/********************************** END SKY ***********************************/
+/******************************************************************************/
+
+
+
+/******************************************************************************/
+/*********************************** CLOUDS ***********************************/
+/******************************************************************************/
+
+/* Enum for cloud layers. Currently we support up to 8 different
+ * cloud layers. */
+public enum CloudLayer {
+  Layer0 = 0,
+  Layer1,
+  Layer2,
+  Layer3,
+  Layer4,
+  Layer5,
+  Layer6,
+  Layer7
+};
+public const uint kMaxCloudLayers = 8;
+
+public enum CloudGeometryType {
+  Plane,      /* Clouds are 2D, on a flat plane at some altitude. */
+  Sphere,     /* Clouds surround the planet in a sphere at some altitude. */
+  BoxVolume   /* Clouds are volumetric and distributed throughout a rectangular box. */
+};
+public const uint kMaxCloudGeometryTypes = 3;
+
+/******************************************************************************/
+/********************************* END CLOUDS *********************************/
+/******************************************************************************/
+
+
+
+/******************************************************************************/
+/********************************* UTILITIES **********************************/
+/******************************************************************************/
+
 public static Vector3 degreesToRadians(Vector3 angles) {
   return (angles / 180.0f) * Mathf.PI;
 }
@@ -246,6 +291,10 @@ public static Vector2 map_r_mu_transmittance(float r, float mu, float atmosphere
   float u_r = Mathf.Sqrt((r - planetRadius) / (atmosphereRadius - planetRadius));
   return new Vector2(u_r, fromUnitToSubUVs(u_mu, resMu));
 }
+
+/******************************************************************************/
+/******************************* END UTILITIES ********************************/
+/******************************************************************************/
 
 
 

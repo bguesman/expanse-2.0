@@ -29,6 +29,12 @@ AnimBool[] m_showCelestialBody =
 /* Which atmosphere layer is currently shown for editing. */
 ExpanseCommon.CelestialBody m_celestialBodySelect = ExpanseCommon.CelestialBody.Body0;
 
+/* Specifies if a celestial body ui should be shown. */
+AnimBool[] m_showCloudLayer =
+  new AnimBool[ExpanseCommon.kMaxCloudLayers];
+/* Which atmosphere layer is currently shown for editing. */
+ExpanseCommon.CloudLayer m_cloudLayerSelect = ExpanseCommon.CloudLayer.Layer0;
+
 /* Foldout state. */
 bool planetFoldout = false;
 bool atmosphereFoldout = false;
@@ -45,6 +51,12 @@ bool nightSkyNebulaeLayerEditorFoldout = false;
 /* End night sky foldouts. */
 bool aerialPerspectiveFoldout = false;
 bool qualityFoldout = false;
+/* Cloud foldouts. */
+bool cloudGeometryFoldout = false;
+bool cloudNoiseFoldout = false;
+bool cloudMovementFoldout = false;
+bool cloudLightingFoldout = false;
+bool cloudSamplingFoldout = false;
 
 /******************************************************************************/
 /****************************** END UI VARIABLES ******************************/
@@ -303,14 +315,33 @@ SerializedDataParameter useDither;
 /***********************/
 /******* Clouds ********/
 /***********************/
-/* Lighting. TODO */
-/* TODO: density control goes here. */
+
+/* General. */
+SerializedDataParameter[] cloudLayerEnabled
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+
+/* Geometry. TODO */
+SerializedDataParameter[] cloudGeometryType
+= new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudGeometryXExtent
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudGeometryYExtent
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudGeometryZExtent
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudGeometryHeight
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+
 
 /* Noise generation. TODO */
 
 /* Movement---sampling offsets primarily. TODO */
 
-/* Geometry. TODO */
+/* Lighting. TODO */
+/* TODO: density control goes here. */
+
+
+
 
 /* Sampling. TODO */
 /* TODO: debug goes here. */
@@ -388,34 +419,8 @@ public override void OnInspectorGUI()
   EditorGUILayout.Space();
   EditorGUILayout.LabelField("Clouds", mainHeaderStyle);
   EditorGUILayout.Space();
-  EditorGUILayout.LabelField("Coming soon...", subtitleStyle);
 
-  /* Lighting. */
-  /* TODO: density control goes here. */
-  // EditorGUILayout.Space();
-  // cloudLighting(titleStyle, subtitleStyle);
-  // EditorGUILayout.Space();
-  //
-  // /* Noise generation. */
-  // EditorGUILayout.Space();
-  // cloudNoise(titleStyle, subtitleStyle);
-  // EditorGUILayout.Space();
-  //
-  // /* Movement---sampling offsets primarily. */
-  // EditorGUILayout.Space();
-  // cloudMovement(titleStyle, subtitleStyle);
-  // EditorGUILayout.Space();
-  //
-  // /* Geometry. */
-  // EditorGUILayout.Space();
-  // cloudGeometry(titleStyle, subtitleStyle);
-  // EditorGUILayout.Space();
-  //
-  // /* Sampling. */
-  // /* TODO: debug goes here. */
-  // EditorGUILayout.Space();
-  // cloudSampling(titleStyle, subtitleStyle);
-  // EditorGUILayout.Space();
+  clouds(titleStyle, subtitleStyle);
 }
 
 /******************************************************************************/
@@ -674,8 +679,6 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
           GUIStyle nebulaeIndented = new GUIStyle(subtitleStyle);
           nebulaeIndented.margin = new RectOffset(60, 0, 0, 0);
 
-          // bool nightSkyNebulaeGeneralFoldout = false;
-          // bool nightSkyNebulaeLayerEditorFoldout = false;
           nightSkyNebulaeGeneralFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(nightSkyNebulaeGeneralFoldout, "General", nebulaeIndented);
           EditorGUI.indentLevel++;
           if (nightSkyNebulaeGeneralFoldout) {
@@ -828,12 +831,6 @@ private void nightSky(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subt
       GUIStyle indented = new GUIStyle(EditorStyles.foldoutHeader);
       indented.margin = new RectOffset(30, 0, 0, 0);
 
-      // bool nightSkySkyFoldout = false;
-      // bool nightSkyStarsFoldout = false;
-      // bool nightSkyTwinkleFoldout = false;
-      // bool nightSkyLightPollutionFoldout = false;
-      // bool nightSkyNebulaeFoldout = false;
-
       /* Sky and stars. */
       nightSkySkyFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(nightSkySkyFoldout, "Sky and Stars", indented);
       EditorGUI.indentLevel++;
@@ -927,29 +924,92 @@ private void quality(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subti
   EditorGUILayout.EndFoldoutHeaderGroup();
 }
 
+private void clouds(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
+  m_cloudLayerSelect = (ExpanseCommon.CloudLayer) EditorGUILayout.EnumPopup("Layer", m_cloudLayerSelect);
+  int layerSelectIndex = setEnumSelect(m_showCloudLayer, (int) m_cloudLayerSelect);
 
-private void cloudLighting(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
-  EditorGUILayout.LabelField("Lighting", titleStyle);
+  /* Display celestial body params for it. */
+  if (UnityEditor.EditorGUILayout.BeginFadeGroup(m_showCloudLayer[layerSelectIndex].faded)) {
+    /* For some reason there's an indent here. Use -- to get rid of it. */
+
+    PropertyField(cloudLayerEnabled[layerSelectIndex], new UnityEngine.GUIContent("Enabled"));
+    if (cloudLayerEnabled[layerSelectIndex].value.boolValue) {
+      EditorGUILayout.Space();
+      cloudGeometry(titleStyle, subtitleStyle, layerSelectIndex);
+      cloudNoise(titleStyle, subtitleStyle, layerSelectIndex);
+      cloudMovement(titleStyle, subtitleStyle, layerSelectIndex);
+      cloudLighting(titleStyle, subtitleStyle, layerSelectIndex);
+      cloudSampling(titleStyle, subtitleStyle, layerSelectIndex);
+    } else {
+      EditorGUILayout.Space();
+    }
+  }
+
+  EditorGUILayout.EndFadeGroup();
 }
 
+private void cloudGeometry(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle, int layerIndex) {
+  cloudGeometryFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(cloudGeometryFoldout, "Geometry", titleStyle);
 
-private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
-  EditorGUILayout.LabelField("Noise", titleStyle);
+  if (cloudGeometryFoldout) {
+    PropertyField(cloudGeometryType[layerIndex], new UnityEngine.GUIContent("Geometry Type"));
+
+    if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume) {
+      PropertyField(cloudGeometryXExtent[layerIndex], new UnityEngine.GUIContent("X Extent"));
+      PropertyField(cloudGeometryYExtent[layerIndex], new UnityEngine.GUIContent("Y Extent"));
+      PropertyField(cloudGeometryZExtent[layerIndex], new UnityEngine.GUIContent("Z Extent"));
+    } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.Plane){
+      PropertyField(cloudGeometryXExtent[layerIndex], new UnityEngine.GUIContent("X Extent"));
+      PropertyField(cloudGeometryZExtent[layerIndex], new UnityEngine.GUIContent("Z Extent"));
+      PropertyField(cloudGeometryHeight[layerIndex], new UnityEngine.GUIContent("Height"));
+    } else {
+      PropertyField(cloudGeometryHeight[layerIndex], new UnityEngine.GUIContent("Height"));
+    }
+
+    EditorGUILayout.Space();
+  }
+
+  EditorGUILayout.EndFoldoutHeaderGroup();
 }
 
+private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle, int layerIndex) {
+  cloudNoiseFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(cloudNoiseFoldout, "Noise", titleStyle);
 
-private void cloudMovement(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
-  EditorGUILayout.LabelField("Movement", titleStyle);
+  if (cloudNoiseFoldout) {
+    EditorGUILayout.Space();
+  }
+
+  EditorGUILayout.EndFoldoutHeaderGroup();
 }
 
+private void cloudMovement(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle, int layerIndex) {
+  cloudMovementFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(cloudMovementFoldout, "Movement", titleStyle);
 
-private void cloudGeometry(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
-  EditorGUILayout.LabelField("Geometry", titleStyle);
+  if (cloudMovementFoldout) {
+    EditorGUILayout.Space();
+  }
+
+  EditorGUILayout.EndFoldoutHeaderGroup();
 }
 
+private void cloudLighting(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle, int layerIndex) {
+  cloudLightingFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(cloudLightingFoldout, "Lighting", titleStyle);
 
-private void cloudSampling(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle) {
-  EditorGUILayout.LabelField("Sampling", titleStyle);
+  if (cloudLightingFoldout) {
+    EditorGUILayout.Space();
+  }
+
+  EditorGUILayout.EndFoldoutHeaderGroup();
+}
+
+private void cloudSampling(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle subtitleStyle, int layerIndex) {
+  cloudSamplingFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(cloudSamplingFoldout, "Sampling", titleStyle);
+
+  if (cloudSamplingFoldout) {
+    EditorGUILayout.Space();
+  }
+
+  EditorGUILayout.EndFoldoutHeaderGroup();
 }
 
 /******************************************************************************/
@@ -1162,17 +1222,26 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
   /***********************/
   /******* Clouds ********/
   /***********************/
-  /* Lighting. TODO */
-  /* TODO: density control goes here. */
+  for (int i = 0; i < ExpanseCommon.kMaxCloudLayers; i++) {
+    /* General. */
+    cloudLayerEnabled[i] = Unpack(o.Find("cloudLayerEnabled" + i));
 
-  /* Noise generation. TODO */
+    /* Geometry. TODO */
+    cloudGeometryType[i] = Unpack(o.Find("cloudGeometryType" + i));
+    cloudGeometryXExtent[i] = Unpack(o.Find("cloudGeometryXExtent" + i));
+    cloudGeometryYExtent[i] = Unpack(o.Find("cloudGeometryYExtent" + i));
+    cloudGeometryZExtent[i] = Unpack(o.Find("cloudGeometryZExtent" + i));
+    cloudGeometryHeight[i] = Unpack(o.Find("cloudGeometryHeight" + i));
 
-  /* Movement---sampling offsets primarily. TODO */
+    /* Noise generation. TODO */
 
-  /* Geometry. TODO */
+    /* Movement---sampling offsets primarily. TODO */
 
-  /* Sampling. TODO */
-  /* TODO: debug goes here. */
+    /* Lighting. TODO */
+
+    /* Sampling. TODO */
+
+  }
 }
 
 private int setEnumSelect(AnimBool[] showEnum, int selected) {

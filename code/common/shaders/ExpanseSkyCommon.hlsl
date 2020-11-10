@@ -165,6 +165,11 @@ bool floatLT(float a, float b, float eps) {
   return a < b + eps;
 }
 
+/* Returns whether x is within [bounds.x, bounds.y]. */
+bool boundsCheck(float x, float2 bounds) {
+  return floatGT(x, bounds.x) && floatLT(x, bounds.y);
+}
+
 float erf(float x) {
   float sign_x = sign(x);
   x = abs(x);
@@ -208,6 +213,72 @@ float3 intersectSphere(float3 p, float3 d, float r) {
   return float3(0, 0, -1.0);
 }
 
+/* Return t value of plane intersection. If negative, there was no
+ * intersection at all, or if the intersection was outside the specified
+ * bounds. */
+float intersectXZAlignedPlane(float3 O, float3 d, float2 xExtent,
+  float2 zExtent, float height) {
+  /* Compute the plane intersection. */
+  float t = (height - O.y) / d.y;
+  float3 p = O + t * d;
+  if (floatGT(t, 0) && boundsCheck(p.x, xExtent) && boundsCheck(p.z, zExtent)) {
+    return t;
+  }
+  return -1;
+}
+
+/* Return entry (.x) and exit (.y) of box intersection.
+ * If both are negative, there was no intersection.
+ * If entry is negative but exit is not, this ray was cast from inside
+ * the box.
+ * TODO: edges have artifacts, kind of as expected. If artifacts show up
+ * later, this is certainly a place to look. */
+float2 intersectXZAlignedBoxVolume(float3 O, float3 d, float2 xExtent,
+  float2 yExtent, float2 zExtent) {
+  /* Compute the intersection with all 6 bounding planes. */
+  float2 t_x = (xExtent - O.x) / d.x;
+  float2 t_y = (yExtent - O.y) / d.y;
+  float2 t_z = (zExtent - O.z) / d.z;
+
+  /* Find the 1 or 2 points that are in bounds. */
+  float t[6] = {t_x.x, t_x.y,
+    t_y.x, t_y.y,
+    t_z.x, t_z.y};
+
+  float p0[6] = {O.y + t_x.x * d.y, O.y + t_x.y * d.y,
+    O.z + t_y.x * d.z, O.z + t_y.y * d.z,
+    O.x + t_z.x * d.x, O.x + t_z.y * d.x};
+  float2 bound0[6] = {yExtent, yExtent, zExtent, zExtent, xExtent, xExtent};
+
+  float p1[6] = {O.z + t_x.x * d.z, O.z + t_x.y * d.z,
+    O.x + t_y.x * d.x, O.x + t_y.y * d.x,
+    O.y + t_z.x * d.y, O.y + t_z.y * d.y};
+  float2 bound1[6] = {zExtent, zExtent, xExtent, xExtent, yExtent, yExtent};
+
+  float inBounds0 = -1;
+  float inBounds1 = -1;
+  for (int i = 0; i < 6; i++) {
+    if (floatGT(t[i], 0) && boundsCheck(p0[i], bound0[i])
+      && boundsCheck(p1[i], bound1[i])) {
+      /* This was a box intersection. Have we had one already? */
+      if (floatGT(inBounds0, 0)) {
+        inBounds1 = t[i];
+      } else {
+        inBounds0 = t[i];
+      }
+    }
+  }
+
+  return float2(min(inBounds0, inBounds1), max(inBounds0, inBounds1));
+}
+
+/* Returns t values of ray intersection with box volume. Third value indicates
+ * if there was an intersection at all; if negative, there was no
+ * intersection. */
+float3 intersectBoxVolume() {
+  return float3(-1, -1, -1);
+}
+
 /* Struct containing data for ray intersection queries. */
 struct SkyIntersectionData {
   float startT, endT;
@@ -224,7 +295,7 @@ SkyIntersectionData traceSkyVolume(float3 O, float3 d, float planetRadius,
 
   SkyIntersectionData toRet = {0, 0, false, false};
 
-  /* We have a hit if the intersection was succesful and if either point
+  /* We have a hit if the intersection was successful and if either point
    * is greater than zero (meaning we are in front of the ray, and not
    * behind it). */
   toRet.groundHit = t_ground.z >= 0.0 && (t_ground.x >= 0.0 || t_ground.y >= 0.0);
@@ -309,8 +380,24 @@ SkyIntersectionData traceSkyVolumeValid(float3 O, float3 d, float planetRadius,
 /***************************** COORDINATE SYSTEM ******************************/
 /******************************************************************************/
 
+float transformXToPlanetSpace(float x) {
+  return x - _planetOriginOffset.x;
+}
+
+float transformYToPlanetSpace(float y) {
+  return y - (-_planetRadius + _planetOriginOffset.y);
+}
+
+float transformZToPlanetSpace(float z) {
+  return z - _planetOriginOffset.z;
+}
+
+float3 transformPointToPlanetSpace(float3 p) {
+  return p - (float3(0, -_planetRadius, 0) + _planetOriginOffset.xyz);
+}
+
 float3 GetCameraPositionPlanetSpace() {
-  return _WorldSpaceCameraPos1.xyz - (float3(0, -_planetRadius, 0) + _planetOriginOffset.xyz);
+  return transformPointToPlanetSpace(_WorldSpaceCameraPos1.xyz);
 }
 
 /******************************************************************************/

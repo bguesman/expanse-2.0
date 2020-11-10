@@ -59,7 +59,7 @@ float voronoi2DSeeded(float2 uv, float2 cells, float2 seed_x, float2 seed_y) {
 }
 
 float voronoi2D(float2 uv, float2 cells) {
-  voronoi2DSeeded(uv, cells,
+  return voronoi2DSeeded(uv, cells,
     float2(EXPANSE_DEFAULT_SEED_X_1, EXPANSE_DEFAULT_SEED_X_2),
     float2(EXPANSE_DEFAULT_SEED_Y_1, EXPANSE_DEFAULT_SEED_Y_2));
 }
