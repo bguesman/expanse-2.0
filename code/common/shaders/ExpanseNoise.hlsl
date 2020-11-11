@@ -214,6 +214,68 @@ float worley3DLayeredSeeded(float3 uv, float3 startingGrid,
 /****************************** TRADITIONAL NOISE *****************************/
 /******************************************************************************/
 
+NoiseResultAndCoordinate value2DSeeded(float2 uv, float2 cells, float2 seed) {
+  /* Final result. */
+  NoiseResultAndCoordinate result;
+
+  /* Point on our grid. */
+  float2 p = uv * cells;
+
+  /* Generate the top left point of the cell. */
+  float2 tl = floor(uv * cells);
+
+  /* Grid points. */
+  float2 grid_00 = tl;
+  float2 grid_01 = tl + float2(0, 1);
+  float2 grid_10 = tl + float2(1, 0);
+  float2 grid_11 = tl + float2(1, 1);
+
+  /* Wraparound. */
+  grid_00 -= cells * floor(grid_00 / cells);
+  grid_01 -= cells * floor(grid_01 / cells);
+  grid_10 -= cells * floor(grid_10 / cells);
+  grid_11 -= cells * floor(grid_11 / cells);
+
+
+  /* Noise values. */
+  float noise_00 = random_2_1_seeded(grid_00, seed);
+  float noise_01 = random_2_1_seeded(grid_01, seed);
+  float noise_10 = random_2_1_seeded(grid_10, seed);
+  float noise_11 = random_2_1_seeded(grid_11, seed);
+
+  /* Lerp. */
+  float2 a = frac(p);
+  /* z. */
+  float noise_0 = lerp(noise_00, noise_01, smoothstep(0, 1, a.y));
+  float noise_1 = lerp(noise_10, noise_11, smoothstep(0, 1, a.y));
+  float noise = lerp(noise_0, noise_1, smoothstep(0, 1, a.x));
+
+  result.result = noise;
+  result.coordinate = float3(p, 0);
+  return result;
+}
+
+NoiseResultAndCoordinate value2D(float2 uv, float2 cells) {
+  return value2DSeeded(uv, cells,
+    float2(EXPANSE_DEFAULT_SEED_X_1, EXPANSE_DEFAULT_SEED_X_2));
+}
+
+float value2DLayered(float2 uv, float2 startingGrid,
+  float gridScaleFactor, float amplitudeFactor, int layers) {
+  float maxValue = 0.0;
+  float amplitude = 1.0;
+  float noise = 0.0;
+  for (int i = 0; i < layers; i++) {
+    NoiseResultAndCoordinate layerNoise = value2D(uv,
+      startingGrid);
+    noise += layerNoise.result * amplitude;
+    maxValue += amplitudeFactor;
+    amplitude *= amplitudeFactor;
+    startingGrid *= gridScaleFactor;
+  }
+  return noise / maxValue;
+}
+
 NoiseResultAndCoordinate value3DSeeded(float3 uv, float3 cells, float3 seed) {
   /* Final result. */
   NoiseResultAndCoordinate result;
@@ -278,22 +340,6 @@ NoiseResultAndCoordinate value3D(float3 uv, float3 cells) {
     float3(EXPANSE_DEFAULT_SEED_X_1, EXPANSE_DEFAULT_SEED_X_2, EXPANSE_DEFAULT_SEED_X_3));
 }
 
-float value3DLayered(float3 uv, float3 startingGrid,
-  float gridScaleFactor, float amplitudeFactor, int layers) {
-  float maxValue = 0.0;
-  float amplitude = 1.0;
-  float noise = 0.0;
-  for (int i = 0; i < layers; i++) {
-    NoiseResultAndCoordinate layerNoise = value3D(uv,
-      startingGrid);
-    noise += layerNoise.result * amplitude;
-    maxValue += amplitudeFactor;
-    amplitude *= amplitudeFactor;
-    startingGrid *= gridScaleFactor;
-  }
-  return noise / maxValue;
-}
-
 float value3DLayeredSeeded(float3 uv, float3 startingGrid,
   float gridScaleFactor, float amplitudeFactor, int layers, float3 seed) {
   float maxValue = 0.0;
@@ -302,6 +348,22 @@ float value3DLayeredSeeded(float3 uv, float3 startingGrid,
   for (int i = 0; i < layers; i++) {
     NoiseResultAndCoordinate layerNoise = value3DSeeded(uv,
       startingGrid, seed);
+    noise += layerNoise.result * amplitude;
+    maxValue += amplitudeFactor;
+    amplitude *= amplitudeFactor;
+    startingGrid *= gridScaleFactor;
+  }
+  return noise / maxValue;
+}
+
+float value3DLayered(float3 uv, float3 startingGrid,
+  float gridScaleFactor, float amplitudeFactor, int layers) {
+  float maxValue = 0.0;
+  float amplitude = 1.0;
+  float noise = 0.0;
+  for (int i = 0; i < layers; i++) {
+    NoiseResultAndCoordinate layerNoise = value3D(uv,
+      startingGrid);
     noise += layerNoise.result * amplitude;
     maxValue += amplitudeFactor;
     amplitude *= amplitudeFactor;

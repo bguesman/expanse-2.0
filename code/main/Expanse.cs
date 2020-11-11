@@ -460,7 +460,29 @@ public FloatParameter cloudGeometryHeight0, cloudGeometryHeight1, cloudGeometryH
 
 /* Movement---sampling offsets primarily. TODO */
 
-/* Lighting. TODO */
+/* Lighting. */
+/* 2D. */
+[Tooltip("Apparent thickness of this 2D cloud layer.")]
+public MinFloatParameter cloudThickness0, cloudThickness1, cloudThickness2,
+  cloudThickness3, cloudThickness4, cloudThickness5, cloudThickness6, cloudThickness7;
+/* 3D. */
+
+/* 2D and 3D. */
+[Tooltip("Density of this cloud layer.")]
+public MinFloatParameter cloudDensity0, cloudDensity1, cloudDensity2,
+  cloudDensity3, cloudDensity4, cloudDensity5, cloudDensity6, cloudDensity7;
+[Tooltip("Density attenuation distance for this cloud layer.")]
+public MinFloatParameter cloudDensityAttenuationDistance0, cloudDensityAttenuationDistance1, cloudDensityAttenuationDistance2,
+  cloudDensityAttenuationDistance3, cloudDensityAttenuationDistance4, cloudDensityAttenuationDistance5, cloudDensityAttenuationDistance6, cloudDensityAttenuationDistance7;
+[Tooltip("Density attenuation bias for this cloud layer.")]
+public MinFloatParameter cloudDensityAttenuationBias0, cloudDensityAttenuationBias1, cloudDensityAttenuationBias2,
+  cloudDensityAttenuationBias3, cloudDensityAttenuationBias4, cloudDensityAttenuationBias5, cloudDensityAttenuationBias6, cloudDensityAttenuationBias7;
+[Tooltip("Absorption coefficients for this cloud layer.")]
+public Vector3Parameter cloudAbsorptionCoefficients0, cloudAbsorptionCoefficients1, cloudAbsorptionCoefficients2,
+  cloudAbsorptionCoefficients3, cloudAbsorptionCoefficients4, cloudAbsorptionCoefficients5, cloudAbsorptionCoefficients6, cloudAbsorptionCoefficients7;
+[Tooltip("Scattering coefficients for this cloud layer.")]
+public Vector3Parameter cloudScatteringCoefficients0, cloudScatteringCoefficients1, cloudScatteringCoefficients2,
+  cloudScatteringCoefficients3, cloudScatteringCoefficients4, cloudScatteringCoefficients5, cloudScatteringCoefficients6, cloudScatteringCoefficients7;
 
 /* Sampling. TODO */
 /* TODO: debug goes here. */
@@ -522,12 +544,25 @@ public Expanse() : base() {
   /* Cloud layer initialization. */
   for (int i = 0; i < ExpanseCommon.kMaxCloudLayers; i++) {
     /* Enable only the first layer by default. */
+    /* Geometry. */
     this.GetType().GetField("cloudLayerEnabled" + i).SetValue(this, new BoolParameter(i==0));
     this.GetType().GetField("cloudGeometryType" + i).SetValue(this, new EnumParameter<ExpanseCommon.CloudGeometryType>(ExpanseCommon.CloudGeometryType.BoxVolume));
     this.GetType().GetField("cloudGeometryXExtent" + i).SetValue(this, new Vector2Parameter(new Vector2(-1000, 1000)));
     this.GetType().GetField("cloudGeometryYExtent" + i).SetValue(this, new Vector2Parameter(new Vector2(2000, 3000)));
     this.GetType().GetField("cloudGeometryZExtent" + i).SetValue(this, new Vector2Parameter(new Vector2(-1000, 1000)));
     this.GetType().GetField("cloudGeometryHeight" + i).SetValue(this, new FloatParameter(10000));
+
+    /* Lighting. */
+    /* 2D. */
+    this.GetType().GetField("cloudThickness" + i).SetValue(this, new MinFloatParameter(10, 0));
+    /* 3D. */
+    /* 2D and 3D. */
+    this.GetType().GetField("cloudDensity" + i).SetValue(this, new MinFloatParameter(100, 0));
+    this.GetType().GetField("cloudDensityAttenuationDistance" + i).SetValue(this, new MinFloatParameter(50000, 0));
+    this.GetType().GetField("cloudDensityAttenuationBias" + i).SetValue(this, new MinFloatParameter(50000, 0));
+    this.GetType().GetField("cloudAbsorptionCoefficients" + i).SetValue(this, new Vector3Parameter(new Vector3(8e-6f, 8e-6f, 8e-6f)));
+    this.GetType().GetField("cloudScatteringCoefficients" + i).SetValue(this, new Vector3Parameter(new Vector3(4e-6f, 4e-6f, 4e-6f)));
+
   }
 }
 
@@ -732,12 +767,23 @@ public override int GetHashCode() {
 
     /* Cloud Layers. */
     for (int i = 0; i < ExpanseCommon.kMaxCloudLayers; i++) {
+      /* Geometry. */
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudLayerEnabled" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudGeometryType>) this.GetType().GetField("cloudGeometryType" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryXExtent" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryYExtent" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryZExtent" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((FloatParameter) this.GetType().GetField("cloudGeometryHeight" + i).GetValue(this)).value.GetHashCode();
+
+      /* 2D. */
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudThickness" + i).GetValue(this)).value.GetHashCode();
+      /* 3D. */
+      /* 2D and 3D. */
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDensity" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDensityAttenuationDistance" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDensityAttenuationBias" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("cloudAbsorptionCoefficients" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("cloudScatteringCoefficients" + i).GetValue(this)).value.GetHashCode();
     }
   }
   return hash;
@@ -797,12 +843,23 @@ public int GetCloudHashCode() {
   unchecked {
     /* Cloud Layers. TODO: Unclear if all this is necessary. */
     for (int i = 0; i < ExpanseCommon.kMaxCloudLayers; i++) {
+      /* Geometry. */
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudLayerEnabled" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudGeometryType>) this.GetType().GetField("cloudGeometryType" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryXExtent" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryYExtent" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryZExtent" + i).GetValue(this)).value.GetHashCode();
       hash = hash * 23 + ((FloatParameter) this.GetType().GetField("cloudGeometryHeight" + i).GetValue(this)).value.GetHashCode();
+
+      /* 2D. */
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudThickness" + i).GetValue(this)).value.GetHashCode();
+      /* 3D. */
+      /* 2D and 3D. */
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDensity" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDensityAttenuationDistance" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDensityAttenuationBias" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("cloudAbsorptionCoefficients" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("cloudScatteringCoefficients" + i).GetValue(this)).value.GetHashCode();
     }
   }
   return hash;

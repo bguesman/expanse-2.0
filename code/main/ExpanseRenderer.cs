@@ -1148,9 +1148,13 @@ private void setGlobalCBufferQuality(CommandBuffer cmd, Expanse sky) {
 }
 
 private void setGlobalCBufferClouds(CommandBuffer cmd, Expanse sky) {
+  setGlobalCBufferCloudsGeometry(cmd, sky);
+  setGlobalCBufferCloudsLighting(cmd, sky);
+}
+
+private void setGlobalCBufferCloudsGeometry(CommandBuffer cmd, Expanse sky) {
   int n = (int) ExpanseCommon.kMaxCloudLayers;
 
-  /* Geometry. */
   float[] cloudGeometryType = new float[n]; /* Should be int, but unity can only set float arrays. */
   float[] cloudGeometryXMin = new float[n];
   float[] cloudGeometryXMax = new float[n];
@@ -1193,6 +1197,42 @@ private void setGlobalCBufferClouds(CommandBuffer cmd, Expanse sky) {
   cmd.SetGlobalFloatArray("_cloudGeometryZMin", cloudGeometryZMin);
   cmd.SetGlobalFloatArray("_cloudGeometryZMax", cloudGeometryZMax);
   cmd.SetGlobalFloatArray("_cloudGeometryHeight", cloudGeometryHeight);
+}
+
+private void setGlobalCBufferCloudsLighting(CommandBuffer cmd, Expanse sky) {
+  int n = (int) ExpanseCommon.kMaxCloudLayers;
+
+  float[] cloudThickness = new float[n];
+  float[] cloudDensity = new float[n];
+  float[] cloudDensityAttenuationDistance = new float[n];
+  float[] cloudDensityAttenuationBias = new float[n];
+  Vector4[] cloudAbsorptionCoefficients = new Vector4[n];
+  Vector4[] cloudScatteringCoefficients = new Vector4[n];
+
+  int numActiveLayers = 0;
+  for (int i = 0; i < n; i++) {
+    bool enabled = (((BoolParameter) sky.GetType().GetField("cloudLayerEnabled" + i).GetValue(sky)).value);
+    if (enabled) {
+      cloudThickness[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("cloudThickness" + i).GetValue(sky)).value;
+      cloudDensity[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("cloudDensity" + i).GetValue(sky)).value;
+      cloudDensityAttenuationDistance[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("cloudDensityAttenuationDistance" + i).GetValue(sky)).value;
+      cloudDensityAttenuationBias[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("cloudDensityAttenuationBias" + i).GetValue(sky)).value;
+
+      Vector3 aCoefficients = ((Vector3Parameter) sky.GetType().GetField("cloudAbsorptionCoefficients" + i).GetValue(sky)).value;
+      cloudAbsorptionCoefficients[numActiveLayers] = new Vector4(aCoefficients.x, aCoefficients.y, aCoefficients.z, 0);
+      Vector3 sCoefficients = ((Vector3Parameter) sky.GetType().GetField("cloudScatteringCoefficients" + i).GetValue(sky)).value;
+      cloudScatteringCoefficients[numActiveLayers] = new Vector4(sCoefficients.x, sCoefficients.y, sCoefficients.z, 0);
+
+      numActiveLayers++;
+    }
+  }
+
+  cmd.SetGlobalFloatArray("_cloudThickness", cloudThickness);
+  cmd.SetGlobalFloatArray("_cloudDensity", cloudDensity);
+  cmd.SetGlobalFloatArray("_cloudDensityAttenuationDistance", cloudDensityAttenuationDistance);
+  cmd.SetGlobalFloatArray("_cloudDensityAttenuationBias", cloudDensityAttenuationBias);
+  cmd.SetGlobalVectorArray("_cloudAbsorptionCoefficients", cloudAbsorptionCoefficients);
+  cmd.SetGlobalVectorArray("_cloudScatteringCoefficients", cloudScatteringCoefficients);
 }
 
 /******************************************************************************/

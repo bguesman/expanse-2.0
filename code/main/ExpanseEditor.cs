@@ -338,10 +338,21 @@ SerializedDataParameter[] cloudGeometryHeight
 /* Movement---sampling offsets primarily. TODO */
 
 /* Lighting. TODO */
-/* TODO: density control goes here. */
-
-
-
+/* 2D. */
+SerializedDataParameter[] cloudThickness
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+/* 3D. */
+/* 2D and 3D. */
+SerializedDataParameter[] cloudDensity
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDensityAttenuationDistance
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDensityAttenuationBias
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudAbsorptionCoefficients
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudScatteringCoefficients
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 
 /* Sampling. TODO */
 /* TODO: debug goes here. */
@@ -958,7 +969,7 @@ private void cloudGeometry(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle
       PropertyField(cloudGeometryXExtent[layerIndex], new UnityEngine.GUIContent("X Extent"));
       PropertyField(cloudGeometryYExtent[layerIndex], new UnityEngine.GUIContent("Y Extent"));
       PropertyField(cloudGeometryZExtent[layerIndex], new UnityEngine.GUIContent("Z Extent"));
-    } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.Plane){
+    } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.Plane) {
       PropertyField(cloudGeometryXExtent[layerIndex], new UnityEngine.GUIContent("X Extent"));
       PropertyField(cloudGeometryZExtent[layerIndex], new UnityEngine.GUIContent("Z Extent"));
       PropertyField(cloudGeometryHeight[layerIndex], new UnityEngine.GUIContent("Height"));
@@ -996,6 +1007,21 @@ private void cloudLighting(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle
   cloudLightingFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(cloudLightingFoldout, "Lighting", titleStyle);
 
   if (cloudLightingFoldout) {
+    if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume) {
+      /* 3D. */
+
+    } else {
+      /* 2D. */
+      PropertyField(cloudThickness[layerIndex], new UnityEngine.GUIContent("Apparent Thickness"));
+    }
+
+    /* 2D and 3D. */
+    PropertyField(cloudDensity[layerIndex], new UnityEngine.GUIContent("Density"));
+    PropertyField(cloudDensityAttenuationDistance[layerIndex], new UnityEngine.GUIContent("Density Attenuation Distance"));
+    PropertyField(cloudDensityAttenuationBias[layerIndex], new UnityEngine.GUIContent("Density Attenuation Bias"));
+    PropertyField(cloudAbsorptionCoefficients[layerIndex], new UnityEngine.GUIContent("Absorption Coefficients"));
+    PropertyField(cloudScatteringCoefficients[layerIndex], new UnityEngine.GUIContent("Scattering Coefficients"));
+
     EditorGUILayout.Space();
   }
 
@@ -1238,6 +1264,15 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     /* Movement---sampling offsets primarily. TODO */
 
     /* Lighting. TODO */
+    /* 2D. */
+    cloudThickness[i] = Unpack(o.Find("cloudThickness" + i));
+    /* 3D. */
+    /* 2D and 3D. */
+    cloudDensity[i] = Unpack(o.Find("cloudDensity" + i));
+    cloudDensityAttenuationDistance[i] = Unpack(o.Find("cloudDensityAttenuationDistance" + i));
+    cloudDensityAttenuationBias[i] = Unpack(o.Find("cloudDensityAttenuationBias" + i));
+    cloudAbsorptionCoefficients[i] = Unpack(o.Find("cloudAbsorptionCoefficients" + i));
+    cloudScatteringCoefficients[i] = Unpack(o.Find("cloudScatteringCoefficients" + i));
 
     /* Sampling. TODO */
 

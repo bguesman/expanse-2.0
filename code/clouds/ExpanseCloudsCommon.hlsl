@@ -11,14 +11,26 @@ CBUFFER_START(ExpanseCloud) // Expanse Cloud
 int _numActiveCloudLayers;
 
 /* Geometry. */
-float _cloudGeometryType[MAX_LAYERS];
-float _cloudGeometryXMin[MAX_LAYERS];
-float _cloudGeometryXMax[MAX_LAYERS];
-float _cloudGeometryYMin[MAX_LAYERS];
-float _cloudGeometryYMax[MAX_LAYERS];
-float _cloudGeometryZMin[MAX_LAYERS];
-float _cloudGeometryZMax[MAX_LAYERS];
-float _cloudGeometryHeight[MAX_LAYERS];
+#define MAX_CLOUD_LAYERS 8
+float _cloudGeometryType[MAX_CLOUD_LAYERS];
+float _cloudGeometryXMin[MAX_CLOUD_LAYERS];
+float _cloudGeometryXMax[MAX_CLOUD_LAYERS];
+float _cloudGeometryYMin[MAX_CLOUD_LAYERS];
+float _cloudGeometryYMax[MAX_CLOUD_LAYERS];
+float _cloudGeometryZMin[MAX_CLOUD_LAYERS];
+float _cloudGeometryZMax[MAX_CLOUD_LAYERS];
+float _cloudGeometryHeight[MAX_CLOUD_LAYERS];
+
+/* Lighting. */
+/* 2D. */
+float _cloudThickness[MAX_CLOUD_LAYERS];
+/* 3D. */
+/* 2D and 3D. */
+float _cloudDensity[MAX_CLOUD_LAYERS];
+float _cloudDensityAttenuationDistance[MAX_CLOUD_LAYERS];
+float _cloudDensityAttenuationBias[MAX_CLOUD_LAYERS];
+float4 _cloudAbsorptionCoefficients[MAX_CLOUD_LAYERS];
+float4 _cloudScatteringCoefficients[MAX_CLOUD_LAYERS];
 
 CBUFFER_END // Expanse Cloud
 

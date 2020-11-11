@@ -4,6 +4,7 @@ SKY
 
 TODO LIST:
   -done!
+  -overall ambient multiplier for cubemap
 
 KNOWN BUGS:
   -big stars that aren't affected by the size params
@@ -28,6 +29,8 @@ KNOWN BUGS:
     see this huge circle artifact around the zenith of the sky.
 
   -Perlin noise grid size < 3 bug
+
+  -super tiny seam in theta coordinate?
 
 
 FUTURE FEATURE LIST:
@@ -56,4 +59,25 @@ CLOUDS
 ///////////////
 
 TODO LIST:
-  -
+  -checkbox for bodies for if they affect clouds so that we can add bodies
+  without them having to light the clouds and slow things down
+
+  -2D
+    -some kind of self shadowing hack based on density and derivative of
+    low mipped texture in each direction?
+    -noise generation. for each layer, 6 noises, generated or texture.
+      -coverage
+      -base
+      -structure (remap low freq)
+      -detail (remap high freq)
+      -big warp (low frequency warping)
+      -detail warp (high frequency warping of detail texture)
+    -movement
+      -uv offsets for each texture
+      -warping?
+    -lighting
+      -phase function from nubis
+    -sampling
+      -
+
+Parameters:

@@ -579,13 +579,24 @@ float4 SkyFullscreen(Varyings input) : SV_Target {
 /******************************************************************************/
 
 CloudResult RenderClouds(Varyings input, float3 O, float3 d, bool cubemap) {
+  /* TODO: geo test, pass depth to shade clouds. */
+  /* Get the depth and see if we hit any geometry. */
+  float linearDepth = Linear01Depth(LoadCameraDepth(input.positionCS.xy),
+    _ZBufferParams) * _ProjectionParams.z;
+  /* Make sure depth is distance to view aligned plane. */
+  float3 cameraCenterD = -GetSkyViewDirWS(float2(_ScreenParams.x/2, _ScreenParams.y/2));
+  float cosTheta = dot(cameraCenterD, d);
+  float depth = linearDepth / max(cosTheta, 0.00001);
+  float farClip = _ProjectionParams.z / max(cosTheta, 0.00001);
+  bool geoHit = depth < farClip - 0.001;
+
   /* Shade the clouds. */
-  CloudShadingResult result = shadeClouds(O, d);
+  CloudShadingResult result = shadeClouds(O, d, depth, geoHit);
 
   /* Final result. */
   CloudResult r;
   r.color = float4(result.color, 1);
-  r.transmittance = float4(1, 1, 1, 1);
+  r.transmittance = float4(result.transmittance, result.blend);
   return r;
 }
 
@@ -599,7 +610,12 @@ CloudResult CloudsFullscreen(Varyings input) {
   float3 O = GetCameraPositionPlanetSpace();
   float3 d = -GetSkyViewDirWS(input.positionCS.xy);
   UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-  return RenderClouds(input, O, d, false);
+  CloudResult cloudResult = RenderClouds(input, O, d, false);
+  /* Optionally, dither. */
+  if (_useDither) {
+    cloudResult.color *= 1 + (1.0/32.0) * random_3_1(d);
+  }
+  return cloudResult;
 }
 
 /******************************************************************************/
@@ -626,11 +642,22 @@ float4 Composite(Varyings input, bool cubemap, float exposure) {
   float4 cloudTAndBlend = SAMPLE_TEXTURE2D_LOD(_currFullscreenCloudTransmittanceRT,
     s_linear_clamp_sampler, textureCoordinate, 0);
   float3 cloudT = cloudTAndBlend.xyz;
-  float3 cloudBlend = cloudTAndBlend.w;
+  float cloudBlend = cloudTAndBlend.w;
 
   /* TODO: blend clouds properly. */
-  float3 finalColor = exposure * (cloudCol + skyCol.xyz);
+  /* First, composite the clouds on top of the sky according to the cloud
+   * transmittance. */
+  float3 cloudsOnSky = cloudCol * (1-cloudT) + skyCol.xyz * cloudT;
+  /* Then, composite the sky color on top of the clouds according to the
+   * blend transmittance to fake aerial perspective. */
+  float3 finalColor = cloudsOnSky * cloudBlend + skyCol.xyz * (1 - cloudBlend);
+  /* Finally, multiply by exposure. */
+  if (!cubemap) {
+    finalColor *= exposure;
+  }
 
+  /* TODO: will have to account for cloud transmittance here. Probably
+   * use skyCol.w * dot(cloudT, float3(1,1,1)/3). */
   return float4(finalColor, skyCol.w);
 }
 

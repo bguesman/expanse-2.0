@@ -1,16 +1,83 @@
 #include "../common/shaders/ExpanseSkyCommon.hlsl"
 #include "../common/shaders/ExpanseNoise.hlsl"
+#include "../sky/ExpanseSkyMapping.hlsl"
 #include "ExpanseCloudsCommon.hlsl"
 
 /* As a note---all cloud volume computations are done still done in
  * planet space. */
 
 struct CloudShadingResult {
-  float3 color;
-  float4 tAndBlend;
+  float3 color;             /* Color result. */
+  float3 transmittance;     /* Transmittance of the clouds. */
+  float blend;              /* Transmittance to the clouds. */
+  bool hit;                 /* Whether or not we intersected the clouds. */
+  float t_hit;              /* Hit point to use in sorting. */
 };
 
-CloudShadingResult shadeCloudLayerPlaneGeometry(float3 O, float3 d, int i) {
+CloudShadingResult cloudNoIntersectionResult() {
+  CloudShadingResult result;
+  result.color = float3(0, 0, 0);
+  result.transmittance = float3(1, 1, 1);
+  result.blend = 1;
+  result.hit = false;
+  result.t_hit = -1;
+  return result;
+}
+
+float3 lightCloudLayerPlaneGeometryBody(float3 samplePoint, float thickness,
+  float density, float3 absorptionCoefficients, float3 scatteringCoefficients,
+  float3 L, float3 lightColor) {
+  /* Do an occlusion check for lighting. */
+  SkyIntersectionData lightIntersection = traceSkyVolume(samplePoint, L,
+    _planetRadius, _atmosphereRadius);
+  float3 result = float3(0, 0, 0);
+  /* TODO: we need to fudge this because it looks bad having a
+   * flat line between shadow and no shadow. */
+  if (!lightIntersection.groundHit) {
+    /* HACK: to get rid of the super intense shadow/lit split we get from the
+     * intersection, test how close we are to the horizon line. It may
+     * be better to do this the other way around---push more light into
+     * clouds that are technically occluded. */
+    float r = length(samplePoint);
+    float mu = dot(normalize(samplePoint), L);
+    float h = r - _planetRadius;
+    float cos_h = -safeSqrt(h * (2 * _planetRadius + h)) / (_planetRadius + h);
+    float shadowBlur = 1 - pow(saturate(0.001 / abs(cos_h - mu)), 0.25);
+
+    float t_lightHit = lightIntersection.endT - lightIntersection.startT;
+    /* Compute in-scattering via a hack. We will assume
+     * 1. That there is no volumetric shadowing for 2d clouds like this.
+     * 2. That the single scattering is integrated directly upward along
+     * the implicit cloud volume.
+     *
+     * This lets us integrate in-scattering analytically. */
+    float2 lightTransmittanceCoord = mapSky2DCoord(r, mu,
+      _atmosphereRadius, _planetRadius, t_lightHit,
+      false, _resT.y);
+    /* TODO: probably unnecessary to compute analytical transmittance here, since
+     * we will unlikely be in a height fog layer and also in a cloud. */
+    float3 T_sampleL = shadowBlur * exp(sampleSkyTTextureRaw(lightTransmittanceCoord));
+
+    result = (1 - exp(-thickness * density * absorptionCoefficients))
+      * (T_sampleL * lightColor * scatteringCoefficients/absorptionCoefficients);
+  }
+  return result;
+}
+
+float3 lightCloudLayerPlaneGeometry(float3 samplePoint, float thickness,
+  float density, float3 absorptionCoefficients, float3 scatteringCoefficients) {
+  float3 color = float3(0, 0, 0);
+  for (int i = 0; i < _numActiveBodies; i++) {
+    float3 L = _bodyDirection[i];
+    float3 lightColor = _bodyLightColor[i].xyz;
+    color += lightCloudLayerPlaneGeometryBody(samplePoint, thickness,
+      density, absorptionCoefficients, scatteringCoefficients, L, lightColor);
+  }
+  return color;
+}
+
+CloudShadingResult shadeCloudLayerPlaneGeometry(float3 O, float3 d, int i,
+  float depth, bool geoHit, SkyIntersectionData skyIntersection) {
   /* Final result. */
   CloudShadingResult result;
 
@@ -24,34 +91,71 @@ CloudShadingResult shadeCloudLayerPlaneGeometry(float3 O, float3 d, int i) {
   float t_hit = intersectXZAlignedPlane(O, d, xExtent, zExtent, height);
 
   /* We hit nothing. */
-  if (t_hit < 0) {
-    result.color = float3(0, 0, 0);
-    result.tAndBlend = float4(1, 1, 1, 0);
-    return result;
+  if (t_hit < 0 || (geoHit && depth < t_hit)) {
+    return cloudNoIntersectionResult();
   }
 
+  result.hit = true;
+  result.t_hit = t_hit;
+
   /* Compute the UV coordinate from the intersection point. */
-  float3 sample = O + t_hit * d;
-  float u = (sample.x - xExtent.x) / (xExtent.y - xExtent.x);
-  float v = (sample.z - zExtent.x) / (zExtent.y - zExtent.x);
+  float3 samplePoint = O + t_hit * d;
+  float u = (samplePoint.x - xExtent.x) / (xExtent.y - xExtent.x);
+  float v = (samplePoint.z - zExtent.x) / (zExtent.y - zExtent.x);
 
-  /* For now, compute some noise. */
-  float noise = 3000 * worley2D(float2(u, v), float2(128, 128));
+  /* For now, just compute some layered noise. */
+  float noise = saturate(value2DLayered(float2(u, v), float2(32*(i+1), 32*(i+1)), 2, 0.5, 6)-0.3);
 
-  result.color = float3(noise, noise, noise);
-  result.tAndBlend = float4(0, 0, 0, 0);
+  /* Compute the thickness and density from the noise. */
+  float thickness = noise * _cloudThickness[i];
+  float density = _cloudDensity[i];
+
+  /* Compute the density attenuation factor as a function of distance from
+   * the cloud layer's origin. */
+  float2 layerOrigin = float2(dot(xExtent, float2(1, 1))/2, dot(zExtent, float2(1, 1))/2);
+  float distFromOrigin = length(layerOrigin - samplePoint.xz);
+  float distanceAttenuation = saturate(exp(-(distFromOrigin-_cloudDensityAttenuationBias[i])/_cloudDensityAttenuationDistance[i]));
+  density *= distanceAttenuation;
+
+  /* Optical depth is just density times thickness, since density is constant. */
+  float opticalDepth = density * thickness;
+
+  /* Compute cloud transmittance from optical depth and absorption
+   * coefficients. TODO: Maybe some kind of thickness hack based on light sample
+   * direction also? */
+  result.transmittance = exp(-_cloudAbsorptionCoefficients[i].xyz * opticalDepth);
+
+  /* Light the clouds. */
+  result.color = lightCloudLayerPlaneGeometry(samplePoint, thickness, density,
+    _cloudAbsorptionCoefficients[i].xyz, _cloudScatteringCoefficients[i].xyz);
+
+  /* Compute the blend transmittance by sampling the transmittance to the
+   * sample point. */
+  /* TODO: analytical transmittance too? Probably
+   * not since it's attenuated. I don't know. */
+  float2 oToSample = mapSky2DCoord(length(O), dot(normalize(O), d),
+    _atmosphereRadius, _planetRadius, skyIntersection.endT,
+    skyIntersection.groundHit, _resT.y);
+  float2 sampleOut = mapSky2DCoord(length(samplePoint), dot(normalize(samplePoint), d),
+    _atmosphereRadius, _planetRadius, skyIntersection.endT - t_hit,
+    skyIntersection.groundHit, _resT.y);
+  float3 t_oToSample = sampleSkyTTextureRaw(oToSample);
+  float3 t_sampleOut = sampleSkyTTextureRaw(sampleOut);
+  float3 blendTransmittanceColor = exp(t_oToSample - max(t_oToSample, t_sampleOut)
+   + computeTransmittanceDensityAttenuation(O, d, t_hit));
+  result.blend = dot(blendTransmittanceColor, float3(1, 1, 1) / 3.0);
+
   return result;
 }
 
-CloudShadingResult shadeCloudLayerSphereGeometry(float3 O, float3 d, int i) {
+CloudShadingResult shadeCloudLayerSphereGeometry(float3 O, float3 d, int i,
+  float depth, bool geoHit, SkyIntersectionData skyIntersection) {
   /* TODO */
-  CloudShadingResult result;
-  result.color = float3(0, 0, 0);
-  result.tAndBlend = float4(0, 0, 0, 0);
-  return result;
+  return cloudNoIntersectionResult();
 }
 
-CloudShadingResult shadeCloudLayerBoxVolumeGeometry(float3 O, float3 d, int i) {
+CloudShadingResult shadeCloudLayerBoxVolumeGeometry(float3 O, float3 d, int i,
+  float depth, bool geoHit, SkyIntersectionData skyIntersection) {
   /* Final result. */
   CloudShadingResult result;
 
@@ -67,16 +171,12 @@ CloudShadingResult shadeCloudLayerBoxVolumeGeometry(float3 O, float3 d, int i) {
 
   /* We hit nothing. */
   if (t_hit.x < 0 && t_hit.y < 0) {
-    result.color = float3(0, 0, 0);
-    result.tAndBlend = float4(1, 1, 1, 0);
-    return result;
+    return cloudNoIntersectionResult();
   }
 
   /* TODO: we are inside the cloud volume. */
   if (t_hit.x < 0) {
-    result.color = float3(0, 0, 0);
-    result.tAndBlend = float4(1, 1, 1, 0);
-    return result;
+    return cloudNoIntersectionResult();
   }
 
   /* We're outside the cloud volume, and we hit it. */
@@ -91,25 +191,80 @@ CloudShadingResult shadeCloudLayerBoxVolumeGeometry(float3 O, float3 d, int i) {
   float noise = 1000 * worley3D(float3(u, v, w), float3(128, 128, 128)).result;
 
   result.color = float3(noise, noise, noise);
-  result.tAndBlend = float4(0, 0, 0, 0);
+  result.transmittance = float3(0, 0, 0);
+  result.blend = 0;
+  result.hit = true;
+  result.t_hit = t_hit.x;
   return result;
 }
 
-CloudShadingResult shadeCloudLayer(float3 O, float3 d, int i) {
+CloudShadingResult shadeCloudLayer(float3 O, float3 d, int i, float depth,
+  bool geoHit) {
+  SkyIntersectionData skyIntersection = traceSkyVolume(O, d,
+   _planetRadius, _atmosphereRadius);
   switch (_cloudGeometryType[i]) {
     case 0:
-      return shadeCloudLayerPlaneGeometry(O, d, i);
+      return shadeCloudLayerPlaneGeometry(O, d, i, depth, geoHit, skyIntersection);
     case 1:
-      return shadeCloudLayerSphereGeometry(O, d, i);
+      return shadeCloudLayerSphereGeometry(O, d, i, depth, geoHit, skyIntersection);
     case 2:
-      return shadeCloudLayerBoxVolumeGeometry(O, d, i);
+      return shadeCloudLayerBoxVolumeGeometry(O, d, i, depth, geoHit, skyIntersection);
     default:
-      return shadeCloudLayerPlaneGeometry(O, d, i);
+      return cloudNoIntersectionResult();
   }
 }
 
-CloudShadingResult shadeClouds(float3 O, float3 d) {
-  /* Final result. */
-  /* TODO: blending decisions? */
-  return shadeCloudLayer(O, d, 0);
+CloudShadingResult shadeClouds(float3 O, float3 d, float depth, bool geoHit) {
+
+  /* Idea for blending.
+   *  - sort based on t_hit.
+   *  - composite cloud colors via regular blending.
+   *  - determine transmittance to return by multiplying all transmittances.
+   *  - determine blend to return via averaging, probably weighted by
+   *  tranmittance so that wispy clouds in front of a big cloud don't
+   *  get the majority of the blending.
+   *    -we'll see how this looks, but if we have to we could pull
+   *    in the sky frame buffer right here and composite each blend
+   *    layer individually. */
+
+  /* Loop counters. */
+  int i, j;
+
+  /* Store all the results to sort later. */
+  CloudShadingResult layerResult[MAX_CLOUD_LAYERS];
+  for (i = 0; i < MAX_CLOUD_LAYERS; i++) {
+    layerResult[i] = cloudNoIntersectionResult();
+  }
+  for (i = 0; i < _numActiveCloudLayers; i++) {
+    layerResult[i] = shadeCloudLayer(O, d, i, depth, geoHit);
+  }
+
+  /* Sort the results using bubble sort, which is fast if we only have
+   * at most 8 results to sort. */
+  for (i = 0; i < _numActiveCloudLayers-1; i++) {
+    for (j = 0; j < _numActiveCloudLayers - i - 1; j++) {
+      if (layerResult[j].t_hit > layerResult[j+1].t_hit) {
+        CloudShadingResult temp = layerResult[j+1];
+        layerResult[j+1] = layerResult[j];
+        layerResult[j] = temp;
+      }
+    }
+  }
+
+  /* Now, composite the results, alpha-blending in order. */
+  CloudShadingResult result = cloudNoIntersectionResult();
+  float blendNormalization = 0.0;
+  for (i = 0; i < _numActiveCloudLayers; i++) {
+    CloudShadingResult layer = layerResult[i];
+    result.color = result.color * layer.transmittance + layer.color;
+    result.transmittance *= layer.transmittance;
+    float monochromeTransmittance = dot(2-layer.transmittance, float3(1, 1, 1)/3);
+    result.blend += layer.blend * monochromeTransmittance;
+    blendNormalization += monochromeTransmittance;
+  }
+  if (blendNormalization > 0) {
+    result.blend = result.blend / blendNormalization;
+  }
+
+  return result;
 }
