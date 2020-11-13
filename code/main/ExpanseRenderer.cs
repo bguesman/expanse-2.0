@@ -1097,12 +1097,24 @@ private void DispatchCloudCompute2D(CommandBuffer cmd, Expanse sky, int layer,
       /* Gather and set parameters. */
       ExpanseCommon.CloudNoiseType noiseType = ((EnumParameter<ExpanseCommon.CloudNoiseType>) sky.GetType().GetField(layerName[i] + "NoiseType" + layerIndex).GetValue(sky)).value;
       string kernelName = ExpanseCommon.cloudNoiseTypeToKernelName[noiseType] + "2D";
+      Vector2 gridScale = ((Vector2Parameter) sky.GetType().GetField(layerName[i] + "GridScale" + layerIndex).GetValue(sky)).value;
+      int octaves = ((ClampedIntParameter) sky.GetType().GetField(layerName[i] + "Octaves" + layerIndex).GetValue(sky)).value;
+      float octaveScale = ((MinFloatParameter) sky.GetType().GetField(layerName[i] + "OctaveScale" + layerIndex).GetValue(sky)).value;
+      float octaveMultiplier = ((MinFloatParameter) sky.GetType().GetField(layerName[i] + "OctaveMultiplier" + layerIndex).GetValue(sky)).value;
 
       /* HACK: workaround overwriting data. */
       ComputeShader cs = (ComputeShader) UnityEngine.Object.Instantiate(m_cloudCS);
       int handle = cs.FindKernel(kernelName);
+
+      /* Set all the parameters. */
       cs.SetTexture(handle, "Noise_2D", noiseTexture[i]);
       cs.SetVector("_resNoise", new Vector4(resolution[i], resolution[i], 0, 0));
+      cs.SetVector("_gridScale", new Vector4(gridScale.x, gridScale.y, 1, 1));
+      cs.SetFloat("_octaveScale", octaveScale);
+      cs.SetFloat("_octaveMultiplier", octaveMultiplier);
+      cs.SetInt("_octaves", octaves);
+
+      /* Dispatch! */
       cmd.DispatchCompute(cs, handle,
         (int) resolution[i] / 8,
         (int) resolution[i] / 8, 1);

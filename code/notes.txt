@@ -67,6 +67,9 @@ TODO LIST:
   texture array and copy the regular fullscreen textures into that for
   compositing.
 
+  -maybe just don't allow grid size in y direction to change. make it a
+  function of geometry of box volume and x and z grid sizes.
+
   -2D
     -some kind of self shadowing hack based on density and derivative of
     low mipped texture in each direction?

@@ -110,7 +110,7 @@ CloudShadingResult shadeCloudLayerPlaneGeometry(float3 O, float3 d, int i,
     float2(u, v), 0).x;
 
   /* Remap base noise according to coverage. */
-  float noise = remap(baseNoise, coverageNoise, 1.0, 0.0, 1.0);
+  float noise = max(remap(baseNoise, coverageNoise, 1.0, 0.0, 1.0), 0);
 
   /* Compute the thickness and density from the noise. */
   float thickness = noise * _cloudThickness[i];

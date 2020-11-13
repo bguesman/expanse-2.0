@@ -17,37 +17,41 @@ RW_TEXTURE2D(float, Noise_2D);
 RW_TEXTURE3D(float, Noise_3D);
 
 float4 _resNoise;
+float4 _gridScale;
+int _octaves;
+float _octaveScale;
+float _octaveMultiplier;
 
 [numthreads(8,8,1)]
 void VALUE2D(uint3 id : SV_DispatchThreadID) {
   float2 uv = (id.xy + 0.5) / _resNoise.xy;
-  float noise = value2DLayered(uv, float2(16, 16),
-    2, 0.5, 6);
-  Noise_2D[id.xy] = noise;
+  float noise = value2DLayered(uv, max(float2(1, 1), _gridScale.xy),
+    _octaveScale, _octaveMultiplier, _octaves);
+  Noise_2D[id.xy] = saturate(noise);
 }
 
 [numthreads(8,8,1)]
 void PERLIN2D(uint3 id : SV_DispatchThreadID) {
   float2 uv = (id.xy + 0.5) / _resNoise.xy;
-  float noise = perlin2DLayered(uv, float2(16, 16),
-    2, 0.5, 6);
-  Noise_2D[id.xy] = noise;
+  float noise = perlin2DLayered(uv, max(float2(1, 1), _gridScale.xy),
+    _octaveScale, _octaveMultiplier, _octaves);
+  Noise_2D[id.xy] = saturate(noise);
 }
 
 [numthreads(8,8,1)]
 void VORONOI2D(uint3 id : SV_DispatchThreadID) {
   float2 uv = (id.xy + 0.5) / _resNoise.xy;
-  float noise = voronoi2DLayered(uv, float2(16, 16),
-    2, 0.5, 6);
-  Noise_2D[id.xy] = noise;
+  float noise = voronoi2DLayered(uv, max(float2(1, 1), _gridScale.xy),
+    _octaveScale, _octaveMultiplier, _octaves);
+  Noise_2D[id.xy] = saturate(noise);
 }
 
 [numthreads(8,8,1)]
 void WORLEY2D(uint3 id : SV_DispatchThreadID) {
   float2 uv = (id.xy + 0.5) / _resNoise.xy;
-  float noise = worley2DLayered(uv, float2(16, 16),
-    2, 0.5, 6);
-  Noise_2D[id.xy] = noise;
+  float noise = worley2DLayered(uv, max(float2(1, 1), _gridScale.xy),
+    _octaveScale, _octaveMultiplier, _octaves);
+  Noise_2D[id.xy] = saturate(noise);
 }
 
 [numthreads(8,8,8)]

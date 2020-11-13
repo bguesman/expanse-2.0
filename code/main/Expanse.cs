@@ -495,6 +495,18 @@ public TextureParameter cloudCoverageNoiseTexture0, cloudCoverageNoiseTexture1, 
 [Tooltip("Coverage noise type for this cloud layer.")]
 public EnumParameter<ExpanseCommon.CloudNoiseType> cloudCoverageNoiseType0, cloudCoverageNoiseType1, cloudCoverageNoiseType2,
   cloudCoverageNoiseType3, cloudCoverageNoiseType4, cloudCoverageNoiseType5, cloudCoverageNoiseType6, cloudCoverageNoiseType7;
+[Tooltip("Scale of 0th octave.")]
+public Vector2Parameter cloudCoverageGridScale0, cloudCoverageGridScale1, cloudCoverageGridScale2,
+  cloudCoverageGridScale3, cloudCoverageGridScale4, cloudCoverageGridScale5, cloudCoverageGridScale6, cloudCoverageGridScale7;
+[Tooltip("Number of octaves.")]
+public ClampedIntParameter cloudCoverageOctaves0, cloudCoverageOctaves1, cloudCoverageOctaves2,
+  cloudCoverageOctaves3, cloudCoverageOctaves4, cloudCoverageOctaves5, cloudCoverageOctaves6, cloudCoverageOctaves7;
+[Tooltip("How much to scale each successive octave by.")]
+public MinFloatParameter cloudCoverageOctaveScale0, cloudCoverageOctaveScale1, cloudCoverageOctaveScale2,
+  cloudCoverageOctaveScale3, cloudCoverageOctaveScale4, cloudCoverageOctaveScale5, cloudCoverageOctaveScale6, cloudCoverageOctaveScale7;
+[Tooltip("How much to multiply the intensity of each successive octave by.")]
+public MinFloatParameter cloudCoverageOctaveMultiplier0, cloudCoverageOctaveMultiplier1, cloudCoverageOctaveMultiplier2,
+  cloudCoverageOctaveMultiplier3, cloudCoverageOctaveMultiplier4, cloudCoverageOctaveMultiplier5, cloudCoverageOctaveMultiplier6, cloudCoverageOctaveMultiplier7;
 /* Base. */
 [Tooltip("Whether to use procedural noise or a texture for the base noise layer.")]
 public BoolParameter cloudBaseNoiseProcedural0, cloudBaseNoiseProcedural1, cloudBaseNoiseProcedural2,
@@ -508,6 +520,18 @@ public TextureParameter cloudBaseNoiseTexture3D0, cloudBaseNoiseTexture3D1, clou
 [Tooltip("Base noise type for this cloud layer.")]
 public EnumParameter<ExpanseCommon.CloudNoiseType> cloudBaseNoiseType0, cloudBaseNoiseType1, cloudBaseNoiseType2,
   cloudBaseNoiseType3, cloudBaseNoiseType4, cloudBaseNoiseType5, cloudBaseNoiseType6, cloudBaseNoiseType7;
+[Tooltip("Scale of 0th octave.")]
+public Vector2Parameter cloudBaseGridScale0, cloudBaseGridScale1, cloudBaseGridScale2,
+  cloudBaseGridScale3, cloudBaseGridScale4, cloudBaseGridScale5, cloudBaseGridScale6, cloudBaseGridScale7;
+[Tooltip("Number of octaves.")]
+public ClampedIntParameter cloudBaseOctaves0, cloudBaseOctaves1, cloudBaseOctaves2,
+  cloudBaseOctaves3, cloudBaseOctaves4, cloudBaseOctaves5, cloudBaseOctaves6, cloudBaseOctaves7;
+[Tooltip("How much to scale each successive octave by.")]
+public MinFloatParameter cloudBaseOctaveScale0, cloudBaseOctaveScale1, cloudBaseOctaveScale2,
+  cloudBaseOctaveScale3, cloudBaseOctaveScale4, cloudBaseOctaveScale5, cloudBaseOctaveScale6, cloudBaseOctaveScale7;
+[Tooltip("How much to multiply the intensity of each successive octave by.")]
+public MinFloatParameter cloudBaseOctaveMultiplier0, cloudBaseOctaveMultiplier1, cloudBaseOctaveMultiplier2,
+  cloudBaseOctaveMultiplier3, cloudBaseOctaveMultiplier4, cloudBaseOctaveMultiplier5, cloudBaseOctaveMultiplier6, cloudBaseOctaveMultiplier7;
 /* Structure. */
 [Tooltip("Whether to use procedural noise or a texture for the structure noise layer.")]
 public BoolParameter cloudStructureNoiseProcedural0, cloudStructureNoiseProcedural1, cloudStructureNoiseProcedural2,
@@ -521,6 +545,18 @@ public TextureParameter cloudStructureNoiseTexture3D0, cloudStructureNoiseTextur
 [Tooltip("Structure noise type for this cloud layer.")]
 public EnumParameter<ExpanseCommon.CloudNoiseType> cloudStructureNoiseType0, cloudStructureNoiseType1, cloudStructureNoiseType2,
   cloudStructureNoiseType3, cloudStructureNoiseType4, cloudStructureNoiseType5, cloudStructureNoiseType6, cloudStructureNoiseType7;
+[Tooltip("Scale of 0th octave.")]
+public Vector2Parameter cloudStructureGridScale0, cloudStructureGridScale1, cloudStructureGridScale2,
+  cloudStructureGridScale3, cloudStructureGridScale4, cloudStructureGridScale5, cloudStructureGridScale6, cloudStructureGridScale7;
+[Tooltip("Number of octaves.")]
+public ClampedIntParameter cloudStructureOctaves0, cloudStructureOctaves1, cloudStructureOctaves2,
+  cloudStructureOctaves3, cloudStructureOctaves4, cloudStructureOctaves5, cloudStructureOctaves6, cloudStructureOctaves7;
+[Tooltip("How much to scale each successive octave by.")]
+public MinFloatParameter cloudStructureOctaveScale0, cloudStructureOctaveScale1, cloudStructureOctaveScale2,
+  cloudStructureOctaveScale3, cloudStructureOctaveScale4, cloudStructureOctaveScale5, cloudStructureOctaveScale6, cloudStructureOctaveScale7;
+[Tooltip("How much to multiply the intensity of each successive octave by.")]
+public MinFloatParameter cloudStructureOctaveMultiplier0, cloudStructureOctaveMultiplier1, cloudStructureOctaveMultiplier2,
+  cloudStructureOctaveMultiplier3, cloudStructureOctaveMultiplier4, cloudStructureOctaveMultiplier5, cloudStructureOctaveMultiplier6, cloudStructureOctaveMultiplier7;
 /* Detail. */
 [Tooltip("Whether to use procedural noise or a texture for the detail noise layer.")]
 public BoolParameter cloudDetailNoiseProcedural0, cloudDetailNoiseProcedural1, cloudDetailNoiseProcedural2,
@@ -534,6 +570,18 @@ public TextureParameter cloudDetailNoiseTexture3D0, cloudDetailNoiseTexture3D1, 
 [Tooltip("Detail noise type for this cloud layer.")]
 public EnumParameter<ExpanseCommon.CloudNoiseType> cloudDetailNoiseType0, cloudDetailNoiseType1, cloudDetailNoiseType2,
   cloudDetailNoiseType3, cloudDetailNoiseType4, cloudDetailNoiseType5, cloudDetailNoiseType6, cloudDetailNoiseType7;
+[Tooltip("Scale of 0th octave.")]
+public Vector2Parameter cloudDetailGridScale0, cloudDetailGridScale1, cloudDetailGridScale2,
+  cloudDetailGridScale3, cloudDetailGridScale4, cloudDetailGridScale5, cloudDetailGridScale6, cloudDetailGridScale7;
+[Tooltip("Number of octaves.")]
+public ClampedIntParameter cloudDetailOctaves0, cloudDetailOctaves1, cloudDetailOctaves2,
+  cloudDetailOctaves3, cloudDetailOctaves4, cloudDetailOctaves5, cloudDetailOctaves6, cloudDetailOctaves7;
+[Tooltip("How much to scale each successive octave by.")]
+public MinFloatParameter cloudDetailOctaveScale0, cloudDetailOctaveScale1, cloudDetailOctaveScale2,
+  cloudDetailOctaveScale3, cloudDetailOctaveScale4, cloudDetailOctaveScale5, cloudDetailOctaveScale6, cloudDetailOctaveScale7;
+[Tooltip("How much to multiply the intensity of each successive octave by.")]
+public MinFloatParameter cloudDetailOctaveMultiplier0, cloudDetailOctaveMultiplier1, cloudDetailOctaveMultiplier2,
+  cloudDetailOctaveMultiplier3, cloudDetailOctaveMultiplier4, cloudDetailOctaveMultiplier5, cloudDetailOctaveMultiplier6, cloudDetailOctaveMultiplier7;
 /* Base Warp. */
 [Tooltip("Whether to use procedural noise or a texture for the base warp noise layer.")]
 public BoolParameter cloudBaseWarpNoiseProcedural0, cloudBaseWarpNoiseProcedural1, cloudBaseWarpNoiseProcedural2,
@@ -547,6 +595,18 @@ public TextureParameter cloudBaseWarpNoiseTexture3D0, cloudBaseWarpNoiseTexture3
 [Tooltip("Base warp noise type for this cloud layer.")]
 public EnumParameter<ExpanseCommon.CloudNoiseType> cloudBaseWarpNoiseType0, cloudBaseWarpNoiseType1, cloudBaseWarpNoiseType2,
   cloudBaseWarpNoiseType3, cloudBaseWarpNoiseType4, cloudBaseWarpNoiseType5, cloudBaseWarpNoiseType6, cloudBaseWarpNoiseType7;
+[Tooltip("Scale of 0th octave.")]
+public Vector2Parameter cloudBaseWarpGridScale0, cloudBaseWarpGridScale1, cloudBaseWarpGridScale2,
+  cloudBaseWarpGridScale3, cloudBaseWarpGridScale4, cloudBaseWarpGridScale5, cloudBaseWarpGridScale6, cloudBaseWarpGridScale7;
+[Tooltip("Number of octaves.")]
+public ClampedIntParameter cloudBaseWarpOctaves0, cloudBaseWarpOctaves1, cloudBaseWarpOctaves2,
+  cloudBaseWarpOctaves3, cloudBaseWarpOctaves4, cloudBaseWarpOctaves5, cloudBaseWarpOctaves6, cloudBaseWarpOctaves7;
+[Tooltip("How much to scale each successive octave by.")]
+public MinFloatParameter cloudBaseWarpOctaveScale0, cloudBaseWarpOctaveScale1, cloudBaseWarpOctaveScale2,
+  cloudBaseWarpOctaveScale3, cloudBaseWarpOctaveScale4, cloudBaseWarpOctaveScale5, cloudBaseWarpOctaveScale6, cloudBaseWarpOctaveScale7;
+[Tooltip("How much to multiply the intensity of each successive octave by.")]
+public MinFloatParameter cloudBaseWarpOctaveMultiplier0, cloudBaseWarpOctaveMultiplier1, cloudBaseWarpOctaveMultiplier2,
+  cloudBaseWarpOctaveMultiplier3, cloudBaseWarpOctaveMultiplier4, cloudBaseWarpOctaveMultiplier5, cloudBaseWarpOctaveMultiplier6, cloudBaseWarpOctaveMultiplier7;
 /* Detail Warp. */
 [Tooltip("Whether to use procedural noise or a texture for the detail warp noise layer.")]
 public BoolParameter cloudDetailWarpNoiseProcedural0, cloudDetailWarpNoiseProcedural1, cloudDetailWarpNoiseProcedural2,
@@ -560,6 +620,18 @@ public TextureParameter cloudDetailWarpNoiseTexture3D0, cloudDetailWarpNoiseText
 [Tooltip("Detail warp noise type for this cloud layer.")]
 public EnumParameter<ExpanseCommon.CloudNoiseType> cloudDetailWarpNoiseType0, cloudDetailWarpNoiseType1, cloudDetailWarpNoiseType2,
   cloudDetailWarpNoiseType3, cloudDetailWarpNoiseType4, cloudDetailWarpNoiseType5, cloudDetailWarpNoiseType6, cloudDetailWarpNoiseType7;
+[Tooltip("Scale of 0th octave.")]
+public Vector2Parameter cloudDetailWarpGridScale0, cloudDetailWarpGridScale1, cloudDetailWarpGridScale2,
+  cloudDetailWarpGridScale3, cloudDetailWarpGridScale4, cloudDetailWarpGridScale5, cloudDetailWarpGridScale6, cloudDetailWarpGridScale7;
+[Tooltip("Number of octaves.")]
+public ClampedIntParameter cloudDetailWarpOctaves0, cloudDetailWarpOctaves1, cloudDetailWarpOctaves2,
+  cloudDetailWarpOctaves3, cloudDetailWarpOctaves4, cloudDetailWarpOctaves5, cloudDetailWarpOctaves6, cloudDetailWarpOctaves7;
+[Tooltip("How much to scale each successive octave by.")]
+public MinFloatParameter cloudDetailWarpOctaveScale0, cloudDetailWarpOctaveScale1, cloudDetailWarpOctaveScale2,
+  cloudDetailWarpOctaveScale3, cloudDetailWarpOctaveScale4, cloudDetailWarpOctaveScale5, cloudDetailWarpOctaveScale6, cloudDetailWarpOctaveScale7;
+[Tooltip("How much to multiply the intensity of each successive octave by.")]
+public MinFloatParameter cloudDetailWarpOctaveMultiplier0, cloudDetailWarpOctaveMultiplier1, cloudDetailWarpOctaveMultiplier2,
+  cloudDetailWarpOctaveMultiplier3, cloudDetailWarpOctaveMultiplier4, cloudDetailWarpOctaveMultiplier5, cloudDetailWarpOctaveMultiplier6, cloudDetailWarpOctaveMultiplier7;
 
 /* Movement---sampling offsets primarily. TODO */
 
@@ -677,31 +749,55 @@ public Expanse() : base() {
     this.GetType().GetField("cloudCoverageNoiseProcedural" + i).SetValue(this, new BoolParameter(true));
     this.GetType().GetField("cloudCoverageNoiseTexture" + i).SetValue(this, new TextureParameter(null));
     this.GetType().GetField("cloudCoverageNoiseType" + i).SetValue(this, new EnumParameter<ExpanseCommon.CloudNoiseType>(ExpanseCommon.CloudNoiseType.Value));
+    this.GetType().GetField("cloudCoverageGridScale" + i).SetValue(this, new Vector2Parameter(new Vector2(16, 16)));
+    this.GetType().GetField("cloudCoverageOctaves" + i).SetValue(this, new ClampedIntParameter(3, 1, 8));
+    this.GetType().GetField("cloudCoverageOctaveScale" + i).SetValue(this, new MinFloatParameter(2, 1));
+    this.GetType().GetField("cloudCoverageOctaveMultiplier" + i).SetValue(this, new MinFloatParameter(0.5f, 0));
     /* Base. */
     this.GetType().GetField("cloudBaseNoiseProcedural" + i).SetValue(this, new BoolParameter(true));
     this.GetType().GetField("cloudBaseNoiseTexture2D" + i).SetValue(this, new TextureParameter(null));
     this.GetType().GetField("cloudBaseNoiseTexture3D" + i).SetValue(this, new TextureParameter(null));
     this.GetType().GetField("cloudBaseNoiseType" + i).SetValue(this, new EnumParameter<ExpanseCommon.CloudNoiseType>(ExpanseCommon.CloudNoiseType.Worley));
+    this.GetType().GetField("cloudBaseGridScale" + i).SetValue(this, new Vector2Parameter(new Vector2(16, 16)));
+    this.GetType().GetField("cloudBaseOctaves" + i).SetValue(this, new ClampedIntParameter(3, 1, 8));
+    this.GetType().GetField("cloudBaseOctaveScale" + i).SetValue(this, new MinFloatParameter(2, 1));
+    this.GetType().GetField("cloudBaseOctaveMultiplier" + i).SetValue(this, new MinFloatParameter(0.5f, 0));
     /* Structure. */
     this.GetType().GetField("cloudStructureNoiseProcedural" + i).SetValue(this, new BoolParameter(true));
     this.GetType().GetField("cloudStructureNoiseTexture2D" + i).SetValue(this, new TextureParameter(null));
     this.GetType().GetField("cloudStructureNoiseTexture3D" + i).SetValue(this, new TextureParameter(null));
     this.GetType().GetField("cloudStructureNoiseType" + i).SetValue(this, new EnumParameter<ExpanseCommon.CloudNoiseType>(ExpanseCommon.CloudNoiseType.Worley));
+    this.GetType().GetField("cloudStructureGridScale" + i).SetValue(this, new Vector2Parameter(new Vector2(16, 16)));
+    this.GetType().GetField("cloudStructureOctaves" + i).SetValue(this, new ClampedIntParameter(3, 1, 8));
+    this.GetType().GetField("cloudStructureOctaveScale" + i).SetValue(this, new MinFloatParameter(2, 1));
+    this.GetType().GetField("cloudStructureOctaveMultiplier" + i).SetValue(this, new MinFloatParameter(0.5f, 0));
     /* Detail. */
     this.GetType().GetField("cloudDetailNoiseProcedural" + i).SetValue(this, new BoolParameter(true));
     this.GetType().GetField("cloudDetailNoiseTexture2D" + i).SetValue(this, new TextureParameter(null));
     this.GetType().GetField("cloudDetailNoiseTexture3D" + i).SetValue(this, new TextureParameter(null));
     this.GetType().GetField("cloudDetailNoiseType" + i).SetValue(this, new EnumParameter<ExpanseCommon.CloudNoiseType>(ExpanseCommon.CloudNoiseType.Worley));
+    this.GetType().GetField("cloudDetailGridScale" + i).SetValue(this, new Vector2Parameter(new Vector2(16, 16)));
+    this.GetType().GetField("cloudDetailOctaves" + i).SetValue(this, new ClampedIntParameter(3, 1, 8));
+    this.GetType().GetField("cloudDetailOctaveScale" + i).SetValue(this, new MinFloatParameter(2, 1));
+    this.GetType().GetField("cloudDetailOctaveMultiplier" + i).SetValue(this, new MinFloatParameter(0.5f, 0));
     /* BaseWarp Warp. */
     this.GetType().GetField("cloudBaseWarpNoiseProcedural" + i).SetValue(this, new BoolParameter(true));
     this.GetType().GetField("cloudBaseWarpNoiseTexture2D" + i).SetValue(this, new TextureParameter(null));
     this.GetType().GetField("cloudBaseWarpNoiseTexture3D" + i).SetValue(this, new TextureParameter(null));
     this.GetType().GetField("cloudBaseWarpNoiseType" + i).SetValue(this, new EnumParameter<ExpanseCommon.CloudNoiseType>(ExpanseCommon.CloudNoiseType.Value));
+    this.GetType().GetField("cloudBaseWarpGridScale" + i).SetValue(this, new Vector2Parameter(new Vector2(16, 16)));
+    this.GetType().GetField("cloudBaseWarpOctaves" + i).SetValue(this, new ClampedIntParameter(3, 1, 8));
+    this.GetType().GetField("cloudBaseWarpOctaveScale" + i).SetValue(this, new MinFloatParameter(2, 1));
+    this.GetType().GetField("cloudBaseWarpOctaveMultiplier" + i).SetValue(this, new MinFloatParameter(0.5f, 0));
     /* Detail Warp. */
     this.GetType().GetField("cloudDetailWarpNoiseProcedural" + i).SetValue(this, new BoolParameter(true));
     this.GetType().GetField("cloudDetailWarpNoiseTexture2D" + i).SetValue(this, new TextureParameter(null));
     this.GetType().GetField("cloudDetailWarpNoiseTexture3D" + i).SetValue(this, new TextureParameter(null));
     this.GetType().GetField("cloudDetailWarpNoiseType" + i).SetValue(this, new EnumParameter<ExpanseCommon.CloudNoiseType>(ExpanseCommon.CloudNoiseType.Value));
+    this.GetType().GetField("cloudDetailWarpGridScale" + i).SetValue(this, new Vector2Parameter(new Vector2(16, 16)));
+    this.GetType().GetField("cloudDetailWarpOctaves" + i).SetValue(this, new ClampedIntParameter(3, 1, 8));
+    this.GetType().GetField("cloudDetailWarpOctaveScale" + i).SetValue(this, new MinFloatParameter(2, 1));
+    this.GetType().GetField("cloudDetailWarpOctaveMultiplier" + i).SetValue(this, new MinFloatParameter(0.5f, 0));
 
     /* Lighting. */
     /* 2D. */
@@ -941,6 +1037,10 @@ public override int GetHashCode() {
       var cloudCoverageNoise = (TextureParameter) this.GetType().GetField("cloudCoverageNoiseTexture" + i).GetValue(this);
       hash = cloudCoverageNoise.value != null ? hash * 23 + cloudCoverageNoise.value.GetHashCode() : hash;
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudCoverageNoiseType" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudCoverageGridScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudCoverageOctaves" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudCoverageOctaveScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudCoverageOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
       /* Base. */
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudBaseNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
       var cloudBaseNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudBaseNoiseTexture2D" + i).GetValue(this);
@@ -948,6 +1048,10 @@ public override int GetHashCode() {
       var cloudBaseNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudBaseNoiseTexture3D" + i).GetValue(this);
       hash = cloudBaseNoiseTex3D.value != null ? hash * 23 + cloudBaseNoiseTex3D.value.GetHashCode() : hash;
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudBaseNoiseType" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudBaseGridScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudBaseOctaves" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseOctaveScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
       /* Structure. */
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudStructureNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
       var cloudStructureNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudStructureNoiseTexture2D" + i).GetValue(this);
@@ -955,6 +1059,10 @@ public override int GetHashCode() {
       var cloudStructureNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudStructureNoiseTexture3D" + i).GetValue(this);
       hash = cloudStructureNoiseTex3D.value != null ? hash * 23 + cloudStructureNoiseTex3D.value.GetHashCode() : hash;
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudStructureNoiseType" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudStructureGridScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudStructureOctaves" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudStructureOctaveScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudStructureOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
       /* Detail. */
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudDetailNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
       var cloudDetailNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudDetailNoiseTexture2D" + i).GetValue(this);
@@ -962,6 +1070,10 @@ public override int GetHashCode() {
       var cloudDetailNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudDetailNoiseTexture3D" + i).GetValue(this);
       hash = cloudDetailNoiseTex3D.value != null ? hash * 23 + cloudDetailNoiseTex3D.value.GetHashCode() : hash;
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudDetailNoiseType" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudDetailGridScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudDetailOctaves" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailOctaveScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
       /* Base Warp. */
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudBaseWarpNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
       var cloudBaseWarpNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudBaseWarpNoiseTexture2D" + i).GetValue(this);
@@ -969,6 +1081,10 @@ public override int GetHashCode() {
       var cloudBaseWarpNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudBaseWarpNoiseTexture3D" + i).GetValue(this);
       hash = cloudBaseWarpNoiseTex3D.value != null ? hash * 23 + cloudBaseWarpNoiseTex3D.value.GetHashCode() : hash;
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudBaseWarpNoiseType" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudBaseWarpGridScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudBaseWarpOctaves" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseWarpOctaveScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseWarpOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
       /* Detail Warp. */
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudDetailWarpNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
       var cloudDetailWarpNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudDetailWarpNoiseTexture2D" + i).GetValue(this);
@@ -976,6 +1092,10 @@ public override int GetHashCode() {
       var cloudDetailWarpNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudDetailWarpNoiseTexture3D" + i).GetValue(this);
       hash = cloudDetailWarpNoiseTex3D.value != null ? hash * 23 + cloudDetailWarpNoiseTex3D.value.GetHashCode() : hash;
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudDetailWarpNoiseType" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudDetailWarpGridScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudDetailWarpOctaves" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailWarpOctaveScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailWarpOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
 
       /* Lighting. */
       /* 2D. */
@@ -1077,6 +1197,10 @@ public int GetCloudHashCode() {
       var cloudCoverageNoise = (TextureParameter) this.GetType().GetField("cloudCoverageNoiseTexture" + i).GetValue(this);
       hash = cloudCoverageNoise.value != null ? hash * 23 + cloudCoverageNoise.value.GetHashCode() : hash;
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudCoverageNoiseType" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudCoverageGridScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudCoverageOctaves" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudCoverageOctaveScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudCoverageOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
       /* Base. */
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudBaseNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
       var cloudBaseNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudBaseNoiseTexture2D" + i).GetValue(this);
@@ -1084,6 +1208,10 @@ public int GetCloudHashCode() {
       var cloudBaseNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudBaseNoiseTexture3D" + i).GetValue(this);
       hash = cloudBaseNoiseTex3D.value != null ? hash * 23 + cloudBaseNoiseTex3D.value.GetHashCode() : hash;
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudBaseNoiseType" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudBaseGridScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudBaseOctaves" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseOctaveScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
       /* Structure. */
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudStructureNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
       var cloudStructureNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudStructureNoiseTexture2D" + i).GetValue(this);
@@ -1091,6 +1219,10 @@ public int GetCloudHashCode() {
       var cloudStructureNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudStructureNoiseTexture3D" + i).GetValue(this);
       hash = cloudStructureNoiseTex3D.value != null ? hash * 23 + cloudStructureNoiseTex3D.value.GetHashCode() : hash;
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudStructureNoiseType" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudStructureGridScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudStructureOctaves" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudStructureOctaveScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudStructureOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
       /* Detail. */
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudDetailNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
       var cloudDetailNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudDetailNoiseTexture2D" + i).GetValue(this);
@@ -1098,6 +1230,10 @@ public int GetCloudHashCode() {
       var cloudDetailNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudDetailNoiseTexture3D" + i).GetValue(this);
       hash = cloudDetailNoiseTex3D.value != null ? hash * 23 + cloudDetailNoiseTex3D.value.GetHashCode() : hash;
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudDetailNoiseType" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudDetailGridScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudDetailOctaves" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailOctaveScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
       /* Base Warp. */
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudBaseWarpNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
       var cloudBaseWarpNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudBaseWarpNoiseTexture2D" + i).GetValue(this);
@@ -1105,6 +1241,10 @@ public int GetCloudHashCode() {
       var cloudBaseWarpNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudBaseWarpNoiseTexture3D" + i).GetValue(this);
       hash = cloudBaseWarpNoiseTex3D.value != null ? hash * 23 + cloudBaseWarpNoiseTex3D.value.GetHashCode() : hash;
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudBaseWarpNoiseType" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudBaseWarpGridScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudBaseWarpOctaves" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseWarpOctaveScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseWarpOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
       /* Detail Warp. */
       hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudDetailWarpNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
       var cloudDetailWarpNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudDetailWarpNoiseTexture2D" + i).GetValue(this);
@@ -1112,6 +1252,10 @@ public int GetCloudHashCode() {
       var cloudDetailWarpNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudDetailWarpNoiseTexture3D" + i).GetValue(this);
       hash = cloudDetailWarpNoiseTex3D.value != null ? hash * 23 + cloudDetailWarpNoiseTex3D.value.GetHashCode() : hash;
       hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudDetailWarpNoiseType" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudDetailWarpGridScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudDetailWarpOctaves" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailWarpOctaveScale" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailWarpOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
 
       /* 2D. */
       // hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudThickness" + i).GetValue(this)).value.GetHashCode();
