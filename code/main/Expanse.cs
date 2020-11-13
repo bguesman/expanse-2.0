@@ -217,7 +217,7 @@ public MinFloatParameter nebulaOverallDefinition = new MinFloatParameter(1, 0);
 [Tooltip("Global intensity control for the whole nebula texture.")]
 public MinFloatParameter nebulaOverallIntensity = new MinFloatParameter(1, 0);
 [Tooltip("Scale of noise used for determining nebula coverage. If this value is high, there will be lots of little nebulae scattered across the sky. If this value is low, there will be a few huge nebulae.")]
-public MinFloatParameter nebulaCoverageScale = new MinFloatParameter(3, 1);
+public MinFloatParameter nebulaCoverageScale = new MinFloatParameter(1, 1);
 [Tooltip("The seed for the nebula coverage texture.")]
 public Vector3Parameter nebulaCoverageSeed = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
 
@@ -226,7 +226,7 @@ public MinFloatParameter nebulaHazeBrightness = new MinFloatParameter(1, 0);
 [Tooltip("Color of nebula haze.")]
 public ColorParameter nebulaHazeColor = new ColorParameter(Color.red, hdr: false, showAlpha: false, showEyeDropper: true);
 [Tooltip("Scale of base octave of noise used for nebula haze. Smaller values give bigger more global features, larger values give smaller more detailed features.")]
-public MinFloatParameter nebulaHazeScale = new MinFloatParameter(5, 5);
+public MinFloatParameter nebulaHazeScale = new MinFloatParameter(5, 1);
 [Tooltip("Scale multiplier applied to additional octaves of noise used for nebula haze. As an example, if this value is 2, each octave will be twice as small as the last octave.")]
 public ClampedFloatParameter nebulaHazeScaleFactor = new ClampedFloatParameter(2, 0.01f, 4.0f);
 [Tooltip("Intensity multiplier applied to additional octaves of noise used for nebula haze. As an example, if this value is 0.5, each octave will be half as intense as the last octave.")]
@@ -253,7 +253,7 @@ public MinFloatParameter nebulaCloudBrightness = new MinFloatParameter(1, 0);
 [Tooltip("Color of nebula clouds.")]
 public ColorParameter nebulaCloudColor = new ColorParameter(Color.green, hdr: false, showAlpha: false, showEyeDropper: true);
 [Tooltip("Scale of base octave of noise used for nebula clouds. Smaller values give bigger more global features, larger values give smaller more detailed features.")]
-public MinFloatParameter nebulaCloudScale = new MinFloatParameter(5, 5);
+public MinFloatParameter nebulaCloudScale = new MinFloatParameter(5, 1);
 [Tooltip("Scale multiplier applied to additional octaves of noise used for nebula clouds. As an example, if this value is 2, each octave will be twice as small as the last octave.")]
 public ClampedFloatParameter nebulaCloudScaleFactor = new ClampedFloatParameter(2, 0.01f, 4.0f);
 [Tooltip("Intensity multiplier applied to additional octaves of noise used for nebula clouds. As an example, if this value is 0.5, each octave will be half as intense as the last octave.")]
@@ -280,7 +280,7 @@ public MinFloatParameter nebulaCoarseStrandBrightness = new MinFloatParameter(1,
 [Tooltip("Color of nebula big strands.")]
 public ColorParameter nebulaCoarseStrandColor = new ColorParameter(Color.white, hdr: false, showAlpha: false, showEyeDropper: true);
 [Tooltip("Scale of base octave of noise used for nebula big strands. Smaller values give bigger more global features, larger values give smaller more detailed features.")]
-public MinFloatParameter nebulaCoarseStrandScale = new MinFloatParameter(5, 5);
+public MinFloatParameter nebulaCoarseStrandScale = new MinFloatParameter(5, 1);
 [Tooltip("Scale multiplier applied to additional octaves of noise used for nebula big strands. As an example, if this value is 2, each octave will be twice as small as the last octave.")]
 public ClampedFloatParameter nebulaCoarseStrandScaleFactor = new ClampedFloatParameter(2, 0.01f, 4.0f);
 [Tooltip("Intensity multiplier applied to additional octaves of noise used for nebula big strands. As an example, if this value is 0.5, each octave will be half as intense as the last octave.")]
@@ -319,7 +319,7 @@ public MinFloatParameter nebulaFineStrandBrightness = new MinFloatParameter(1, 0
 [Tooltip("Color of nebula small strands.")]
 public ColorParameter nebulaFineStrandColor = new ColorParameter(Color.blue, hdr: false, showAlpha: false, showEyeDropper: true);
 [Tooltip("Scale of base octave of noise used for nebula small strands. Smaller values give bigger more global features, larger values give smaller more detailed features.")]
-public MinFloatParameter nebulaFineStrandScale = new MinFloatParameter(5, 5);
+public MinFloatParameter nebulaFineStrandScale = new MinFloatParameter(5, 1);
 [Tooltip("Scale multiplier applied to additional octaves of noise used for nebula small strands. As an example, if this value is 2, each octave will be twice as small as the last octave.")]
 public ClampedFloatParameter nebulaFineStrandScaleFactor = new ClampedFloatParameter(2, 0.01f, 4.0f);
 [Tooltip("Intensity multiplier applied to additional octaves of noise used for nebula small strands. As an example, if this value is 0.5, each octave will be half as intense as the last octave.")]
@@ -356,7 +356,7 @@ public Vector3Parameter nebulaFineStrandWarpSeedZ = new Vector3Parameter(new Vec
 [Tooltip("Range of transmittance values the nebula can have.")]
 public FloatRangeParameter nebulaTransmittanceRange = new FloatRangeParameter(new Vector2(0, 1), 0, 1);
 [Tooltip("Scale of noise used to randomize nebula transmittance.")]
-public MinFloatParameter nebulaTransmittanceScale = new MinFloatParameter(5, 5);
+public MinFloatParameter nebulaTransmittanceScale = new MinFloatParameter(5, 1);
 [Tooltip("The x seed for the nebula transmittance texture.")]
 public Vector3Parameter nebulaTransmittanceSeedX = new Vector3Parameter(new Vector3(0.19235f, 1.2359f, 3.993583f));
 [Tooltip("The y seed for the nebula transmittance texture.")]

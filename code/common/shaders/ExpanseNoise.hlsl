@@ -32,7 +32,7 @@ float voronoi2DSeeded(float2 uv, float2 cells, float2 seed_x, float2 seed_y) {
   float2 p = uv * cells;
 
   /* Generate the cell point. */
-  float2 tl = floor(uv * cells);
+  float2 tl = floor(p);
   float2 o = tl + random_2_2_seeded(tl, seed_x, seed_y);
 
   /* Compute distance from p to the cell point. */
@@ -45,8 +45,8 @@ float voronoi2DSeeded(float2 uv, float2 cells, float2 seed_x, float2 seed_y) {
         float2 offset = float2(x, y);
         float2 tl_neighbor = tl + offset;
         /* Wraparound to make tileable. */
-        tl_neighbor = tl_neighbor - cells * floor(tl_neighbor / cells);
-        float2 o_neighbor = tl_neighbor + random_2_2_seeded(tl_neighbor, seed_x, seed_y);
+        float2 tl_neighbor_wrapped = tl_neighbor - cells * floor(tl_neighbor / cells);
+        float2 o_neighbor = tl_neighbor + random_2_2_seeded(tl_neighbor_wrapped, seed_x, seed_y);
         float d_neighbor = length(p - o_neighbor);
         minD = min(minD, d_neighbor);
       }
@@ -98,8 +98,8 @@ NoiseResultAndCoordinate voronoi3DSeeded(float3 uv, float3 cells,
           float3 offset = float3(x, y, z);
           float3 tl_neighbor = tl + offset;
           /* Wraparound to make tileable. */
-          tl_neighbor = tl_neighbor - cells * floor(tl_neighbor / cells);
-          float3 o_neighbor = tl_neighbor + random_3_3_seeded(tl_neighbor, seed_x, seed_y, seed_z);
+          float3 tl_neighbor_wrapped = tl_neighbor - cells * floor(tl_neighbor / cells);
+          float3 o_neighbor = tl_neighbor + random_3_3_seeded(tl_neighbor_wrapped, seed_x, seed_y, seed_z);
           float d_neighbor = length(p - o_neighbor);
           if (d_neighbor < minD) {
             minD = d_neighbor;
@@ -147,7 +147,7 @@ float voronoi2DLayeredSeeded(float2 uv, float2 startingGrid, float gridScaleFact
     float layerNoise = voronoi2DSeeded(uv,
       startingGrid, seed_x, seed_y);
     noise += layerNoise * amplitude;
-    maxValue += amplitudeFactor;
+    maxValue += amplitude;
     amplitude *= amplitudeFactor;
     startingGrid *= gridScaleFactor;
   }
@@ -169,15 +169,16 @@ float worley2DLayeredSeeded(float2 uv, float2 startingGrid, float gridScaleFacto
   for (int i = 0; i < layers; i++) {
     float layerNoise = worley2DSeeded(uv,
       startingGrid, seed_x, seed_y);
-    noise += layerNoise * amplitude;
-    maxValue += amplitudeFactor;
-    amplitude *= amplitudeFactor;
-    startingGrid *= gridScaleFactor;
+    if (layerNoise < 1) {
+      noise += layerNoise * amplitude;
+      maxValue += amplitude;
+      amplitude *= amplitudeFactor;
+      startingGrid *= gridScaleFactor;
+    }
   }
   return noise / maxValue;
 }
 
-/*tes */
 float worley2DLayered(float2 uv, float2 startingGrid, float gridScaleFactor,
   float amplitudeFactor, int layers) {
   return worley2DLayeredSeeded(uv, startingGrid, gridScaleFactor,
@@ -195,7 +196,7 @@ float voronoi3DLayeredSeeded(float3 uv, float3 startingGrid,
     NoiseResultAndCoordinate layerNoise = voronoi3DSeeded(uv,
       startingGrid, seed_x, seed_y, seed_z);
     noise += layerNoise.result * amplitude;
-    maxValue += amplitudeFactor;
+    maxValue += amplitude;
     amplitude *= amplitudeFactor;
     startingGrid *= gridScaleFactor;
   }
@@ -220,7 +221,7 @@ float worley3DLayeredSeeded(float3 uv, float3 startingGrid,
     NoiseResultAndCoordinate layerNoise = worley3DSeeded(uv,
       startingGrid, seed_x, seed_y, seed_z);
     noise += layerNoise.result * amplitude;
-    maxValue += amplitudeFactor;
+    maxValue += amplitude;
     amplitude *= amplitudeFactor;
     startingGrid *= gridScaleFactor;
   }
@@ -300,7 +301,7 @@ float value2DLayered(float2 uv, float2 startingGrid,
     NoiseResultAndCoordinate layerNoise = value2D(uv,
       startingGrid);
     noise += layerNoise.result * amplitude;
-    maxValue += amplitudeFactor;
+    maxValue += amplitude;
     amplitude *= amplitudeFactor;
     startingGrid *= gridScaleFactor;
   }
@@ -380,7 +381,7 @@ float value3DLayeredSeeded(float3 uv, float3 startingGrid,
     NoiseResultAndCoordinate layerNoise = value3DSeeded(uv,
       startingGrid, seed);
     noise += layerNoise.result * amplitude;
-    maxValue += amplitudeFactor;
+    maxValue += amplitude;
     amplitude *= amplitudeFactor;
     startingGrid *= gridScaleFactor;
   }
@@ -396,7 +397,7 @@ float value3DLayered(float3 uv, float3 startingGrid,
     NoiseResultAndCoordinate layerNoise = value3D(uv,
       startingGrid);
     noise += layerNoise.result * amplitude;
-    maxValue += amplitudeFactor;
+    maxValue += amplitude;
     amplitude *= amplitudeFactor;
     startingGrid *= gridScaleFactor;
   }
@@ -409,7 +410,7 @@ float perlin2DSeeded(float2 uv, float2 cells, float2 seed_x,
   float2 p = uv * cells;
 
   /* Generate the top left point of the cell. */
-  float2 tl = max(0, min(cells, floor(uv * cells)));
+  float2 tl = floor(p);
 
   /* Grid points. */
   float2 grid_00 = tl;
@@ -429,12 +430,11 @@ float perlin2DSeeded(float2 uv, float2 cells, float2 seed_x,
   grid_10 -= cells * floor(grid_10 / cells);
   grid_11 -= cells * floor(grid_11 / cells);
 
-
   /* Gradient vectors. */
-  float2 gradient_00 = normalize(random_2_2_seeded(grid_00, seed_x, seed_y));
-  float2 gradient_01 = normalize(random_2_2_seeded(grid_01, seed_x, seed_y));
-  float2 gradient_10 = normalize(random_2_2_seeded(grid_10, seed_x, seed_y));
-  float2 gradient_11 = normalize(random_2_2_seeded(grid_11, seed_x, seed_y));
+  float2 gradient_00 = normalize(random_2_2_seeded(grid_00, seed_x, seed_y) * 2 - 1);
+  float2 gradient_01 = normalize(random_2_2_seeded(grid_01, seed_x, seed_y) * 2 - 1);
+  float2 gradient_10 = normalize(random_2_2_seeded(grid_10, seed_x, seed_y) * 2 - 1);
+  float2 gradient_11 = normalize(random_2_2_seeded(grid_11, seed_x, seed_y) * 2 - 1);
 
   /* Noise values. */
   float noise_00 = dot(gradient_00, offset_00);
@@ -504,14 +504,14 @@ NoiseResultAndCoordinate perlin3DSeeded(float3 uv, float3 cells, float3 seed_x,
 
 
   /* Gradient vectors. */
-  float3 gradient_000 = normalize(random_3_3_seeded(grid_000, seed_x, seed_y, seed_z));
-  float3 gradient_001 = normalize(random_3_3_seeded(grid_001, seed_x, seed_y, seed_z));
-  float3 gradient_010 = normalize(random_3_3_seeded(grid_010, seed_x, seed_y, seed_z));
-  float3 gradient_011 = normalize(random_3_3_seeded(grid_011, seed_x, seed_y, seed_z));
-  float3 gradient_100 = normalize(random_3_3_seeded(grid_100, seed_x, seed_y, seed_z));
-  float3 gradient_101 = normalize(random_3_3_seeded(grid_101, seed_x, seed_y, seed_z));
-  float3 gradient_110 = normalize(random_3_3_seeded(grid_110, seed_x, seed_y, seed_z));
-  float3 gradient_111 = normalize(random_3_3_seeded(grid_111, seed_x, seed_y, seed_z));
+  float3 gradient_000 = normalize(random_3_3_seeded(grid_000, seed_x, seed_y, seed_z) * 2 - 1);
+  float3 gradient_001 = normalize(random_3_3_seeded(grid_001, seed_x, seed_y, seed_z) * 2 - 1);
+  float3 gradient_010 = normalize(random_3_3_seeded(grid_010, seed_x, seed_y, seed_z) * 2 - 1);
+  float3 gradient_011 = normalize(random_3_3_seeded(grid_011, seed_x, seed_y, seed_z) * 2 - 1);
+  float3 gradient_100 = normalize(random_3_3_seeded(grid_100, seed_x, seed_y, seed_z) * 2 - 1);
+  float3 gradient_101 = normalize(random_3_3_seeded(grid_101, seed_x, seed_y, seed_z) * 2 - 1);
+  float3 gradient_110 = normalize(random_3_3_seeded(grid_110, seed_x, seed_y, seed_z) * 2 - 1);
+  float3 gradient_111 = normalize(random_3_3_seeded(grid_111, seed_x, seed_y, seed_z) * 2 - 1);
 
   /* Noise values. */
   float noise_000 = dot(gradient_000, offset_000);
@@ -558,7 +558,7 @@ float perlin2DLayeredSeeded(float2 uv, float2 startingGrid,
     float layerNoise = perlin2DSeeded(uv,
       startingGrid, seed_x, seed_y);
     noise += layerNoise * amplitude;
-    maxValue += amplitudeFactor;
+    maxValue += amplitude;
     amplitude *= amplitudeFactor;
     startingGrid *= gridScaleFactor;
   }
@@ -582,7 +582,7 @@ float perlin3DLayeredSeeded(float3 uv, float3 startingGrid,
     NoiseResultAndCoordinate layerNoise = perlin3DSeeded(uv,
       startingGrid, seed_x, seed_y, seed_z);
     noise += layerNoise.result * amplitude;
-    maxValue += amplitudeFactor;
+    maxValue += amplitude;
     amplitude *= amplitudeFactor;
     startingGrid *= gridScaleFactor;
   }

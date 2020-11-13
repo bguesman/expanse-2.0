@@ -22,6 +22,8 @@ int _octaves;
 float _octaveScale;
 float _octaveMultiplier;
 
+// TODO: saturates probably unnecessary
+
 [numthreads(8,8,1)]
 void VALUE2D(uint3 id : SV_DispatchThreadID) {
   float2 uv = (id.xy + 0.5) / _resNoise.xy;

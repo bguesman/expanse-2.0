@@ -24,6 +24,41 @@ CloudShadingResult cloudNoIntersectionResult() {
   return result;
 }
 
+float computeDensity2DHighLOD(float2 uv) {
+  /* NOTE/TODO: we HAVE to use the linear repeat sampler to avoid seams in
+   * the tileable textures! */
+
+  /* Remap the base noise according to coverage. */
+  float coverageNoise = SAMPLE_TEXTURE2D_LOD(_cloudCoverageNoise, s_linear_repeat_sampler,
+    uv, 0).x;
+  float baseNoise = SAMPLE_TEXTURE2D_LOD(_cloudBaseNoise2D, s_linear_repeat_sampler,
+    frac(uv * 4), 0).x;
+
+  float noise = saturate(remap(baseNoise, 0.25*coverageNoise, 1.0, 0.0, 1.0));
+
+  /* Remap that result using the tiled structure noise. */
+  float structureNoise = SAMPLE_TEXTURE2D_LOD(_cloudStructureNoise2D, s_linear_repeat_sampler,
+    frac(uv * 8), 0).x;
+  noise = saturate(remap(noise, structureNoise * 0.45, 1.0, 0.0, 1.0));
+
+  /* Finally, remap that result using the tiled detail noise. */
+  float detailNoise = SAMPLE_TEXTURE2D_LOD(_cloudDetailNoise2D, s_linear_repeat_sampler,
+    frac(uv * 16), 0).x;
+  noise = saturate(remap(noise, detailNoise * 0.15, 1.0, 0.0, 1.0));
+
+  return noise;
+}
+
+float computeDensity2DLowLOD(float2 uv) {
+  // TODO
+  float coverageNoise = SAMPLE_TEXTURE2D_LOD(_cloudCoverageNoise, s_linear_clamp_sampler,
+    uv, 0).x;
+  float baseNoise = SAMPLE_TEXTURE2D_LOD(_cloudBaseNoise2D, s_linear_clamp_sampler,
+    uv, 0).x;
+  float noise = saturate(remap(baseNoise, coverageNoise, 1.0, 0.0, 1.0));
+  return noise;
+}
+
 float3 lightCloudLayerPlaneGeometryBody(float3 samplePoint, float thickness,
   float density, float3 absorptionCoefficients, float3 scatteringCoefficients,
   float3 L, float3 lightColor) {
@@ -103,14 +138,8 @@ CloudShadingResult shadeCloudLayerPlaneGeometry(float3 O, float3 d, int i,
   float u = (samplePoint.x - xExtent.x) / (xExtent.y - xExtent.x);
   float v = (samplePoint.z - zExtent.x) / (zExtent.y - zExtent.x);
 
-  /* Sample the coverage and base noises. */
-  float coverageNoise = SAMPLE_TEXTURE2D_LOD(_cloudCoverageNoise, s_linear_clamp_sampler,
-    float2(u, v), 0).x;
-  float baseNoise = SAMPLE_TEXTURE2D_LOD(_cloudBaseNoise2D, s_linear_clamp_sampler,
-    float2(u, v), 0).x;
-
-  /* Remap base noise according to coverage. */
-  float noise = max(remap(baseNoise, coverageNoise, 1.0, 0.0, 1.0), 0);
+  /* Sample the density. */
+  float noise = computeDensity2DHighLOD(float2(u, v));
 
   /* Compute the thickness and density from the noise. */
   float thickness = noise * _cloudThickness[i];
@@ -131,9 +160,14 @@ CloudShadingResult shadeCloudLayerPlaneGeometry(float3 O, float3 d, int i,
    * direction also? */
   result.transmittance = exp(-_cloudAbsorptionCoefficients[i].xyz * opticalDepth);
 
-  /* Light the clouds. */
-  result.color = lightCloudLayerPlaneGeometry(samplePoint, thickness, density,
-    _cloudAbsorptionCoefficients[i].xyz, _cloudScatteringCoefficients[i].xyz);
+  /* Light the clouds. HACK */
+  bool debug = false;
+  if (debug) {
+    result.color = noise * 1000;
+  } else {
+    result.color = lightCloudLayerPlaneGeometry(samplePoint, thickness, density,
+      _cloudAbsorptionCoefficients[i].xyz, _cloudScatteringCoefficients[i].xyz);
+  }
 
   /* Compute the blend transmittance by sampling the transmittance to the
    * sample point. */

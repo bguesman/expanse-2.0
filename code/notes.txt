@@ -3,8 +3,8 @@ SKY
 ///////////////
 
 TODO LIST:
-  -done!
   -overall ambient multiplier for cubemap
+  -update nebulae to use perlin noise
 
 KNOWN BUGS:
   -big stars that aren't affected by the size params
