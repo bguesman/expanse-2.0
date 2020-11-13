@@ -28,23 +28,27 @@ float computeDensity2DHighLOD(float2 uv) {
   /* NOTE/TODO: we HAVE to use the linear repeat sampler to avoid seams in
    * the tileable textures! */
 
+  /* Get the base warp noise, use it to advect the texture coordinate. */
+  float2 baseWarpNoise = SAMPLE_TEXTURE2D_LOD(_cloudBaseWarpNoise2D, s_linear_repeat_sampler,
+    frac(uv), 0).xy;
+  float2 baseUV = frac(frac(uv * 4) - baseWarpNoise * 0.25);
+
   /* Remap the base noise according to coverage. */
   float coverageNoise = SAMPLE_TEXTURE2D_LOD(_cloudCoverageNoise, s_linear_repeat_sampler,
     uv, 0).x;
   float baseNoise = SAMPLE_TEXTURE2D_LOD(_cloudBaseNoise2D, s_linear_repeat_sampler,
-    frac(uv * 4), 0).x;
-
+    baseUV, 0).x;
   float noise = saturate(remap(baseNoise, 0.25*coverageNoise, 1.0, 0.0, 1.0));
 
   /* Remap that result using the tiled structure noise. */
   float structureNoise = SAMPLE_TEXTURE2D_LOD(_cloudStructureNoise2D, s_linear_repeat_sampler,
     frac(uv * 8), 0).x;
-  noise = saturate(remap(noise, structureNoise * 0.45, 1.0, 0.0, 1.0));
+  noise = saturate(remap(noise, structureNoise * 0.15, 1.0, 0.0, 1.0));
 
   /* Finally, remap that result using the tiled detail noise. */
   float detailNoise = SAMPLE_TEXTURE2D_LOD(_cloudDetailNoise2D, s_linear_repeat_sampler,
-    frac(uv * 16), 0).x;
-  noise = saturate(remap(noise, detailNoise * 0.15, 1.0, 0.0, 1.0));
+    frac(uv * 32), 0).x;
+  noise = saturate(remap(noise, detailNoise * 0.25, 1.0, 0.0, 1.0));
 
   return noise;
 }

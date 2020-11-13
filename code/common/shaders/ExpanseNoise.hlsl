@@ -292,6 +292,22 @@ NoiseResultAndCoordinate value2D(float2 uv, float2 cells) {
     float2(EXPANSE_DEFAULT_SEED_X_1, EXPANSE_DEFAULT_SEED_X_2));
 }
 
+float value2DLayeredSeeded(float2 uv, float2 startingGrid,
+  float gridScaleFactor, float amplitudeFactor, int layers, float2 seed) {
+  float maxValue = 0.0;
+  float amplitude = 1.0;
+  float noise = 0.0;
+  for (int i = 0; i < layers; i++) {
+    NoiseResultAndCoordinate layerNoise = value2DSeeded(uv,
+      startingGrid, seed);
+    noise += layerNoise.result * amplitude;
+    maxValue += amplitude;
+    amplitude *= amplitudeFactor;
+    startingGrid *= gridScaleFactor;
+  }
+  return noise / maxValue;
+}
+
 float value2DLayered(float2 uv, float2 startingGrid,
   float gridScaleFactor, float amplitudeFactor, int layers) {
   float maxValue = 0.0;
@@ -606,6 +622,42 @@ float perlin3DLayered(float3 uv, float3 startingGrid,
 /******************************************************************************/
 /****************************** SIMULATION NOISE ******************************/
 /******************************************************************************/
+
+// TODO: allow specification of octaves and stuff of underlying noise
+float2 curlNoise2DSeeded(float2 uv, float2 cells, float gridScaleFactor,
+  float amplitudeFactor, int layers, float2 seed_x, float2 seed_y) {
+  float epsilon = 0.5/cells.x; // HACK: this appears to make things smoother.
+
+  /* Compute offset uv coordinates, taking into account wraparound. */
+  float2 uvx0 = float2(uv.x - epsilon - floor(uv.x - epsilon), uv.y);
+  float2 uvxf = float2(uv.x + epsilon - floor(uv.x + epsilon), uv.y);
+  float2 uvy0 = float2(uv.x, uv.y - epsilon - floor(uv.y - epsilon));
+  float2 uvyf = float2(uv.x, uv.y + epsilon - floor(uv.y + epsilon));
+
+  /* Compute noise values for finite differencing. */
+  // float x0 = perlin3DSeeded(uvx0, cells, seed_x, seed_y, seed_z).result;
+  // float xf = perlin3DSeeded(uvxf, cells, seed_x, seed_y, seed_z).result;
+  // float y0 = perlin3DSeeded(uvy0, cells, seed_x, seed_y, seed_z).result;
+  // float yf = perlin3DSeeded(uvyf, cells, seed_x, seed_y, seed_z).result;
+  float x0 = perlin2DLayeredSeeded(uvx0, cells, gridScaleFactor, amplitudeFactor, layers, seed_x, seed_y);
+  float xf = perlin2DLayeredSeeded(uvxf, cells, gridScaleFactor, amplitudeFactor, layers, seed_x, seed_y);
+  float y0 = perlin2DLayeredSeeded(uvy0, cells, gridScaleFactor, amplitudeFactor, layers, seed_x, seed_y);
+  float yf = perlin2DLayeredSeeded(uvyf, cells, gridScaleFactor, amplitudeFactor, layers, seed_x, seed_y);
+
+  /* Compute the derivatives via finite differencing. */
+  float dx = (xf - x0) / (2 * epsilon);
+  float dy = (yf - y0) / (2 * epsilon);
+
+  /* Return the curl. */
+  return float2(-dy, dx);
+}
+
+float2 curlNoise2D(float2 uv, float2 cells, float gridScaleFactor,
+  float amplitudeFactor, int layers) {
+  return curlNoise2DSeeded(uv, cells, gridScaleFactor, amplitudeFactor, layers,
+    float2(EXPANSE_DEFAULT_SEED_X_1, EXPANSE_DEFAULT_SEED_X_2),
+    float2(EXPANSE_DEFAULT_SEED_Y_1, EXPANSE_DEFAULT_SEED_Y_2));
+}
 
 float3 curlNoise3DSeeded(float3 uv, float3 cells, float3 seed_x, float3 seed_y,
   float3 seed_z) {

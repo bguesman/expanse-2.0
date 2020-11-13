@@ -5,6 +5,7 @@
 #pragma kernel PERLIN2D main=PERLIN2D
 #pragma kernel VORONOI2D main=VORONOI2D
 #pragma kernel WORLEY2D main=WORLEY2D
+#pragma kernel CURL2D main=CURL2D
 
 /* 3D noises. */
 #pragma kernel VALUE3D main=VALUE3D
@@ -13,8 +14,8 @@
 #include "../../common/shaders/ExpanseNoise.hlsl"
 
 /* RW Textures. */
-RW_TEXTURE2D(float, Noise_2D);
-RW_TEXTURE3D(float, Noise_3D);
+RW_TEXTURE2D(float4, Noise_2D);
+RW_TEXTURE3D(float4, Noise_3D);
 
 float4 _resNoise;
 float4 _gridScale;
@@ -56,7 +57,17 @@ void WORLEY2D(uint3 id : SV_DispatchThreadID) {
   Noise_2D[id.xy] = saturate(noise);
 }
 
+[numthreads(8,8,1)]
+void CURL2D(uint3 id : SV_DispatchThreadID) {
+  // TODO
+  float2 uv = (id.xy + 0.5) / _resNoise.xy;
+  float2 noise = curlNoise2D(uv, _gridScale.xy, _octaveScale,
+    _octaveMultiplier, _octaves);
+  Noise_2D[id.xy] = float4(noise.x, noise.y, 0, 0);
+}
+
 [numthreads(8,8,8)]
 void VALUE3D(uint3 id : SV_DispatchThreadID) {
+  // TODO
   Noise_3D[id] = 1;
 }

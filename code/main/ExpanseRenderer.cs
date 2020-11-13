@@ -247,7 +247,7 @@ RTHandle allocatedProceduralCloudTexture2D(Vector2 resolution, string name) {
   var table = RTHandles.Alloc((int) resolution.x,
                               (int) resolution.y,
                               dimension: TextureDimension.Tex2D,
-                              colorFormat: GraphicsFormat.R16_SFloat,
+                              colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                               enableRandomWrite: true,
                               name: name);
 
@@ -262,7 +262,7 @@ RTHandle allocatedProceduralCloudTexture3D(Vector3 resolution, string name) {
                               (int) Mathf.Min(256, resolution.y),
                               (int) Mathf.Min(256, resolution.z),
                               dimension: TextureDimension.Tex3D,
-                              colorFormat: GraphicsFormat.R16_SFloat,
+                              colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                               enableRandomWrite: true,
                               name: name);
 

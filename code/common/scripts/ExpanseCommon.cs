@@ -238,18 +238,19 @@ public enum CloudNoiseType {
   Value = 0,
   Perlin,
   Voronoi,
-  Worley
+  Worley,
+  Curl
   // Perlin-Worley
-  // Curl
 };
-public const uint kCloudNoiseTypes = 4;
+public const uint kCloudNoiseTypes = 5;
 
 /* Map of noise types to compute shader kernel names. */
 public static Dictionary<CloudNoiseType, string> cloudNoiseTypeToKernelName = new Dictionary<CloudNoiseType, string>(){
 	{CloudNoiseType.Value, "VALUE"},
 	{CloudNoiseType.Perlin, "PERLIN"},
 	{CloudNoiseType.Voronoi, "VORONOI"},
-  {CloudNoiseType.Worley, "WORLEY"}
+  {CloudNoiseType.Worley, "WORLEY"},
+  {CloudNoiseType.Curl, "CURL"}
 };
 
 /* Enum for noise layers. */
@@ -335,7 +336,7 @@ public static CloudTextureResolution cloudQualityToCloudTextureResolution(CloudT
         Base = 1024,
         Structure = 256,
         Detail = 64,
-        BaseWarp = 128,
+        BaseWarp = 256,
         DetailWarp = 64
       };
     case CloudTextureQuality.RippingThroughTheMetaverse:
@@ -345,7 +346,7 @@ public static CloudTextureResolution cloudQualityToCloudTextureResolution(CloudT
         Base = 1024,
         Structure = 256,
         Detail = 64,
-        BaseWarp = 128,
+        BaseWarp = 256,
         DetailWarp = 64
       };
     default:
