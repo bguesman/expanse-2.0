@@ -26,14 +26,20 @@ ExpanseCommon.AtmosphereLayer m_atmosphereLayerSelect = ExpanseCommon.Atmosphere
 /* Specifies if a celestial body ui should be shown. */
 AnimBool[] m_showCelestialBody =
   new AnimBool[ExpanseCommon.kMaxCelestialBodies];
-/* Which atmosphere layer is currently shown for editing. */
+/* Which celestial body is currently shown for editing. */
 ExpanseCommon.CelestialBody m_celestialBodySelect = ExpanseCommon.CelestialBody.Body0;
 
-/* Specifies if a celestial body ui should be shown. */
+/* Specifies if a cloud layer ui should be shown. */
 AnimBool[] m_showCloudLayer =
   new AnimBool[ExpanseCommon.kMaxCloudLayers];
-/* Which atmosphere layer is currently shown for editing. */
+/* Which cloud layer is currently shown for editing. */
 ExpanseCommon.CloudLayer m_cloudLayerSelect = ExpanseCommon.CloudLayer.Layer0;
+
+/* Specifies if a cloud noise layer ui should be shown. */
+AnimBool[] m_showCloudNoiseLayer =
+  new AnimBool[ExpanseCommon.kCloudNoiseLayers];
+/* Which cloud noise layer is currently shown for editing. */
+ExpanseCommon.CloudNoiseLayer m_cloudNoiseLayerSelect = ExpanseCommon.CloudNoiseLayer.Base;
 
 /* Foldout state. */
 bool planetFoldout = false;
@@ -61,6 +67,14 @@ bool cloudSamplingFoldout = false;
 /******************************************************************************/
 /****************************** END UI VARIABLES ******************************/
 /******************************************************************************/
+
+
+
+
+
+
+
+
 
 
 
@@ -333,7 +347,61 @@ SerializedDataParameter[] cloudGeometryHeight
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 
 
-/* Noise generation. TODO */
+/* Noise generation. */
+SerializedDataParameter[] cloudNoiseQuality
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+/* Coverage. */
+SerializedDataParameter[] cloudCoverageNoiseProcedural
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudCoverageNoiseTexture
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudCoverageNoiseType
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+/* Base. */
+SerializedDataParameter[] cloudBaseNoiseProcedural
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudBaseNoiseTexture2D
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudBaseNoiseTexture3D
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudBaseNoiseType
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+/* Structure. */
+SerializedDataParameter[] cloudStructureNoiseProcedural
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudStructureNoiseTexture2D
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudStructureNoiseTexture3D
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudStructureNoiseType
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+/* Detail. */
+SerializedDataParameter[] cloudDetailNoiseProcedural
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDetailNoiseTexture2D
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDetailNoiseTexture3D
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDetailNoiseType
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+/* Base Warp. */
+SerializedDataParameter[] cloudBaseWarpNoiseProcedural
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudBaseWarpNoiseTexture2D
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudBaseWarpNoiseTexture3D
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudBaseWarpNoiseType
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+/* Detail Warp. */
+SerializedDataParameter[] cloudDetailWarpNoiseProcedural
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDetailWarpNoiseTexture2D
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDetailWarpNoiseTexture3D
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDetailWarpNoiseType
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 
 /* Movement---sampling offsets primarily. TODO */
 
@@ -360,6 +428,14 @@ SerializedDataParameter[] cloudScatteringCoefficients
 /******************************************************************************/
 /************************** END SERIALIZED PARAMETERS *************************/
 /******************************************************************************/
+
+
+
+
+
+
+
+
 
 
 
@@ -987,6 +1063,105 @@ private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle su
   cloudNoiseFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(cloudNoiseFoldout, "Noise", titleStyle);
 
   if (cloudNoiseFoldout) {
+    /* Display the quality field, which applies to all noise textures. */
+    PropertyField(cloudNoiseQuality[layerIndex], new UnityEngine.GUIContent("Quality"));
+    EditorGUILayout.Space();
+
+    m_cloudNoiseLayerSelect = (ExpanseCommon.CloudNoiseLayer) EditorGUILayout.EnumPopup("Noise Layer", m_cloudNoiseLayerSelect);
+    int layerSelectIndex = setEnumSelect(m_showCloudNoiseLayer, (int) m_cloudNoiseLayerSelect);
+
+    /* Display celestial body params for it. */
+    if (UnityEditor.EditorGUILayout.BeginFadeGroup(m_showCloudNoiseLayer[layerSelectIndex].faded)) {
+      switch (m_cloudNoiseLayerSelect) {
+
+        case ExpanseCommon.CloudNoiseLayer.Coverage: {
+          PropertyField(cloudCoverageNoiseProcedural[layerIndex], new UnityEngine.GUIContent("Procedural"));
+          if (cloudCoverageNoiseProcedural[layerIndex].value.boolValue) {
+            PropertyField(cloudCoverageNoiseType[layerIndex], new UnityEngine.GUIContent("Noise Type"));
+          } else {
+            PropertyField(cloudCoverageNoiseTexture[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
+          }
+          break;
+        }
+
+        case ExpanseCommon.CloudNoiseLayer.Base: {
+          PropertyField(cloudBaseNoiseProcedural[layerIndex], new UnityEngine.GUIContent("Procedural"));
+          if (cloudBaseNoiseProcedural[layerIndex].value.boolValue) {
+            PropertyField(cloudBaseNoiseType[layerIndex], new UnityEngine.GUIContent("Noise Type"));
+          } else {
+            if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.Plane) {
+              PropertyField(cloudBaseNoiseTexture2D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
+            } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume) {
+              PropertyField(cloudBaseNoiseTexture3D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
+            }
+          }
+          break;
+        }
+
+        case ExpanseCommon.CloudNoiseLayer.Structure: {
+          PropertyField(cloudStructureNoiseProcedural[layerIndex], new UnityEngine.GUIContent("Procedural"));
+          if (cloudStructureNoiseProcedural[layerIndex].value.boolValue) {
+            PropertyField(cloudStructureNoiseType[layerIndex], new UnityEngine.GUIContent("Noise Type"));
+          } else {
+            if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.Plane) {
+              PropertyField(cloudStructureNoiseTexture2D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
+            } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume) {
+              PropertyField(cloudStructureNoiseTexture3D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
+            }
+          }
+          break;
+        }
+
+        case ExpanseCommon.CloudNoiseLayer.Detail: {
+          PropertyField(cloudDetailNoiseProcedural[layerIndex], new UnityEngine.GUIContent("Procedural"));
+          if (cloudDetailNoiseProcedural[layerIndex].value.boolValue) {
+            PropertyField(cloudDetailNoiseType[layerIndex], new UnityEngine.GUIContent("Noise Type"));
+          } else {
+            if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.Plane) {
+              PropertyField(cloudDetailNoiseTexture2D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
+            } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume) {
+              PropertyField(cloudDetailNoiseTexture3D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
+            }
+          }
+          break;
+        }
+
+        case ExpanseCommon.CloudNoiseLayer.BaseWarp: {
+          PropertyField(cloudBaseWarpNoiseProcedural[layerIndex], new UnityEngine.GUIContent("Procedural"));
+          if (cloudBaseWarpNoiseProcedural[layerIndex].value.boolValue) {
+            PropertyField(cloudBaseWarpNoiseType[layerIndex], new UnityEngine.GUIContent("Noise Type"));
+          } else {
+            if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.Plane) {
+              PropertyField(cloudBaseWarpNoiseTexture2D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
+            } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume) {
+              PropertyField(cloudBaseWarpNoiseTexture3D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
+            }
+          }
+          break;
+        }
+
+        case ExpanseCommon.CloudNoiseLayer.DetailWarp: {
+          PropertyField(cloudDetailWarpNoiseProcedural[layerIndex], new UnityEngine.GUIContent("Procedural"));
+          if (cloudDetailWarpNoiseProcedural[layerIndex].value.boolValue) {
+            PropertyField(cloudDetailWarpNoiseType[layerIndex], new UnityEngine.GUIContent("Noise Type"));
+          } else {
+            if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.Plane) {
+              PropertyField(cloudDetailWarpNoiseTexture2D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
+            } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume) {
+              PropertyField(cloudDetailWarpNoiseTexture3D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
+            }
+          }
+          break;
+        }
+
+        default: {
+          break;
+        }
+      }
+    }
+
+    EditorGUILayout.EndFadeGroup();
+
     EditorGUILayout.Space();
   }
 
@@ -1252,18 +1427,48 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     /* General. */
     cloudLayerEnabled[i] = Unpack(o.Find("cloudLayerEnabled" + i));
 
-    /* Geometry. TODO */
+    /* Geometry. */
     cloudGeometryType[i] = Unpack(o.Find("cloudGeometryType" + i));
     cloudGeometryXExtent[i] = Unpack(o.Find("cloudGeometryXExtent" + i));
     cloudGeometryYExtent[i] = Unpack(o.Find("cloudGeometryYExtent" + i));
     cloudGeometryZExtent[i] = Unpack(o.Find("cloudGeometryZExtent" + i));
     cloudGeometryHeight[i] = Unpack(o.Find("cloudGeometryHeight" + i));
 
-    /* Noise generation. TODO */
+    /* Noise generation. */
+    cloudNoiseQuality[i] = Unpack(o.Find("cloudNoiseQuality" + i));
+    /* Coverage. */
+    cloudCoverageNoiseProcedural[i] = Unpack(o.Find("cloudCoverageNoiseProcedural" + i));
+    cloudCoverageNoiseTexture[i] = Unpack(o.Find("cloudCoverageNoiseTexture" + i));
+    cloudCoverageNoiseType[i] = Unpack(o.Find("cloudCoverageNoiseType" + i));
+    /* Base. */
+    cloudBaseNoiseProcedural[i] = Unpack(o.Find("cloudBaseNoiseProcedural" + i));
+    cloudBaseNoiseTexture2D[i] = Unpack(o.Find("cloudBaseNoiseTexture2D" + i));
+    cloudBaseNoiseTexture3D[i] = Unpack(o.Find("cloudBaseNoiseTexture3D" + i));
+    cloudBaseNoiseType[i] = Unpack(o.Find("cloudBaseNoiseType" + i));
+    /* Structure. */
+    cloudStructureNoiseProcedural[i] = Unpack(o.Find("cloudStructureNoiseProcedural" + i));
+    cloudStructureNoiseTexture2D[i] = Unpack(o.Find("cloudStructureNoiseTexture2D" + i));
+    cloudStructureNoiseTexture3D[i] = Unpack(o.Find("cloudStructureNoiseTexture3D" + i));
+    cloudStructureNoiseType[i] = Unpack(o.Find("cloudStructureNoiseType" + i));
+    /* Detail. */
+    cloudDetailNoiseProcedural[i] = Unpack(o.Find("cloudDetailNoiseProcedural" + i));
+    cloudDetailNoiseTexture2D[i] = Unpack(o.Find("cloudDetailNoiseTexture2D" + i));
+    cloudDetailNoiseTexture3D[i] = Unpack(o.Find("cloudDetailNoiseTexture3D" + i));
+    cloudDetailNoiseType[i] = Unpack(o.Find("cloudDetailNoiseType" + i));
+    /* Base Warp. */
+    cloudBaseWarpNoiseProcedural[i] = Unpack(o.Find("cloudBaseWarpNoiseProcedural" + i));
+    cloudBaseWarpNoiseTexture2D[i] = Unpack(o.Find("cloudBaseWarpNoiseTexture2D" + i));
+    cloudBaseWarpNoiseTexture3D[i] = Unpack(o.Find("cloudBaseWarpNoiseTexture3D" + i));
+    cloudBaseWarpNoiseType[i] = Unpack(o.Find("cloudBaseWarpNoiseType" + i));
+    /* Detail Warp. */
+    cloudDetailWarpNoiseProcedural[i] = Unpack(o.Find("cloudDetailWarpNoiseProcedural" + i));
+    cloudDetailWarpNoiseTexture2D[i] = Unpack(o.Find("cloudDetailWarpNoiseTexture2D" + i));
+    cloudDetailWarpNoiseTexture3D[i] = Unpack(o.Find("cloudDetailWarpNoiseTexture3D" + i));
+    cloudDetailWarpNoiseType[i] = Unpack(o.Find("cloudDetailWarpNoiseType" + i));
 
     /* Movement---sampling offsets primarily. TODO */
 
-    /* Lighting. TODO */
+    /* Lighting. */
     /* 2D. */
     cloudThickness[i] = Unpack(o.Find("cloudThickness" + i));
     /* 3D. */

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -231,6 +232,134 @@ public enum CloudGeometryType {
   BoxVolume   /* Clouds are volumetric and distributed throughout a rectangular box. */
 };
 public const uint kMaxCloudGeometryTypes = 3;
+
+/* Enum for noise types. */
+public enum CloudNoiseType {
+  Value = 0,
+  Perlin,
+  Voronoi,
+  Worley
+  // Perlin-Worley
+  // Curl
+};
+public const uint kCloudNoiseTypes = 4;
+
+/* Map of noise types to compute shader kernel names. */
+public static Dictionary<CloudNoiseType, string> cloudNoiseTypeToKernelName = new Dictionary<CloudNoiseType, string>(){
+	{CloudNoiseType.Value, "VALUE"},
+	{CloudNoiseType.Perlin, "PERLIN"},
+	{CloudNoiseType.Voronoi, "VORONOI"},
+  {CloudNoiseType.Worley, "WORLEY"}
+};
+
+/* Enum for noise layers. */
+public enum CloudNoiseLayer {
+  Coverage = 0,
+  Base,
+  Structure,
+  Detail,
+  BaseWarp,
+  DetailWarp
+}
+public const uint kCloudNoiseLayers = 6;
+
+/* Enum for texture quality of stored tables. */
+public enum CloudTextureQuality {
+  Potato = 0,
+  Low,
+  Medium,
+  High,
+  Ultra,
+  RippingThroughTheMetaverse
+}
+public const uint kMaxCloudTextureQuality = 6;
+
+/* Resolution for cloud textures. The same for all dimensions. */
+public struct CloudTextureResolution {
+  public CloudTextureQuality quality;
+  public int Coverage;
+  public int Base;
+  public int Structure;
+  public int Detail;
+  public int BaseWarp;
+  public int DetailWarp;
+}
+
+/* Given a 2D cloud texture quality, returns the corresonding resolution. */
+public static CloudTextureResolution cloudQualityToCloudTextureResolution(CloudTextureQuality quality) {
+  switch (quality) {
+    case CloudTextureQuality.Potato:
+      return new CloudTextureResolution() {
+        quality = quality,
+        Coverage = 256,
+        Base = 128,
+        Structure = 64,
+        Detail = 64,
+        BaseWarp = 128,
+        DetailWarp = 64
+      };
+    case CloudTextureQuality.Low:
+      return new CloudTextureResolution() {
+        quality = quality,
+        Coverage = 256,
+        Base = 256,
+        Structure = 64,
+        Detail = 64,
+        BaseWarp = 128,
+        DetailWarp = 64
+      };
+    case CloudTextureQuality.Medium:
+      return new CloudTextureResolution() {
+        quality = quality,
+        Coverage = 256,
+        Base = 512,
+        Structure = 64,
+        Detail = 64,
+        BaseWarp = 128,
+        DetailWarp = 64
+      };
+    case CloudTextureQuality.High:
+      return new CloudTextureResolution() {
+        quality = quality,
+        Coverage = 256,
+        Base = 1024,
+        Structure = 64,
+        Detail = 64,
+        BaseWarp = 128,
+        DetailWarp = 64
+      };
+    case CloudTextureQuality.Ultra:
+      return new CloudTextureResolution() {
+        quality = quality,
+        Coverage = 256,
+        Base = 2048,
+        Structure = 64,
+        Detail = 64,
+        BaseWarp = 128,
+        DetailWarp = 64
+      };
+    case CloudTextureQuality.RippingThroughTheMetaverse:
+      return new CloudTextureResolution() {
+        quality = quality,
+        Coverage = 256,
+        Base = 4096,
+        Structure = 64,
+        Detail = 64,
+        BaseWarp = 128,
+        DetailWarp = 64
+      };
+    default:
+      return new CloudTextureResolution() {
+        quality = quality,
+        Coverage = 256,
+        Base = 256,
+        Structure = 64,
+        Detail = 64,
+        BaseWarp = 128,
+        DetailWarp = 64
+      };
+  }
+}
 
 /******************************************************************************/
 /********************************* END CLOUDS *********************************/

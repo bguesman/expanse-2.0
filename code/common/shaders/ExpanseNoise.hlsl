@@ -138,20 +138,51 @@ NoiseResultAndCoordinate worley3D(float3 uv, float3 cells) {
     float3(EXPANSE_DEFAULT_SEED_Z_1, EXPANSE_DEFAULT_SEED_Z_2, EXPANSE_DEFAULT_SEED_Z_3));
 }
 
-float voronoi3DLayered(float3 uv, float3 startingGrid,
-  float gridScaleFactor, float amplitudeFactor, int layers) {
+float voronoi2DLayeredSeeded(float2 uv, float2 startingGrid, float gridScaleFactor,
+  float amplitudeFactor, int layers, float2 seed_x, float2 seed_y) {
   float maxValue = 0.0;
   float amplitude = 1.0;
   float noise = 0.0;
   for (int i = 0; i < layers; i++) {
-    NoiseResultAndCoordinate layerNoise = voronoi3D(uv,
-      startingGrid);
-    noise += layerNoise.result * amplitude;
+    float layerNoise = voronoi2DSeeded(uv,
+      startingGrid, seed_x, seed_y);
+    noise += layerNoise * amplitude;
     maxValue += amplitudeFactor;
     amplitude *= amplitudeFactor;
     startingGrid *= gridScaleFactor;
   }
   return noise / maxValue;
+}
+
+float voronoi2DLayered(float2 uv, float2 startingGrid, float gridScaleFactor,
+  float amplitudeFactor, int layers) {
+  return voronoi2DLayeredSeeded(uv, startingGrid, gridScaleFactor,
+    amplitudeFactor, layers, float2(EXPANSE_DEFAULT_SEED_X_1, EXPANSE_DEFAULT_SEED_X_2),
+    float2(EXPANSE_DEFAULT_SEED_Y_1, EXPANSE_DEFAULT_SEED_Y_2));
+}
+
+float worley2DLayeredSeeded(float2 uv, float2 startingGrid, float gridScaleFactor,
+  float amplitudeFactor, int layers, float2 seed_x, float2 seed_y) {
+  float maxValue = 0.0;
+  float amplitude = 1.0;
+  float noise = 0.0;
+  for (int i = 0; i < layers; i++) {
+    float layerNoise = worley2DSeeded(uv,
+      startingGrid, seed_x, seed_y);
+    noise += layerNoise * amplitude;
+    maxValue += amplitudeFactor;
+    amplitude *= amplitudeFactor;
+    startingGrid *= gridScaleFactor;
+  }
+  return noise / maxValue;
+}
+
+/*tes */
+float worley2DLayered(float2 uv, float2 startingGrid, float gridScaleFactor,
+  float amplitudeFactor, int layers) {
+  return worley2DLayeredSeeded(uv, startingGrid, gridScaleFactor,
+    amplitudeFactor, layers, float2(EXPANSE_DEFAULT_SEED_X_1, EXPANSE_DEFAULT_SEED_X_2),
+    float2(EXPANSE_DEFAULT_SEED_Y_1, EXPANSE_DEFAULT_SEED_Y_2));
 }
 
 float voronoi3DLayeredSeeded(float3 uv, float3 startingGrid,
@@ -171,20 +202,12 @@ float voronoi3DLayeredSeeded(float3 uv, float3 startingGrid,
   return noise / maxValue;
 }
 
-float worley3DLayered(float3 uv, float3 startingGrid,
+float voronoi3DLayered(float3 uv, float3 startingGrid,
   float gridScaleFactor, float amplitudeFactor, int layers) {
-  float maxValue = 0.0;
-  float amplitude = 1.0;
-  float noise = 0.0;
-  for (int i = 0; i < layers; i++) {
-    NoiseResultAndCoordinate layerNoise = worley3D(uv,
-      startingGrid);
-    noise += layerNoise.result * amplitude;
-    maxValue += amplitudeFactor;
-    amplitude *= amplitudeFactor;
-    startingGrid *= gridScaleFactor;
-  }
-  return noise / maxValue;
+  return voronoi3DLayeredSeeded(uv, startingGrid, gridScaleFactor, amplitudeFactor,
+    layers, float3(EXPANSE_DEFAULT_SEED_X_1, EXPANSE_DEFAULT_SEED_X_2, EXPANSE_DEFAULT_SEED_X_3),
+    float3(EXPANSE_DEFAULT_SEED_Y_1, EXPANSE_DEFAULT_SEED_Y_2, EXPANSE_DEFAULT_SEED_Y_3),
+    float3(EXPANSE_DEFAULT_SEED_Z_1, EXPANSE_DEFAULT_SEED_Z_2, EXPANSE_DEFAULT_SEED_Z_3));
 }
 
 float worley3DLayeredSeeded(float3 uv, float3 startingGrid,
@@ -202,6 +225,14 @@ float worley3DLayeredSeeded(float3 uv, float3 startingGrid,
     startingGrid *= gridScaleFactor;
   }
   return noise / maxValue;
+}
+
+float worley3DLayered(float3 uv, float3 startingGrid,
+  float gridScaleFactor, float amplitudeFactor, int layers) {
+  return worley3DLayeredSeeded(uv, startingGrid, gridScaleFactor, amplitudeFactor,
+    layers, float3(EXPANSE_DEFAULT_SEED_X_1, EXPANSE_DEFAULT_SEED_X_2, EXPANSE_DEFAULT_SEED_X_3),
+    float3(EXPANSE_DEFAULT_SEED_Y_1, EXPANSE_DEFAULT_SEED_Y_2, EXPANSE_DEFAULT_SEED_Y_3),
+    float3(EXPANSE_DEFAULT_SEED_Z_1, EXPANSE_DEFAULT_SEED_Z_2, EXPANSE_DEFAULT_SEED_Z_3));
 }
 
 /******************************************************************************/
@@ -372,6 +403,61 @@ float value3DLayered(float3 uv, float3 startingGrid,
   return noise / maxValue;
 }
 
+float perlin2DSeeded(float2 uv, float2 cells, float2 seed_x,
+  float2 seed_y) {
+  /* Point on our grid. */
+  float2 p = uv * cells;
+
+  /* Generate the top left point of the cell. */
+  float2 tl = max(0, min(cells, floor(uv * cells)));
+
+  /* Grid points. */
+  float2 grid_00 = tl;
+  float2 grid_01 = tl + float2(0, 1);
+  float2 grid_10 = tl + float2(1, 0);
+  float2 grid_11 = tl + float2(1, 1);
+
+  /* Offset vectors---important to compute before wraparound. */
+  float2 offset_00 = (grid_00 - p);
+  float2 offset_01 = (grid_01 - p);
+  float2 offset_10 = (grid_10 - p);
+  float2 offset_11 = (grid_11 - p);
+
+  /* Wraparound. */
+  grid_00 -= cells * floor(grid_00 / cells);
+  grid_01 -= cells * floor(grid_01 / cells);
+  grid_10 -= cells * floor(grid_10 / cells);
+  grid_11 -= cells * floor(grid_11 / cells);
+
+
+  /* Gradient vectors. */
+  float2 gradient_00 = normalize(random_2_2_seeded(grid_00, seed_x, seed_y));
+  float2 gradient_01 = normalize(random_2_2_seeded(grid_01, seed_x, seed_y));
+  float2 gradient_10 = normalize(random_2_2_seeded(grid_10, seed_x, seed_y));
+  float2 gradient_11 = normalize(random_2_2_seeded(grid_11, seed_x, seed_y));
+
+  /* Noise values. */
+  float noise_00 = dot(gradient_00, offset_00);
+  float noise_01 = dot(gradient_01, offset_01);
+  float noise_10 = dot(gradient_10, offset_10);
+  float noise_11 = dot(gradient_11, offset_11);
+
+  /* Lerp. */
+  float2 a = saturate(frac(p));
+  /* y. */
+  float noise_0 = lerp(noise_00, noise_01, a.y);
+  float noise_1 = lerp(noise_10, noise_11, a.y);
+  /* x. */
+  float noise = lerp(noise_0, noise_1, a.x);
+
+  return (noise+1)/2;
+}
+
+float perlin2D(float2 uv, float2 cells) {
+  return perlin2DSeeded(uv, cells, float2(EXPANSE_DEFAULT_SEED_X_1, EXPANSE_DEFAULT_SEED_X_2),
+  float2(EXPANSE_DEFAULT_SEED_Y_1, EXPANSE_DEFAULT_SEED_Y_2));
+}
+
 // TODO BUG: fails for grid size of less than 3,3,3. TODO BUG: also fails
 // when being warped. Something is wrong with this implementation...
 // default z seed maybe? probably not since it works fine for voronoi
@@ -462,20 +548,28 @@ NoiseResultAndCoordinate perlin3D(float3 uv, float3 cells) {
     float3(EXPANSE_DEFAULT_SEED_Z_1, EXPANSE_DEFAULT_SEED_Z_2, EXPANSE_DEFAULT_SEED_Z_3));
 }
 
-float perlin3DLayered(float3 uv, float3 startingGrid,
-  float gridScaleFactor, float amplitudeFactor, int layers) {
+float perlin2DLayeredSeeded(float2 uv, float2 startingGrid,
+  float gridScaleFactor, float amplitudeFactor, int layers, float2 seed_x,
+  float2 seed_y) {
   float maxValue = 0.0;
   float amplitude = 1.0;
   float noise = 0.0;
   for (int i = 0; i < layers; i++) {
-    NoiseResultAndCoordinate layerNoise = perlin3D(uv,
-      startingGrid);
-    noise += layerNoise.result * amplitude;
+    float layerNoise = perlin2DSeeded(uv,
+      startingGrid, seed_x, seed_y);
+    noise += layerNoise * amplitude;
     maxValue += amplitudeFactor;
     amplitude *= amplitudeFactor;
     startingGrid *= gridScaleFactor;
   }
   return noise / maxValue;
+}
+
+float perlin2DLayered(float2 uv, float2 startingGrid,
+  float gridScaleFactor, float amplitudeFactor, int layers) {
+  return perlin2DLayeredSeeded(uv, startingGrid, gridScaleFactor, amplitudeFactor,
+    layers, float2(EXPANSE_DEFAULT_SEED_X_1, EXPANSE_DEFAULT_SEED_X_2),
+    float2(EXPANSE_DEFAULT_SEED_Y_1, EXPANSE_DEFAULT_SEED_Y_2));
 }
 
 float perlin3DLayeredSeeded(float3 uv, float3 startingGrid,
@@ -493,6 +587,14 @@ float perlin3DLayeredSeeded(float3 uv, float3 startingGrid,
     startingGrid *= gridScaleFactor;
   }
   return noise / maxValue;
+}
+
+float perlin3DLayered(float3 uv, float3 startingGrid,
+  float gridScaleFactor, float amplitudeFactor, int layers) {
+  return perlin3DLayeredSeeded(uv, startingGrid, gridScaleFactor, amplitudeFactor,
+    layers, float3(EXPANSE_DEFAULT_SEED_X_1, EXPANSE_DEFAULT_SEED_X_2, EXPANSE_DEFAULT_SEED_X_3),
+    float3(EXPANSE_DEFAULT_SEED_Y_1, EXPANSE_DEFAULT_SEED_Y_2, EXPANSE_DEFAULT_SEED_Y_3),
+    float3(EXPANSE_DEFAULT_SEED_Z_1, EXPANSE_DEFAULT_SEED_Z_2, EXPANSE_DEFAULT_SEED_Z_3));
 }
 
 /******************************************************************************/

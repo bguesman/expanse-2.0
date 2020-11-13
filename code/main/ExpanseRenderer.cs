@@ -22,6 +22,11 @@ public static readonly int _PixelCoordToViewDirWS = Shader.PropertyToID("_PixelC
 
 
 
+
+
+
+
+
 /******************************************************************************/
 /************************** SKY PRECOMPUTATION TABLES *************************/
 /******************************************************************************/
@@ -141,6 +146,11 @@ RTHandle allocateSky3DTable(Vector3 resolution, int index, string name) {
 
 
 
+
+
+
+
+
 /******************************************************************************/
 /****************************** PROCEDURAL STARS ******************************/
 /******************************************************************************/
@@ -217,9 +227,212 @@ void cleanupNebulaeTextures() {
 
 
 
+
+
+
+
+
+/******************************************************************************/
+/*********************************** CLOUDS ***********************************/
+/******************************************************************************/
+
+/* For keeping track of which cloud layers are enabled. */
+private int[] m_enabledCloudLayers;
+
+/* Cloud texture resolution for each layer. */
+private ExpanseCommon.CloudTextureResolution[] m_cloudTextureResolutions;
+
+/* Takes up less space by using a single color channel. */
+RTHandle allocatedProceduralCloudTexture2D(Vector2 resolution, string name) {
+  var table = RTHandles.Alloc((int) resolution.x,
+                              (int) resolution.y,
+                              dimension: TextureDimension.Tex2D,
+                              colorFormat: GraphicsFormat.R16_SFloat,
+                              enableRandomWrite: true,
+                              name: name);
+
+  Debug.Assert(table != null);
+
+  return table;
+}
+
+/* Takes up less space by using a single color channel. */
+RTHandle allocatedProceduralCloudTexture3D(Vector3 resolution, string name) {
+  var table = RTHandles.Alloc((int) Mathf.Min(256, resolution.x), // HACK
+                              (int) Mathf.Min(256, resolution.y),
+                              (int) Mathf.Min(256, resolution.z),
+                              dimension: TextureDimension.Tex3D,
+                              colorFormat: GraphicsFormat.R16_SFloat,
+                              enableRandomWrite: true,
+                              name: name);
+
+  Debug.Assert(table != null);
+
+  return table;
+}
+
+
+/* Struct for holding handles to procedural cloud textures. */
+struct CloudNoiseTexture {
+  public int dimension;        /* For checking which shader variables to set. */
+  public RTHandle coverageTex;
+  public RTHandle baseTex;
+  public RTHandle structureTex;
+  public RTHandle detailTex;
+  public RTHandle baseWarpTex;
+  public RTHandle detailWarpTex;
+};
+
+/* Cloud noise textures for every layer. */
+CloudNoiseTexture[] m_cloudNoiseTextures;
+
+CloudNoiseTexture buildCloudNoiseTexture2D(ExpanseCommon.CloudTextureResolution res, int index) {
+  CloudNoiseTexture c;
+  c.dimension = 2;
+  c.coverageTex = allocatedProceduralCloudTexture2D(new Vector2(res.Coverage, res.Coverage), "CloudCoverage_" + index);
+  c.baseTex = allocatedProceduralCloudTexture2D(new Vector2(res.Base, res.Base), "CloudBase_" + index);
+  c.structureTex = allocatedProceduralCloudTexture2D(new Vector2(res.Structure, res.Structure), "CloudStructure_" + index);
+  c.detailTex = allocatedProceduralCloudTexture2D(new Vector2(res.Detail, res.Detail), "CloudDetail_" + index);
+  c.baseWarpTex = allocatedProceduralCloudTexture2D(new Vector2(res.BaseWarp, res.BaseWarp), "CloudBaseWarp_" + index);
+  c.detailWarpTex = allocatedProceduralCloudTexture2D(new Vector2(res.DetailWarp, res.DetailWarp), "CloudDetailWarp_" + index);
+  return c;
+}
+
+CloudNoiseTexture buildCloudNoiseTexture3D(ExpanseCommon.CloudTextureResolution res, int index) {
+  CloudNoiseTexture c;
+  c.dimension = 3;
+  c.coverageTex = allocatedProceduralCloudTexture3D(new Vector3(res.Coverage, res.Coverage, res.Coverage), "CloudCoverage_" + index);
+  c.baseTex = allocatedProceduralCloudTexture3D(new Vector3(res.Base, res.Base, res.Base), "CloudBase_" + index);
+  c.structureTex = allocatedProceduralCloudTexture3D(new Vector3(res.Structure, res.Structure, res.Structure), "CloudStructure_" + index);
+  c.detailTex = allocatedProceduralCloudTexture3D(new Vector3(res.Detail, res.Detail, res.Detail), "CloudDetail_" + index);
+  c.baseWarpTex = allocatedProceduralCloudTexture3D(new Vector3(res.BaseWarp, res.BaseWarp, res.BaseWarp), "CloudBaseWarp_" + index);
+  c.detailWarpTex = allocatedProceduralCloudTexture3D(new Vector3(res.DetailWarp, res.DetailWarp, res.DetailWarp), "CloudDetailWarp_" + index);
+  return c;
+}
+
+void destroyCloudNoiseTexture(CloudNoiseTexture c) {
+  RTHandles.Release(c.coverageTex);
+  RTHandles.Release(c.baseTex);
+  RTHandles.Release(c.structureTex);
+  RTHandles.Release(c.detailTex);
+  RTHandles.Release(c.baseWarpTex);
+  RTHandles.Release(c.detailWarpTex);
+  c.coverageTex = null;
+  c.baseTex = null;
+  c.structureTex = null;
+  c.detailTex = null;
+  c.baseWarpTex = null;
+  c.detailWarpTex = null;
+}
+
+void allocateCloudTextures(Expanse sky) {
+  /* Count how many layers are enabled. */
+  int n = (int) ExpanseCommon.kMaxCloudLayers;
+  int numCloudLayersEnabled = 0;
+  for (int i = 0; i < n; i++) {
+    bool enabled = (((BoolParameter) sky.GetType().GetField("cloudLayerEnabled" + i).GetValue(sky)).value);
+    if (enabled) {
+      numCloudLayersEnabled++;
+    }
+  }
+
+  bool layerCountChanged = (numCloudLayersEnabled != m_enabledCloudLayers.Length);
+
+  /* Figure out which ones they are. */
+  m_enabledCloudLayers = new int[numCloudLayersEnabled];
+  numCloudLayersEnabled = 0;
+  for (int i = 0; i < n; i++) {
+    bool enabled = (((BoolParameter) sky.GetType().GetField("cloudLayerEnabled" + i).GetValue(sky)).value);
+    if (enabled) {
+      m_enabledCloudLayers[numCloudLayersEnabled] = i;
+      numCloudLayersEnabled++;
+    }
+  }
+
+  if (!layerCountChanged) {
+
+    /* Check case-by-case if each texture's resolution or type has changed. */
+    /* Loop through all the enabled textures and allocate each one. */
+    for (int i = 0; i < m_enabledCloudLayers.Length; i++) {
+
+      int layerIndex = m_enabledCloudLayers[i];
+      ExpanseCommon.CloudTextureQuality quality = ((EnumParameter<ExpanseCommon.CloudTextureQuality>) sky.GetType().GetField("cloudNoiseQuality" + layerIndex).GetValue(sky)).value;
+
+      if (quality != m_cloudTextureResolutions[i].quality) {
+        /* Have to update these tables. */
+        ExpanseCommon.CloudTextureResolution res = ExpanseCommon.cloudQualityToCloudTextureResolution(quality);
+        m_cloudTextureResolutions[i] = res;
+        ExpanseCommon.CloudGeometryType cloudGeometryType = ((EnumParameter<ExpanseCommon.CloudGeometryType>) sky.GetType().GetField("cloudGeometryType" + layerIndex).GetValue(sky)).value;
+        if (cloudGeometryType == ExpanseCommon.CloudGeometryType.Plane) {
+          /* 2D. */
+          m_cloudNoiseTextures[i] = buildCloudNoiseTexture2D(res, i);
+        } else if (cloudGeometryType == ExpanseCommon.CloudGeometryType.BoxVolume) {
+          /* 3D. */
+          m_cloudNoiseTextures[i] = buildCloudNoiseTexture3D(res, i);
+        } else {
+          // TODO: Unhandled.
+        }
+      }
+
+    }
+
+    return;
+  }
+
+  /* Signal that we also need to reallocate the cloud framebuffers, and
+   * cleanup all the existing textures. */
+  reallocateCloudFramebuffers = true;
+  cleanupCloudTextures();
+
+  /* Recreate the arrays of texture resolutions and textures. */
+  m_cloudTextureResolutions = new ExpanseCommon.CloudTextureResolution[m_enabledCloudLayers.Length];
+  m_cloudNoiseTextures = new CloudNoiseTexture[m_enabledCloudLayers.Length];
+
+  /* Loop through all the enabled textures and allocate each one. */
+  for (int i = 0; i < m_enabledCloudLayers.Length; i++) {
+    int layerIndex = m_enabledCloudLayers[i];
+    ExpanseCommon.CloudTextureQuality quality = ((EnumParameter<ExpanseCommon.CloudTextureQuality>) sky.GetType().GetField("cloudNoiseQuality" + layerIndex).GetValue(sky)).value;
+    ExpanseCommon.CloudTextureResolution res = ExpanseCommon.cloudQualityToCloudTextureResolution(quality);
+    ExpanseCommon.CloudGeometryType cloudGeometryType = ((EnumParameter<ExpanseCommon.CloudGeometryType>) sky.GetType().GetField("cloudGeometryType" + layerIndex).GetValue(sky)).value;
+    m_cloudTextureResolutions[i] = res;
+
+    if (cloudGeometryType == ExpanseCommon.CloudGeometryType.Plane) {
+      /* 2D. */
+      m_cloudNoiseTextures[i] = buildCloudNoiseTexture2D(res, i);
+    } else if (cloudGeometryType == ExpanseCommon.CloudGeometryType.BoxVolume) {
+      /* 3D. */
+      m_cloudNoiseTextures[i] = buildCloudNoiseTexture3D(res, i);
+    } else {
+      // TODO: Unhandled.
+    }
+  }
+
+}
+
+
+void cleanupCloudTextures() {
+  /* To be safe, use the length of cloud noise textures. */
+  for (int i = 0; i < m_cloudNoiseTextures.Length; i++) {
+    destroyCloudNoiseTexture(m_cloudNoiseTextures[i]);
+  }
+}
+
+/******************************************************************************/
+/********************************* END CLOUDS *********************************/
+/******************************************************************************/
+
+
+
+
+
+
+
+
 /******************************************************************************/
 /******************************** FRAMEBUFFERS ********************************/
 /******************************************************************************/
+
+private bool reallocateCloudFramebuffers = true;
 
 /* 2 tables:
  *  1. Sky color. RGBA where A isn't used (currently).
@@ -239,13 +452,21 @@ SkyRenderTexture m_cubemapSkyRT;
  * table for reprojection. We alternate between which is the previous
  * and which is the current render texture set to avoid  */
 struct CloudRenderTexture {
- public RTHandle colorBuffer;
- public RTHandle transmittanceBuffer;
+ public RTHandle colorBuffer;         /* Color and blend. */
+ public RTHandle transmittanceBuffer; /* Transmittance and hit depth for compositing. */
 };
-CloudRenderTexture[] m_fullscreenCloudRT;
-CloudRenderTexture[] m_cubemapCloudRT;
+
+/* Compositing. */
+CloudRenderTexture[] m_fullscreenCloudCompositeRT;
+CloudRenderTexture[] m_cubemapCloudCompositeRT;
 int m_currentFullscreenCloudsRT;
 int m_currentCubemapCloudsRT;
+
+/* Individual layers. */
+CloudRenderTexture[] m_fullscreenCloudLayerRT;
+CloudRenderTexture[] m_cubemapCloudLayerRT;
+
+/* For keeping track of resolutions. */
 Vector2 m_currentFullscreenRTSize;
 Vector2 m_currentCubemapRTSize;
 
@@ -263,22 +484,42 @@ CloudRenderTexture buildCloudRenderTexture(Vector2 resolution, int index, string
 }
 
 private void buildFullscreenRenderTextures(Vector2 resolution) {
+  /* Sky. */
   m_fullscreenSkyRT = buildSkyRenderTexture(resolution, 0, "fullscreenSkyRT");
-  m_fullscreenCloudRT = new CloudRenderTexture[2];
+
+  /* Cloud compositing. */
+  m_fullscreenCloudCompositeRT = new CloudRenderTexture[2];
   for (int i = 0; i < 2; i++) {
-    m_fullscreenCloudRT[i] = buildCloudRenderTexture(resolution, i, "fullscreenCloudRT");
+    m_fullscreenCloudCompositeRT[i] = buildCloudRenderTexture(resolution, i, "fullscreenCloudCompositeRT");
   }
   m_currentFullscreenCloudsRT = 0;
+
+  /* Individual cloud layers. */
+  m_fullscreenCloudLayerRT = new CloudRenderTexture[m_enabledCloudLayers.Length];
+  for (int i = 0; i < m_enabledCloudLayers.Length; i++) {
+    m_fullscreenCloudLayerRT[i] = buildCloudRenderTexture(resolution, i, "fullscreenCloudRT_Layer" + i);
+  }
+
   m_currentFullscreenRTSize = resolution;
 }
 
 private void buildCubemapRenderTextures(Vector2 resolution) {
+  /* Sky. */
   m_cubemapSkyRT = buildSkyRenderTexture(resolution, 0, "cubemapSkyRT");
-  m_cubemapCloudRT = new CloudRenderTexture[2];
+
+  /* Cloud compositing. */
+  m_cubemapCloudCompositeRT = new CloudRenderTexture[2];
   for (int i = 0; i < 2; i++) {
-    m_cubemapCloudRT[i] = buildCloudRenderTexture(resolution, i, "cubemapCloudRT");
+    m_cubemapCloudCompositeRT[i] = buildCloudRenderTexture(resolution, i, "cubemapCloudCompositeRT");
   }
   m_currentCubemapCloudsRT = 0;
+
+  /* Individual cloud layers. */
+  m_cubemapCloudLayerRT = new CloudRenderTexture[m_enabledCloudLayers.Length];
+  for (int i = 0; i < m_enabledCloudLayers.Length; i++) {
+    m_cubemapCloudLayerRT[i] = buildCloudRenderTexture(resolution, i, "cubemapCloudRT_Layer" + i);
+  }
+
   m_currentCubemapRTSize = resolution;
 }
 
@@ -287,10 +528,17 @@ private void cleanupFullscreenRenderTextures() {
   m_fullscreenSkyRT.colorBuffer = null;
 
   for (int i = 0; i < 2; i++) {
-    RTHandles.Release(m_fullscreenCloudRT[i].colorBuffer);
-    RTHandles.Release(m_fullscreenCloudRT[i].transmittanceBuffer);
-    m_fullscreenCloudRT[i].colorBuffer = null;
-    m_fullscreenCloudRT[i].transmittanceBuffer = null;
+    RTHandles.Release(m_fullscreenCloudCompositeRT[i].colorBuffer);
+    RTHandles.Release(m_fullscreenCloudCompositeRT[i].transmittanceBuffer);
+    m_fullscreenCloudCompositeRT[i].colorBuffer = null;
+    m_fullscreenCloudCompositeRT[i].transmittanceBuffer = null;
+  }
+
+  for (int i = 0; i < m_fullscreenCloudLayerRT.Length; i++) {
+    RTHandles.Release(m_fullscreenCloudLayerRT[i].colorBuffer);
+    RTHandles.Release(m_fullscreenCloudLayerRT[i].transmittanceBuffer);
+    m_fullscreenCloudLayerRT[i].colorBuffer = null;
+    m_fullscreenCloudLayerRT[i].transmittanceBuffer = null;
   }
 }
 
@@ -299,16 +547,28 @@ private void cleanupCubemapRenderTextures() {
   m_cubemapSkyRT.colorBuffer = null;
 
   for (int i = 0; i < 2; i++) {
-    RTHandles.Release(m_cubemapCloudRT[i].colorBuffer);
-    RTHandles.Release(m_cubemapCloudRT[i].transmittanceBuffer);
-    m_cubemapCloudRT[i].colorBuffer = null;
-    m_cubemapCloudRT[i].transmittanceBuffer = null;
+    RTHandles.Release(m_cubemapCloudCompositeRT[i].colorBuffer);
+    RTHandles.Release(m_cubemapCloudCompositeRT[i].transmittanceBuffer);
+    m_cubemapCloudCompositeRT[i].colorBuffer = null;
+    m_cubemapCloudCompositeRT[i].transmittanceBuffer = null;
+  }
+
+  for (int i = 0; i < m_cubemapCloudLayerRT.Length; i++) {
+    RTHandles.Release(m_cubemapCloudLayerRT[i].colorBuffer);
+    RTHandles.Release(m_cubemapCloudLayerRT[i].transmittanceBuffer);
+    m_cubemapCloudLayerRT[i].colorBuffer = null;
+    m_cubemapCloudLayerRT[i].transmittanceBuffer = null;
   }
 }
 
 /******************************************************************************/
 /****************************** END FRAMEBUFFERS ******************************/
 /******************************************************************************/
+
+
+
+
+
 
 
 
@@ -320,6 +580,7 @@ Material m_skyMaterial;
 MaterialPropertyBlock m_PropertyBlock = new MaterialPropertyBlock();
 ComputeShader m_skyCS;
 ComputeShader m_starCS;
+ComputeShader m_cloudCS;
 
 /* Hash values for determining update behavior. */
 int m_LastSkyHash;
@@ -330,8 +591,10 @@ private static int m_RenderCubemapSkyID = 0;
 private static int m_RenderFullscreenSkyID = 1;
 private static int m_RenderCubemapCloudsID = 2;
 private static int m_RenderFullscreenCloudsID = 3;
-private static int m_CompositeCubemapSkyAndCloudsID = 4;
-private static int m_CompositeFullscreenSkyAndCloudsID = 5;
+private static int m_CompositeCubemapCloudsID = 4;
+private static int m_CompositeFullscreenCloudsID = 5;
+private static int m_CompositeCubemapSkyAndCloudsID = 6;
+private static int m_CompositeFullscreenSkyAndCloudsID = 7;
 
 /* Profiling samplers. */
 ProfilingSampler m_DrawProfilingSampler = new ProfilingSampler("Expanse: Draw Sky");
@@ -341,10 +604,17 @@ ProfilingSampler m_SkyTLUTProfilingSampler = new ProfilingSampler("Expanse: Comp
 ProfilingSampler m_SkyMSLUTProfilingSampler = new ProfilingSampler("Expanse: Compute Multiple Scattering LUT");
 ProfilingSampler m_StarProfilingSampler = new ProfilingSampler("Expanse: Generate Star Texture");
 ProfilingSampler m_NebulaeProfilingSampler = new ProfilingSampler("Expanse: Generate Nebulae Texture");
+ProfilingSampler m_DrawCloudsProfilingSampler = new ProfilingSampler("Expanse: Draw Cloud Layers");
+ProfilingSampler m_GenerateCloudsProfilingSampler = new ProfilingSampler("Expanse: Generate Cloud Noises");
 
 /******************************************************************************/
 /**************************** END MEMBER VARIABLES ****************************/
 /******************************************************************************/
+
+
+
+
+
 
 
 public override void Build() {
@@ -354,9 +624,16 @@ public override void Build() {
   /* Get handles to compute shaders. */
   m_skyCS = GetExpanseSkyPrecomputeShader();
   m_starCS = GetExpanseStarPrecomputeShader();
+  m_cloudCS = GetExpanseCloudPrecomputeShader();
 
-  /* Set up default texture quality. */
+  /* Set up default cloud arrays. */
+  m_enabledCloudLayers = new int[0];
   m_skyTextureResolution = ExpanseCommon.skyQualityToSkyTextureResolution(ExpanseCommon.SkyTextureQuality.Medium);
+  m_cloudTextureResolutions = new ExpanseCommon.CloudTextureResolution[m_enabledCloudLayers.Length];
+  for (int i = 0; i < m_enabledCloudLayers.Length; i++) {
+    m_cloudTextureResolutions[i] = ExpanseCommon.cloudQualityToCloudTextureResolution(ExpanseCommon.CloudTextureQuality.Medium);
+  }
+  m_cloudNoiseTextures = new CloudNoiseTexture[m_enabledCloudLayers.Length];
 
   /* Create the framebuffers we'll use for our multi-pass strategy.
    * This width and height is a best guess. It will be reset in the render
@@ -380,6 +657,11 @@ ComputeShader GetExpanseStarPrecomputeShader() {
     return Resources.Load<ComputeShader>("ExpanseStarPrecompute");
 }
 
+/* Returns reference to expanse sky precompute shader. */
+ComputeShader GetExpanseCloudPrecomputeShader() {
+  return Resources.Load<ComputeShader>("ExpanseCloudPrecompute");
+}
+
 public override void Cleanup()
 {
   CoreUtils.Destroy(m_skyMaterial);
@@ -388,6 +670,7 @@ public override void Cleanup()
   cleanupCubemapRenderTextures();
   cleanupSkyTables();
   cleanupStarTextures();
+  cleanupCloudTextures();
 }
 
 private void setLightingData(CommandBuffer cmd, Vector4 cameraPos, Expanse sky) {
@@ -504,6 +787,8 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
 
   allocateSkyPrecomputationTables(sky);
   allocateStarTextures(sky);
+  allocateCloudTextures(sky);
+
   setMaterialPropertyBlock(builtinParams);
   setGlobalCBuffer(builtinParams);
 
@@ -523,7 +808,7 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
 
   int currentCloudHash = sky.GetCloudHashCode();
   if (currentCloudHash != m_LastCloudHash) {
-    /* Update the cloud noise tables. */
+    DispatchCloudCompute(builtinParams.commandBuffer, sky);
     m_LastCloudHash = currentCloudHash;
   }
 
@@ -551,6 +836,11 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
   return false;
 }
 
+
+
+
+
+
 /******************************************************************************/
 /****************************** RENDER FUNCTIONS ******************************/
 /******************************************************************************/
@@ -566,42 +856,59 @@ private void RenderSkyPass(BuiltinSkyParameters builtinParams, bool renderForCub
       outputs, m_PropertyBlock, skyPassID);
   } else {
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
-      outputs, builtinParams.depthBuffer, m_PropertyBlock, skyPassID); // builtinParams.depthBuffer,
+      outputs, builtinParams.depthBuffer, m_PropertyBlock, skyPassID);
   }
 }
 
 private void RenderCloudsPass(BuiltinSkyParameters builtinParams, bool renderForCubemap) {
-  int skyPassID = renderForCubemap ? m_RenderCubemapCloudsID : m_RenderFullscreenCloudsID;
-  int currentRTID = renderForCubemap ? m_currentCubemapCloudsRT : m_currentFullscreenCloudsRT;
-  int prevRTID = (currentRTID + 1) % 2;
+  CommandBuffer cmd = builtinParams.commandBuffer;
+  var sky = builtinParams.skySettings as Expanse;
 
-  /* TODO: might wanna set sky cube map tex for GI. Cool we can do that!
-   * multi-pass, f-yeah! */
+  /* Only render fullscreen clouds for the moment. */
+  if (!renderForCubemap) {
+    /* TODO: might wanna set sky view LUT for GI. Cool we can do that!
+     * multi-pass, f-yeah! */
 
-  /* Pass in the previous cloud render texture to use for reprojection. */
-  CloudRenderTexture prevTex = (renderForCubemap ? m_cubemapCloudRT : m_fullscreenCloudRT)[prevRTID];
-  if (renderForCubemap) {
-    m_PropertyBlock.SetTexture("_lastCubemapCloudColorRT", prevTex.colorBuffer);
-    m_PropertyBlock.SetTexture("_lastCubemapCloudTransmittanceRT", prevTex.transmittanceBuffer);
-  } else {
+    /* Render out each enabled cloud layer. */
+    for (int i = 0; i < m_enabledCloudLayers.Length; i++) {
+      int layerIndex = m_enabledCloudLayers[i];
+      SetGlobalCloudTextures(cmd, sky, i, layerIndex);
+
+      /* Render to this layer's cloud render texture. */
+      RenderTargetIdentifier[] outputs = new RenderTargetIdentifier[] {
+        new RenderTargetIdentifier(m_fullscreenCloudLayerRT[i].colorBuffer),
+        new RenderTargetIdentifier(m_fullscreenCloudLayerRT[i].transmittanceBuffer)};
+      CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
+          outputs, m_PropertyBlock, m_RenderFullscreenCloudsID);
+    }
+  }
+}
+
+private void RenderCloudsCompositePass(BuiltinSkyParameters builtinParams, bool renderForCubemap) {
+  /* Only composite fullscreen clouds for the moment. */
+  if (!renderForCubemap) {
+
+    /* Set all the render textures. */
+    for (int i = 0; i < m_fullscreenCloudLayerRT.Length; i++) {
+      /* Set the layer we're shading as a uniform variable. */
+      m_PropertyBlock.SetTexture("_cloudColorLayer" + i, m_fullscreenCloudLayerRT[i].colorBuffer);
+      m_PropertyBlock.SetTexture("_cloudTransmittanceLayer" + i, m_fullscreenCloudLayerRT[i].transmittanceBuffer);
+    }
+
+    /* Get the current and previous cloud render textures. */
+    CloudRenderTexture prevTex = m_fullscreenCloudCompositeRT[(m_currentFullscreenCloudsRT+1)%2];
+    CloudRenderTexture currTex = m_fullscreenCloudCompositeRT[m_currentFullscreenCloudsRT];
+
+    /* Set the previous cloud render texture for use in temporal accumulation. */
     m_PropertyBlock.SetTexture("_lastFullscreenCloudColorRT", prevTex.colorBuffer);
     m_PropertyBlock.SetTexture("_lastFullscreenCloudTransmittanceRT", prevTex.transmittanceBuffer);
-  }
 
-  /* Set the render targets. */
-  CloudRenderTexture outTex = (renderForCubemap ? m_cubemapCloudRT : m_fullscreenCloudRT)[currentRTID];
-  RenderTargetIdentifier[] outputs = new RenderTargetIdentifier[] {
-    new RenderTargetIdentifier(outTex.colorBuffer),
-    new RenderTargetIdentifier(outTex.transmittanceBuffer)
-  };
-
-  /* Draw the clouds and update current render texture. */
-  if (renderForCubemap) {
+    /* Render to the current fullscreen cloud compositing texture. */
+    RenderTargetIdentifier[] outputs = new RenderTargetIdentifier[] {
+      new RenderTargetIdentifier(currTex.colorBuffer),
+      new RenderTargetIdentifier(currTex.transmittanceBuffer)};
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
-      outputs, m_PropertyBlock, skyPassID);
-  } else {
-    CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
-      outputs, builtinParams.depthBuffer, m_PropertyBlock, skyPassID);
+        outputs, m_PropertyBlock, m_CompositeFullscreenCloudsID);
   }
 }
 
@@ -615,15 +922,15 @@ private void RenderCompositePass(BuiltinSkyParameters builtinParams, bool render
 
   if (renderForCubemap) {
     m_PropertyBlock.SetTexture("_cubemapSkyColorRT", m_cubemapSkyRT.colorBuffer);
-    m_PropertyBlock.SetTexture("_currCubemapCloudColorRT", m_cubemapCloudRT[m_currentCubemapCloudsRT].colorBuffer);
-    m_PropertyBlock.SetTexture("_currCubemapCloudTransmittanceRT", m_cubemapCloudRT[m_currentCubemapCloudsRT].transmittanceBuffer);
+    m_PropertyBlock.SetTexture("_currCubemapCloudColorRT", m_cubemapCloudCompositeRT[m_currentCubemapCloudsRT].colorBuffer);
+    m_PropertyBlock.SetTexture("_currCubemapCloudTransmittanceRT", m_cubemapCloudCompositeRT[m_currentCubemapCloudsRT].transmittanceBuffer);
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
       builtinParams.colorBuffer, m_PropertyBlock, compositePassID);
     m_currentCubemapCloudsRT = (m_currentCubemapCloudsRT + 1) % 2;
   } else {
     m_PropertyBlock.SetTexture("_fullscreenSkyColorRT", m_fullscreenSkyRT.colorBuffer);
-    m_PropertyBlock.SetTexture("_currFullscreenCloudColorRT", m_fullscreenCloudRT[m_currentFullscreenCloudsRT].colorBuffer);
-    m_PropertyBlock.SetTexture("_currFullscreenCloudTransmittanceRT", m_fullscreenCloudRT[m_currentFullscreenCloudsRT].transmittanceBuffer);
+    m_PropertyBlock.SetTexture("_currFullscreenCloudColorRT", m_fullscreenCloudCompositeRT[m_currentFullscreenCloudsRT].colorBuffer);
+    m_PropertyBlock.SetTexture("_currFullscreenCloudTransmittanceRT", m_fullscreenCloudCompositeRT[m_currentFullscreenCloudsRT].transmittanceBuffer);
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
       builtinParams.colorBuffer, builtinParams.depthBuffer, m_PropertyBlock, compositePassID);
     m_currentFullscreenCloudsRT = (m_currentFullscreenCloudsRT + 1) % 2;
@@ -631,11 +938,19 @@ private void RenderCompositePass(BuiltinSkyParameters builtinParams, bool render
 }
 
 private void checkAndResizeFramebuffers(BuiltinSkyParameters builtinParams, bool renderForCubemap) {
+  /* Compute the number of layers we have enabled. */
   Vector2 currSize = (renderForCubemap) ? m_currentCubemapRTSize : m_currentFullscreenRTSize;
   Vector2Int trueSize = Vector2Int.Max(new Vector2Int(1, 1),
     builtinParams.colorBuffer.GetScaledSize(builtinParams.colorBuffer.referenceSize));
-  if (currSize.x != trueSize.x || currSize.y != trueSize.y) {
-    if (renderForCubemap) {
+  if (currSize.x != trueSize.x || currSize.y != trueSize.y || reallocateCloudFramebuffers) {
+    if (reallocateCloudFramebuffers) {
+      cleanupCubemapRenderTextures();
+      buildCubemapRenderTextures(trueSize);
+      cleanupFullscreenRenderTextures();
+      buildFullscreenRenderTextures(trueSize);
+      reallocateCloudFramebuffers = false;
+    }
+    else if (renderForCubemap) {
       cleanupCubemapRenderTextures();
       buildCubemapRenderTextures(trueSize);
     } else {
@@ -648,6 +963,7 @@ private void checkAndResizeFramebuffers(BuiltinSkyParameters builtinParams, bool
 public override void RenderSky(BuiltinSkyParameters builtinParams,
   bool renderForCubemap, bool renderSunDisk) {
   using (new ProfilingScope(builtinParams.commandBuffer, m_DrawProfilingSampler)) {
+
     /* Check whether or not we have to resize the framebuffers, and do it
      * if we have to. */
     checkAndResizeFramebuffers(builtinParams, renderForCubemap);
@@ -658,6 +974,9 @@ public override void RenderSky(BuiltinSkyParameters builtinParams,
     /* Render clouds pass. */
     RenderCloudsPass(builtinParams, renderForCubemap);
 
+    /* Composite the clouds. */
+    RenderCloudsCompositePass(builtinParams, renderForCubemap);
+
     /* Composite the two together. */
     RenderCompositePass(builtinParams, renderForCubemap);
   }
@@ -666,6 +985,11 @@ public override void RenderSky(BuiltinSkyParameters builtinParams,
 /******************************************************************************/
 /**************************** END RENDER FUNCTIONS ****************************/
 /******************************************************************************/
+
+
+
+
+
 
 
 
@@ -737,9 +1061,67 @@ private void DispatchNebulaeCompute(CommandBuffer cmd) {
   }
 }
 
+private void DispatchCloudCompute(CommandBuffer cmd, Expanse sky) {
+  using (new ProfilingScope(cmd, m_GenerateCloudsProfilingSampler)) {
+    /* Update the cloud noise tables. */
+    for (int i = 0; i < m_enabledCloudLayers.Length; i++) {
+      /* Get the index of this layer. */
+      int layerIndex = m_enabledCloudLayers[i];
+      /* Get its textures. */
+      CloudNoiseTexture tex = m_cloudNoiseTextures[i];
+      ExpanseCommon.CloudTextureResolution res = m_cloudTextureResolutions[i];
+      if (tex.dimension == 2) {
+        DispatchCloudCompute2D(cmd, sky, i, layerIndex, res, tex);
+      } else if (tex.dimension == 3) {
+        DispatchCloudCompute3D(cmd, sky, i, layerIndex, res, tex);
+      }
+    }
+  }
+}
+
+private void DispatchCloudCompute2D(CommandBuffer cmd, Expanse sky, int layer,
+  int layerIndex, ExpanseCommon.CloudTextureResolution res, CloudNoiseTexture tex) {
+
+  string[] layerName = {"cloudCoverage", "cloudBase",
+    "cloudStructure", "cloudDetail",
+    "cloudBaseWarp", "cloudDetailWarp"};
+  // string[] kernelName = {"VALUE2D", "WORLEY2D", "VALUE2D", "VALUE2D", "VALUE2D", "VALUE2D"};
+  RTHandle[] noiseTexture = {tex.coverageTex, tex.baseTex, tex.structureTex,
+    tex.detailTex, tex.baseWarpTex, tex.detailWarpTex};
+  int[] resolution = {res.Coverage, res.Base, res.Structure, res.Detail,
+    res.BaseWarp, res.DetailWarp};
+
+  for (int i = 0; i < layerName.Length; i++) {
+    bool procedural = ((BoolParameter) sky.GetType().GetField(layerName[i] + "NoiseProcedural" + layerIndex).GetValue(sky)).value;
+    if (procedural) {
+      /* Gather and set parameters. */
+      ExpanseCommon.CloudNoiseType noiseType = ((EnumParameter<ExpanseCommon.CloudNoiseType>) sky.GetType().GetField(layerName[i] + "NoiseType" + layerIndex).GetValue(sky)).value;
+      string kernelName = ExpanseCommon.cloudNoiseTypeToKernelName[noiseType] + "2D";
+
+      /* HACK: workaround overwriting data. */
+      ComputeShader cs = (ComputeShader) UnityEngine.Object.Instantiate(m_cloudCS);
+      int handle = cs.FindKernel(kernelName);
+      cs.SetTexture(handle, "Noise_2D", noiseTexture[i]);
+      cs.SetVector("_resNoise", new Vector4(resolution[i], resolution[i], 0, 0));
+      cmd.DispatchCompute(cs, handle,
+        (int) resolution[i] / 8,
+        (int) resolution[i] / 8, 1);
+    }
+  }
+}
+
+private void DispatchCloudCompute3D(CommandBuffer cmd, Expanse sky, int layer,
+  int layerIndex, ExpanseCommon.CloudTextureResolution res, CloudNoiseTexture tex) {
+  // TODO
+}
 /******************************************************************************/
 /************************ END COMPUTE SHADER FUNCTIONS ************************/
 /******************************************************************************/
+
+
+
+
+
 
 
 
@@ -780,6 +1162,11 @@ private void setNebulaeRWTextures() {
 /******************************************************************************/
 /**************************** END RW TEXTURE SETTERS **************************/
 /******************************************************************************/
+
+
+
+
+
 
 
 
@@ -1153,42 +1540,36 @@ private void setGlobalCBufferClouds(CommandBuffer cmd, Expanse sky) {
 }
 
 private void setGlobalCBufferCloudsGeometry(CommandBuffer cmd, Expanse sky) {
-  int n = (int) ExpanseCommon.kMaxCloudLayers;
 
-  float[] cloudGeometryType = new float[n]; /* Should be int, but unity can only set float arrays. */
-  float[] cloudGeometryXMin = new float[n];
-  float[] cloudGeometryXMax = new float[n];
-  float[] cloudGeometryYMin = new float[n];
-  float[] cloudGeometryYMax = new float[n];
-  float[] cloudGeometryZMin = new float[n];
-  float[] cloudGeometryZMax = new float[n];
-  float[] cloudGeometryHeight = new float[n];
+  float[] cloudGeometryType = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)]; /* Should be int, but unity can only set float arrays. */
+  float[] cloudGeometryXMin = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
+  float[] cloudGeometryXMax = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
+  float[] cloudGeometryYMin = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
+  float[] cloudGeometryYMax = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
+  float[] cloudGeometryZMin = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
+  float[] cloudGeometryZMax = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
+  float[] cloudGeometryHeight = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
 
-  int numActiveLayers = 0;
-  for (int i = 0; i < n; i++) {
-    bool enabled = (((BoolParameter) sky.GetType().GetField("cloudLayerEnabled" + i).GetValue(sky)).value);
-    if (enabled) {
-      cloudGeometryType[numActiveLayers] = (float) ((EnumParameter<ExpanseCommon.CloudGeometryType>) sky.GetType().GetField("cloudGeometryType" + i).GetValue(sky)).value;
+  for (int i = 0; i < m_enabledCloudLayers.Length; i++) {
+    int layerIndex = m_enabledCloudLayers[i];
+    cloudGeometryType[i] = (float) ((EnumParameter<ExpanseCommon.CloudGeometryType>) sky.GetType().GetField("cloudGeometryType" + layerIndex).GetValue(sky)).value;
 
-      Vector2 xExtent = ((Vector2Parameter) sky.GetType().GetField("cloudGeometryXExtent" + i).GetValue(sky)).value;
-      cloudGeometryXMin[numActiveLayers] = xExtent.x;
-      cloudGeometryXMax[numActiveLayers] = xExtent.y;
+    Vector2 xExtent = ((Vector2Parameter) sky.GetType().GetField("cloudGeometryXExtent" + layerIndex).GetValue(sky)).value;
+    cloudGeometryXMin[i] = xExtent.x;
+    cloudGeometryXMax[i] = xExtent.y;
 
-      Vector2 yExtent = ((Vector2Parameter) sky.GetType().GetField("cloudGeometryYExtent" + i).GetValue(sky)).value;
-      cloudGeometryYMin[numActiveLayers] = yExtent.x;
-      cloudGeometryYMax[numActiveLayers] = yExtent.y;
+    Vector2 yExtent = ((Vector2Parameter) sky.GetType().GetField("cloudGeometryYExtent" + layerIndex).GetValue(sky)).value;
+    cloudGeometryYMin[i] = yExtent.x;
+    cloudGeometryYMax[i] = yExtent.y;
 
-      Vector2 zExtent = ((Vector2Parameter) sky.GetType().GetField("cloudGeometryZExtent" + i).GetValue(sky)).value;
-      cloudGeometryZMin[numActiveLayers] = zExtent.x;
-      cloudGeometryZMax[numActiveLayers] = zExtent.y;
+    Vector2 zExtent = ((Vector2Parameter) sky.GetType().GetField("cloudGeometryZExtent" + layerIndex).GetValue(sky)).value;
+    cloudGeometryZMin[i] = zExtent.x;
+    cloudGeometryZMax[i] = zExtent.y;
 
-      cloudGeometryHeight[numActiveLayers] = ((FloatParameter) sky.GetType().GetField("cloudGeometryHeight" + i).GetValue(sky)).value;
-
-      numActiveLayers++;
-    }
+    cloudGeometryHeight[i] = ((FloatParameter) sky.GetType().GetField("cloudGeometryHeight" + layerIndex).GetValue(sky)).value;
   }
 
-  cmd.SetGlobalInt("_numActiveCloudLayers", numActiveLayers);
+  cmd.SetGlobalInt("_numActiveCloudLayers", m_enabledCloudLayers.Length);
   cmd.SetGlobalFloatArray("_cloudGeometryType", cloudGeometryType);
   cmd.SetGlobalFloatArray("_cloudGeometryXMin", cloudGeometryXMin);
   cmd.SetGlobalFloatArray("_cloudGeometryXMax", cloudGeometryXMax);
@@ -1200,31 +1581,25 @@ private void setGlobalCBufferCloudsGeometry(CommandBuffer cmd, Expanse sky) {
 }
 
 private void setGlobalCBufferCloudsLighting(CommandBuffer cmd, Expanse sky) {
-  int n = (int) ExpanseCommon.kMaxCloudLayers;
 
-  float[] cloudThickness = new float[n];
-  float[] cloudDensity = new float[n];
-  float[] cloudDensityAttenuationDistance = new float[n];
-  float[] cloudDensityAttenuationBias = new float[n];
-  Vector4[] cloudAbsorptionCoefficients = new Vector4[n];
-  Vector4[] cloudScatteringCoefficients = new Vector4[n];
+  float[] cloudThickness = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
+  float[] cloudDensity = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
+  float[] cloudDensityAttenuationDistance = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
+  float[] cloudDensityAttenuationBias = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
+  Vector4[] cloudAbsorptionCoefficients = new Vector4[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
+  Vector4[] cloudScatteringCoefficients = new Vector4[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
 
-  int numActiveLayers = 0;
-  for (int i = 0; i < n; i++) {
-    bool enabled = (((BoolParameter) sky.GetType().GetField("cloudLayerEnabled" + i).GetValue(sky)).value);
-    if (enabled) {
-      cloudThickness[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("cloudThickness" + i).GetValue(sky)).value;
-      cloudDensity[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("cloudDensity" + i).GetValue(sky)).value;
-      cloudDensityAttenuationDistance[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("cloudDensityAttenuationDistance" + i).GetValue(sky)).value;
-      cloudDensityAttenuationBias[numActiveLayers] = ((MinFloatParameter) sky.GetType().GetField("cloudDensityAttenuationBias" + i).GetValue(sky)).value;
+  for (int i = 0; i < m_enabledCloudLayers.Length; i++) {
+    int layerIndex = m_enabledCloudLayers[i];
+    cloudThickness[i] = ((MinFloatParameter) sky.GetType().GetField("cloudThickness" + layerIndex).GetValue(sky)).value;
+    cloudDensity[i] = ((MinFloatParameter) sky.GetType().GetField("cloudDensity" + layerIndex).GetValue(sky)).value;
+    cloudDensityAttenuationDistance[i] = ((MinFloatParameter) sky.GetType().GetField("cloudDensityAttenuationDistance" + layerIndex).GetValue(sky)).value;
+    cloudDensityAttenuationBias[i] = ((MinFloatParameter) sky.GetType().GetField("cloudDensityAttenuationBias" + layerIndex).GetValue(sky)).value;
 
-      Vector3 aCoefficients = ((Vector3Parameter) sky.GetType().GetField("cloudAbsorptionCoefficients" + i).GetValue(sky)).value;
-      cloudAbsorptionCoefficients[numActiveLayers] = new Vector4(aCoefficients.x, aCoefficients.y, aCoefficients.z, 0);
-      Vector3 sCoefficients = ((Vector3Parameter) sky.GetType().GetField("cloudScatteringCoefficients" + i).GetValue(sky)).value;
-      cloudScatteringCoefficients[numActiveLayers] = new Vector4(sCoefficients.x, sCoefficients.y, sCoefficients.z, 0);
-
-      numActiveLayers++;
-    }
+    Vector3 aCoefficients = ((Vector3Parameter) sky.GetType().GetField("cloudAbsorptionCoefficients" + layerIndex).GetValue(sky)).value;
+    cloudAbsorptionCoefficients[i] = new Vector4(aCoefficients.x, aCoefficients.y, aCoefficients.z, 0);
+    Vector3 sCoefficients = ((Vector3Parameter) sky.GetType().GetField("cloudScatteringCoefficients" + layerIndex).GetValue(sky)).value;
+    cloudScatteringCoefficients[i] = new Vector4(sCoefficients.x, sCoefficients.y, sCoefficients.z, 0);
   }
 
   cmd.SetGlobalFloatArray("_cloudThickness", cloudThickness);
@@ -1235,9 +1610,60 @@ private void setGlobalCBufferCloudsLighting(CommandBuffer cmd, Expanse sky) {
   cmd.SetGlobalVectorArray("_cloudScatteringCoefficients", cloudScatteringCoefficients);
 }
 
+void SetGlobalCloudTextures(CommandBuffer cmd, Expanse sky, int layer, int layerIndex) {
+  /* Set the layer we're shading as a uniform variable. */
+  m_PropertyBlock.SetInt("_cloudLayerToDraw", layer);
+
+  /* Set the noise textures we'll be using. */
+  ExpanseCommon.CloudGeometryType geoType = ((EnumParameter<ExpanseCommon.CloudGeometryType>) sky.GetType().GetField("cloudGeometryType" + layerIndex).GetValue(sky)).value;
+
+  if (geoType == ExpanseCommon.CloudGeometryType.Plane) {
+    SetGlobalCloudTextures2D(cmd, sky, layer, layerIndex);
+  } else {
+    SetGlobalCloudTextures3D(cmd, sky, layer, layerIndex);
+  }
+}
+
+void SetGlobalCloudTextures2D(CommandBuffer cmd, Expanse sky, int layer, int layerIndex) {
+  CloudNoiseTexture proceduralTextures = m_cloudNoiseTextures[layer];
+
+  /* This array pattern is to keep things concise. */
+  string[] noiseProcedural = {"cloudCoverageNoiseProcedural", "cloudBaseNoiseProcedural",
+    "cloudStructureNoiseProcedural", "cloudDetailNoiseProcedural",
+    "cloudBaseWarpNoiseProcedural", "cloudDetailWarpNoiseProcedural"};
+  string[] shaderVariable = {"_cloudCoverageNoise", "_cloudBaseNoise2D",
+    "_cloudStructureNoise2D", "_cloudDetailNoise2D", "_cloudBaseWarpNoise2D",
+    "_cloudDetailWarpNoise2D"};
+  string[] imageTexture = {"cloudCoverageNoiseTexture", "cloudBaseNoiseTexture2D",
+    "cloudStructureNoiseTexture2D", "cloudDetailNoiseTexture2D",
+    "cloudBaseWarpNoiseTexture2D", "cloudDetailWarpNoiseTexture2D"};
+  RTHandle[] proceduralTexture = {proceduralTextures.coverageTex, proceduralTextures.baseTex,
+    proceduralTextures.structureTex, proceduralTextures.detailTex,
+    proceduralTextures.baseWarpTex, proceduralTextures.detailWarpTex};
+
+  for (int i = 0; i < noiseProcedural.Length; i++) {
+    bool procedural = ((BoolParameter) sky.GetType().GetField(noiseProcedural[i] + layerIndex).GetValue(sky)).value;
+    if (procedural) {
+      cmd.SetGlobalTexture(shaderVariable[i], proceduralTexture[i]);
+    } else {
+      Texture tex = ((TextureParameter) sky.GetType().GetField(imageTexture[i] + layerIndex).GetValue(sky)).value;
+      cmd.SetGlobalTexture(shaderVariable[i], tex);
+    }
+  }
+}
+
+void SetGlobalCloudTextures3D(CommandBuffer cmd, Expanse sky, int layer, int layerIndex) {
+  // TODO
+}
+
 /******************************************************************************/
 /************************* END GLOBAL C BUFFER SETTERS ************************/
 /******************************************************************************/
+
+
+
+
+
 
 
 

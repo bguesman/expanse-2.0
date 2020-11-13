@@ -32,6 +32,14 @@ float _cloudDensityAttenuationBias[MAX_CLOUD_LAYERS];
 float4 _cloudAbsorptionCoefficients[MAX_CLOUD_LAYERS];
 float4 _cloudScatteringCoefficients[MAX_CLOUD_LAYERS];
 
+/* Noise textures defining the cloud densities. */
+TEXTURE2D(_cloudCoverageNoise); /* Coverage is always 2D. */
+TEXTURE2D(_cloudBaseNoise2D);
+TEXTURE2D(_cloudStructureNoise2D);
+TEXTURE2D(_cloudDetailNoise2D);
+TEXTURE2D(_cloudBaseWarpNoise2D);
+TEXTURE2D(_cloudDetailWarpNoise2D);
+
 CBUFFER_END // Expanse Cloud
 
 /******************************************************************************/

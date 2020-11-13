@@ -103,8 +103,14 @@ CloudShadingResult shadeCloudLayerPlaneGeometry(float3 O, float3 d, int i,
   float u = (samplePoint.x - xExtent.x) / (xExtent.y - xExtent.x);
   float v = (samplePoint.z - zExtent.x) / (zExtent.y - zExtent.x);
 
-  /* For now, just compute some layered noise. */
-  float noise = saturate(value2DLayered(float2(u, v), float2(32*(i+1), 32*(i+1)), 2, 0.5, 6)-0.3);
+  /* Sample the coverage and base noises. */
+  float coverageNoise = SAMPLE_TEXTURE2D_LOD(_cloudCoverageNoise, s_linear_clamp_sampler,
+    float2(u, v), 0).x;
+  float baseNoise = SAMPLE_TEXTURE2D_LOD(_cloudBaseNoise2D, s_linear_clamp_sampler,
+    float2(u, v), 0).x;
+
+  /* Remap base noise according to coverage. */
+  float noise = remap(baseNoise, coverageNoise, 1.0, 0.0, 1.0);
 
   /* Compute the thickness and density from the noise. */
   float thickness = noise * _cloudThickness[i];
@@ -212,59 +218,4 @@ CloudShadingResult shadeCloudLayer(float3 O, float3 d, int i, float depth,
     default:
       return cloudNoIntersectionResult();
   }
-}
-
-CloudShadingResult shadeClouds(float3 O, float3 d, float depth, bool geoHit) {
-
-  /* Idea for blending.
-   *  - sort based on t_hit.
-   *  - composite cloud colors via regular blending.
-   *  - determine transmittance to return by multiplying all transmittances.
-   *  - determine blend to return via averaging, probably weighted by
-   *  tranmittance so that wispy clouds in front of a big cloud don't
-   *  get the majority of the blending.
-   *    -we'll see how this looks, but if we have to we could pull
-   *    in the sky frame buffer right here and composite each blend
-   *    layer individually. */
-
-  /* Loop counters. */
-  int i, j;
-
-  /* Store all the results to sort later. */
-  CloudShadingResult layerResult[MAX_CLOUD_LAYERS];
-  for (i = 0; i < MAX_CLOUD_LAYERS; i++) {
-    layerResult[i] = cloudNoIntersectionResult();
-  }
-  for (i = 0; i < _numActiveCloudLayers; i++) {
-    layerResult[i] = shadeCloudLayer(O, d, i, depth, geoHit);
-  }
-
-  /* Sort the results using bubble sort, which is fast if we only have
-   * at most 8 results to sort. */
-  for (i = 0; i < _numActiveCloudLayers-1; i++) {
-    for (j = 0; j < _numActiveCloudLayers - i - 1; j++) {
-      if (layerResult[j].t_hit > layerResult[j+1].t_hit) {
-        CloudShadingResult temp = layerResult[j+1];
-        layerResult[j+1] = layerResult[j];
-        layerResult[j] = temp;
-      }
-    }
-  }
-
-  /* Now, composite the results, alpha-blending in order. */
-  CloudShadingResult result = cloudNoIntersectionResult();
-  float blendNormalization = 0.0;
-  for (i = 0; i < _numActiveCloudLayers; i++) {
-    CloudShadingResult layer = layerResult[i];
-    result.color = result.color * layer.transmittance + layer.color;
-    result.transmittance *= layer.transmittance;
-    float monochromeTransmittance = dot(2-layer.transmittance, float3(1, 1, 1)/3);
-    result.blend += layer.blend * monochromeTransmittance;
-    blendNormalization += monochromeTransmittance;
-  }
-  if (blendNormalization > 0) {
-    result.blend = result.blend / blendNormalization;
-  }
-
-  return result;
 }

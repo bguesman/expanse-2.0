@@ -62,6 +62,11 @@ TODO LIST:
   -checkbox for bodies for if they affect clouds so that we can add bodies
   without them having to light the clouds and slow things down
 
+  -possibly render cloud layers to a texture array, so that we don't need
+  to use the slow split out sampling code. Or, just allocate a separate
+  texture array and copy the regular fullscreen textures into that for
+  compositing.
+
   -2D
     -some kind of self shadowing hack based on density and derivative of
     low mipped texture in each direction?

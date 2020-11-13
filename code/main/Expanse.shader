@@ -85,6 +85,25 @@ float _twinkleSmoothAmplitude;
 float _twinkleChaoticAmplitude;
 float4 _starTint;
 
+/* Clouds. */
+int _cloudLayerToDraw;
+TEXTURE2D(_cloudColorLayer0);
+TEXTURE2D(_cloudColorLayer1);
+TEXTURE2D(_cloudColorLayer2);
+TEXTURE2D(_cloudColorLayer3);
+TEXTURE2D(_cloudColorLayer4);
+TEXTURE2D(_cloudColorLayer5);
+TEXTURE2D(_cloudColorLayer6);
+TEXTURE2D(_cloudColorLayer7);
+TEXTURE2D(_cloudTransmittanceLayer0);
+TEXTURE2D(_cloudTransmittanceLayer1);
+TEXTURE2D(_cloudTransmittanceLayer2);
+TEXTURE2D(_cloudTransmittanceLayer3);
+TEXTURE2D(_cloudTransmittanceLayer4);
+TEXTURE2D(_cloudTransmittanceLayer5);
+TEXTURE2D(_cloudTransmittanceLayer6);
+TEXTURE2D(_cloudTransmittanceLayer7);
+
 /* Render textures. */
 TEXTURE2D(_fullscreenSkyColorRT);
 TEXTURE2D(_cubemapSkyColorRT);
@@ -561,10 +580,6 @@ float4 SkyFullscreen(Varyings input) : SV_Target {
     result.color /= 9.0;
   }
 
-  /* Optionally, dither. */
-  if (_useDither) {
-    result.color *= 1 + (1.0/32.0) * random_3_1(d);
-  }
   return result.color;
 }
 
@@ -579,7 +594,6 @@ float4 SkyFullscreen(Varyings input) : SV_Target {
 /******************************************************************************/
 
 CloudResult RenderClouds(Varyings input, float3 O, float3 d, bool cubemap) {
-  /* TODO: geo test, pass depth to shade clouds. */
   /* Get the depth and see if we hit any geometry. */
   float linearDepth = Linear01Depth(LoadCameraDepth(input.positionCS.xy),
     _ZBufferParams) * _ProjectionParams.z;
@@ -591,12 +605,18 @@ CloudResult RenderClouds(Varyings input, float3 O, float3 d, bool cubemap) {
   bool geoHit = depth < farClip - 0.001;
 
   /* Shade the clouds. */
-  CloudShadingResult result = shadeClouds(O, d, depth, geoHit);
+  CloudShadingResult result = shadeCloudLayer(O, d, _cloudLayerToDraw, depth,
+    geoHit);
+
+  /* This should already be set, but just to be sure. */
+  if (!result.hit) {
+    result.t_hit = -1;
+  }
 
   /* Final result. */
   CloudResult r;
-  r.color = float4(result.color, 1);
-  r.transmittance = float4(result.transmittance, result.blend);
+  r.color = float4(result.color, result.blend);
+  r.transmittance = float4(result.transmittance, result.t_hit);
   return r;
 }
 
@@ -610,16 +630,161 @@ CloudResult CloudsFullscreen(Varyings input) {
   float3 O = GetCameraPositionPlanetSpace();
   float3 d = -GetSkyViewDirWS(input.positionCS.xy);
   UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-  CloudResult cloudResult = RenderClouds(input, O, d, false);
-  /* Optionally, dither. */
-  if (_useDither) {
-    cloudResult.color *= 1 + (1.0/32.0) * random_3_1(d);
-  }
-  return cloudResult;
+  return RenderClouds(input, O, d, false);
 }
 
 /******************************************************************************/
 /************************* END CLOUDS FRAGMENT SHADER *************************/
+/******************************************************************************/
+
+
+
+/******************************************************************************/
+/********************** CLOUD COMPOSITING FRAGMENT SHADER *********************/
+/******************************************************************************/
+
+CloudShadingResult sampleCloudLayerTexture(float2 uv, int i) {
+  float4 colorAndBlend = float4(0, 0, 0, 0);
+  float4 transmittanceAndHit = float4(0, 0, 0, 0);
+  switch(i) {
+    case 0: {
+      colorAndBlend = SAMPLE_TEXTURE2D_LOD(_cloudColorLayer0,
+        s_linear_clamp_sampler, uv, 0);
+      transmittanceAndHit = SAMPLE_TEXTURE2D_LOD(_cloudTransmittanceLayer0,
+        s_linear_clamp_sampler, uv, 0);
+      break;
+    }
+    case 1: {
+      colorAndBlend = SAMPLE_TEXTURE2D_LOD(_cloudColorLayer1,
+        s_linear_clamp_sampler, uv, 0);
+      transmittanceAndHit = SAMPLE_TEXTURE2D_LOD(_cloudTransmittanceLayer1,
+        s_linear_clamp_sampler, uv, 0);
+      break;
+    }
+    case 2: {
+      colorAndBlend = SAMPLE_TEXTURE2D_LOD(_cloudColorLayer2,
+        s_linear_clamp_sampler, uv, 0);
+      transmittanceAndHit = SAMPLE_TEXTURE2D_LOD(_cloudTransmittanceLayer2,
+        s_linear_clamp_sampler, uv, 0);
+      break;
+    }
+    case 3: {
+      colorAndBlend = SAMPLE_TEXTURE2D_LOD(_cloudColorLayer3,
+        s_linear_clamp_sampler, uv, 0);
+      transmittanceAndHit = SAMPLE_TEXTURE2D_LOD(_cloudTransmittanceLayer3,
+        s_linear_clamp_sampler, uv, 0);
+      break;
+    }
+    case 4: {
+      colorAndBlend = SAMPLE_TEXTURE2D_LOD(_cloudColorLayer4,
+        s_linear_clamp_sampler, uv, 0);
+      transmittanceAndHit = SAMPLE_TEXTURE2D_LOD(_cloudTransmittanceLayer4,
+        s_linear_clamp_sampler, uv, 0);
+      break;
+    }
+    case 5: {
+      colorAndBlend = SAMPLE_TEXTURE2D_LOD(_cloudColorLayer5,
+        s_linear_clamp_sampler, uv, 0);
+      transmittanceAndHit = SAMPLE_TEXTURE2D_LOD(_cloudTransmittanceLayer5,
+        s_linear_clamp_sampler, uv, 0);
+      break;
+    }
+    case 6: {
+      colorAndBlend = SAMPLE_TEXTURE2D_LOD(_cloudColorLayer6,
+        s_linear_clamp_sampler, uv, 0);
+      transmittanceAndHit = SAMPLE_TEXTURE2D_LOD(_cloudTransmittanceLayer6,
+        s_linear_clamp_sampler, uv, 0);
+      break;
+    }
+    case 7: {
+      colorAndBlend = SAMPLE_TEXTURE2D_LOD(_cloudColorLayer7,
+        s_linear_clamp_sampler, uv, 0);
+      transmittanceAndHit = SAMPLE_TEXTURE2D_LOD(_cloudTransmittanceLayer7,
+        s_linear_clamp_sampler, uv, 0);
+      break;
+    }
+    default: {
+      colorAndBlend = float4(0, 0, 0, 0);
+      transmittanceAndHit = float4(0, 0, 0, 0);
+      break;
+    }
+  }
+
+  CloudShadingResult result;
+  result.color = colorAndBlend.xyz;
+  result.transmittance = transmittanceAndHit.xyz;
+  result.blend = colorAndBlend.w;
+  result.t_hit = transmittanceAndHit.w;
+  result.hit = result.t_hit < 0;
+  return result;
+}
+
+CloudResult compositeClouds(float2 uv) {
+  /* Loop counters. */
+  int i, j;
+
+  /* Shade every layer. */
+  CloudShadingResult layerResult[MAX_CLOUD_LAYERS];
+  for (i = 0; i < _numActiveCloudLayers; i++) {
+    layerResult[i] = sampleCloudLayerTexture(uv, i);
+  }
+
+  /* Sort the results by their hit points using bubble sort, which is fast
+   * since we only have at most 8 results to sort. */
+  for (i = 0; i < _numActiveCloudLayers-1; i++) {
+    for (j = 0; j < _numActiveCloudLayers - i - 1; j++) {
+      if (layerResult[j].t_hit > layerResult[j+1].t_hit) {
+        CloudShadingResult temp = layerResult[j+1];
+        layerResult[j+1] = layerResult[j];
+        layerResult[j] = temp;
+      }
+    }
+  }
+
+  /* TODO: this strategy of blend causes artifacts when transitioning
+   * from intersecting two layers to intersecting one layer. Probably
+   * to do with the fact that monochrome transmittance starts from 2.
+   * for now, getting rid of it. */
+
+  /* Now, composite the results, alpha-blending in order. */
+  CloudShadingResult result;
+  result.color = float3(0, 0, 0);
+  result.transmittance = float3(1, 1, 1);
+  result.blend = 0;
+  float blendNormalization = 0.0;
+  for (i = 0; i < _numActiveCloudLayers; i++) {
+    CloudShadingResult layer = layerResult[i];
+    result.color = result.color * layer.transmittance + layer.color;
+    result.transmittance *= layer.transmittance;
+    float monochromeAlpha = saturate(dot(1-layer.transmittance, float3(1, 1, 1)/3));
+    result.blend += layer.blend * monochromeAlpha;
+    blendNormalization += monochromeAlpha;
+  }
+  if (blendNormalization > 0) {
+    result.blend = result.blend / blendNormalization;
+  }
+
+  CloudResult resultPacked;
+  resultPacked.color = float4(result.color, result.blend);
+  resultPacked.transmittance = float4(result.transmittance, 0);
+
+  return resultPacked;
+}
+
+CloudResult CloudsCompositeCubemap(Varyings input) {
+  CloudResult r;
+  r.color = float4(0, 0, 0, 0);
+  r.transmittance = float4(0, 0, 0, 0);
+  return r;
+}
+
+CloudResult CloudsCompositeFullscreen(Varyings input) {
+  float2 textureCoordinate = input.screenPosition;
+  return compositeClouds(textureCoordinate);
+}
+
+/******************************************************************************/
+/******************** END CLOUD COMPOSITING FRAGMENT SHADER *******************/
 /******************************************************************************/
 
 
@@ -637,12 +802,12 @@ float4 Composite(Varyings input, bool cubemap, float exposure) {
     s_linear_clamp_sampler, textureCoordinate, 0);
 
   /* Sample the cloud fullscreen textures. */
-  float3 cloudCol = SAMPLE_TEXTURE2D_LOD(_currFullscreenCloudColorRT,
-    s_linear_clamp_sampler, textureCoordinate, 0).xyz;
-  float4 cloudTAndBlend = SAMPLE_TEXTURE2D_LOD(_currFullscreenCloudTransmittanceRT,
+  float4 cloudColAndBlend = SAMPLE_TEXTURE2D_LOD(_currFullscreenCloudColorRT,
     s_linear_clamp_sampler, textureCoordinate, 0);
-  float3 cloudT = cloudTAndBlend.xyz;
-  float cloudBlend = cloudTAndBlend.w;
+  float3 cloudCol = cloudColAndBlend.xyz;
+  float cloudBlend = cloudColAndBlend.w;
+  float3 cloudT = SAMPLE_TEXTURE2D_LOD(_currFullscreenCloudTransmittanceRT,
+    s_linear_clamp_sampler, textureCoordinate, 0).xyz;
 
   /* TODO: blend clouds properly. */
   /* First, composite the clouds on top of the sky according to the cloud
@@ -651,6 +816,12 @@ float4 Composite(Varyings input, bool cubemap, float exposure) {
   /* Then, composite the sky color on top of the clouds according to the
    * blend transmittance to fake aerial perspective. */
   float3 finalColor = cloudsOnSky * cloudBlend + skyCol.xyz * (1 - cloudBlend);
+
+  /* Optionally, dither. */
+  if (_useDither) {
+    finalColor *= 1 + (1.0/32.0) * random_3_1(input.positionCS.xyz);
+  }
+
   /* Finally, multiply by exposure. */
   if (!cubemap) {
     finalColor *= exposure;
@@ -728,6 +899,32 @@ SubShader
 
     HLSLPROGRAM
         #pragma fragment CloudsFullscreen
+    ENDHLSL
+  }
+
+  /* Clouds compositing cubemap */
+  Pass
+  {
+    ZWrite Off
+    ZTest Always
+    Blend Off
+    Cull Off
+
+    HLSLPROGRAM
+        #pragma fragment CloudsCompositeCubemap
+    ENDHLSL
+  }
+
+  /* Clouds compositing fullscreen */
+  Pass
+  {
+    ZWrite Off
+    ZTest Always
+    Blend Off
+    Cull Off
+
+    HLSLPROGRAM
+        #pragma fragment CloudsCompositeFullscreen
     ENDHLSL
   }
 
