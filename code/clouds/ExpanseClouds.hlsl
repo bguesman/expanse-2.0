@@ -24,46 +24,59 @@ CloudShadingResult cloudNoIntersectionResult() {
   return result;
 }
 
-float computeDensity2DHighLOD(float2 uv) {
+float cloudPhaseFunction(float dot_L_d, float _cloudAnisotropy, float _cloudSilverIntensity, float _cloudSilverSpread) {
+  return max(miePhase(dot_L_d, _cloudAnisotropy), _cloudSilverIntensity * miePhase(dot_L_d, 0.99 - _cloudSilverSpread));
+}
+
+float computeDensity2DHighLOD(float2 uv, int mipLevel) {
   /* NOTE/TODO: we HAVE to use the linear repeat sampler to avoid seams in
    * the tileable textures! */
 
-  /* Get the base warp noise, use it to advect the texture coordinate. */
+  /* Get the warp noises, use them to advect the texture coordinates. */
   float2 baseWarpNoise = SAMPLE_TEXTURE2D_LOD(_cloudBaseWarpNoise2D, s_linear_repeat_sampler,
-    frac(uv), 0).xy;
-  float2 baseUV = frac(frac(uv * 4) - baseWarpNoise * 0.25);
+    frac(uv * _cloudBaseWarpTile), mipLevel).xy;
+  float2 detailWarpNoise = SAMPLE_TEXTURE2D_LOD(_cloudDetailWarpNoise2D, s_linear_repeat_sampler,
+    frac(uv * _cloudDetailWarpTile), mipLevel).xy;
+  float2 baseUV = frac(frac(uv * _cloudBaseTile) - baseWarpNoise * _cloudBaseWarpIntensity * CLOUD_BASE_WARP_MAX);
+  float2 detailUV = frac(frac(uv * _cloudDetailTile) - detailWarpNoise * _cloudDetailWarpIntensity * CLOUD_DETAIL_WARP_MAX);
 
   /* Remap the base noise according to coverage. */
   float coverageNoise = SAMPLE_TEXTURE2D_LOD(_cloudCoverageNoise, s_linear_repeat_sampler,
-    uv, 0).x;
+    frac(uv * _cloudCoverageTile), mipLevel).x;
   float baseNoise = SAMPLE_TEXTURE2D_LOD(_cloudBaseNoise2D, s_linear_repeat_sampler,
-    baseUV, 0).x;
-  float noise = saturate(remap(baseNoise, 0.25*coverageNoise, 1.0, 0.0, 1.0));
+    baseUV, mipLevel).x;
+  float noise = remap(baseNoise, min(0.99, max(0.0, _cloudCoverageIntensity * coverageNoise * 2)), 1.0, 0.0, 1.0);
 
   /* Remap that result using the tiled structure noise. */
   float structureNoise = SAMPLE_TEXTURE2D_LOD(_cloudStructureNoise2D, s_linear_repeat_sampler,
-    frac(uv * 8), 0).x;
-  noise = saturate(remap(noise, structureNoise * 0.15, 1.0, 0.0, 1.0));
+    frac(uv * _cloudStructureTile), mipLevel).x;
+  noise = remap(noise, _cloudStructureIntensity * structureNoise, 1.0, 0.0, 1.0);
 
   /* Finally, remap that result using the tiled detail noise. */
   float detailNoise = SAMPLE_TEXTURE2D_LOD(_cloudDetailNoise2D, s_linear_repeat_sampler,
-    frac(uv * 32), 0).x;
-  noise = saturate(remap(noise, detailNoise * 0.25, 1.0, 0.0, 1.0));
+    detailUV, mipLevel).x;
+  noise = remap(noise, _cloudDetailIntensity * detailNoise, 1.0, 0.0, 1.0);
 
   return noise;
 }
 
-float computeDensity2DLowLOD(float2 uv) {
-  // TODO
-  float coverageNoise = SAMPLE_TEXTURE2D_LOD(_cloudCoverageNoise, s_linear_clamp_sampler,
-    uv, 0).x;
-  float baseNoise = SAMPLE_TEXTURE2D_LOD(_cloudBaseNoise2D, s_linear_clamp_sampler,
-    uv, 0).x;
-  float noise = saturate(remap(baseNoise, coverageNoise, 1.0, 0.0, 1.0));
+float computeDensity2DLowLOD(float2 uv, int mipLevel) {
+  /* Get the warp noises, use them to advect the texture coordinates. */
+  float2 baseWarpNoise = SAMPLE_TEXTURE2D_LOD(_cloudBaseWarpNoise2D, s_linear_repeat_sampler,
+    frac(uv * _cloudBaseWarpTile), mipLevel).xy;
+  float2 baseUV = frac(frac(uv * _cloudBaseTile) - baseWarpNoise * _cloudBaseWarpIntensity * CLOUD_BASE_WARP_MAX);
+
+  /* Remap the base noise according to coverage. */
+  float coverageNoise = SAMPLE_TEXTURE2D_LOD(_cloudCoverageNoise, s_linear_repeat_sampler,
+    frac(uv * _cloudCoverageTile), mipLevel).x;
+  float baseNoise = SAMPLE_TEXTURE2D_LOD(_cloudBaseNoise2D, s_linear_repeat_sampler,
+    baseUV, mipLevel).x;
+  float noise = remap(baseNoise, min(0.99, max(0.0, _cloudCoverageIntensity * coverageNoise * 2)), 1.0, 0.0, 1.0);
+
   return noise;
 }
 
-float3 lightCloudLayerPlaneGeometryBody(float3 samplePoint, float thickness,
+float3 lightCloudLayerPlaneGeometryBody(float3 samplePoint, float2 uv, float3 d, float thickness,
   float density, float3 absorptionCoefficients, float3 scatteringCoefficients,
   float3 L, float3 lightColor) {
   /* Do an occlusion check for lighting. */
@@ -97,19 +110,46 @@ float3 lightCloudLayerPlaneGeometryBody(float3 samplePoint, float thickness,
      * we will unlikely be in a height fog layer and also in a cloud. */
     float3 T_sampleL = shadowBlur * exp(sampleSkyTTextureRaw(lightTransmittanceCoord));
 
-    result = (1 - exp(-thickness * density * absorptionCoefficients))
+    /* To mimick multiple scattering, tweak the integration along the
+     * view ray. */
+    float dot_L_d = dot(L, d);
+    float msRampdown = saturate(1 - dot_L_d);
+    float msAmount = (1-_cloudMSAmount) * msRampdown;
+    float3 T_cloud = max(1 - exp(-thickness * density * absorptionCoefficients), (1 - exp(-thickness * density * absorptionCoefficients * _cloudMSBias) * msAmount));
+
+    /* We can allow ourselves an extremely limited sort of attenuation due to
+     * self-shadowing. */
+    float projLY = dot(L, float3(0, 1, 0));
+    float3 LYComponent = projLY * float3(0, 1, 0);
+    float2 lightProjected = (L - LYComponent).xz;
+    float selfShadowDensity = 0;
+    int numSteps = 2;
+    for (int i = 0; i < numSteps; i++) {
+      selfShadowDensity += computeDensity2DLowLOD(frac(uv + pow(4, i) * 0.01 * lightProjected), 0);
+    }
+    /* HACK: 2 is just a magic number here. Should really tie these to actual distances
+     * instead of just marching along UV's. */
+    float distance = (1-abs(projLY)) * thickness * 2;
+    selfShadowDensity = (density * selfShadowDensity) / numSteps;
+    float3 selfShadow = exp(-absorptionCoefficients*distance*selfShadowDensity);
+
+    result = selfShadow * T_cloud
       * (T_sampleL * lightColor * scatteringCoefficients/absorptionCoefficients);
+
+    /* Apply the phase function. */
+    float phase = cloudPhaseFunction(dot_L_d, _cloudAnisotropy, _cloudSilverIntensity, _cloudSilverSpread);
+    result *= phase;
   }
   return result;
 }
 
-float3 lightCloudLayerPlaneGeometry(float3 samplePoint, float thickness,
+float3 lightCloudLayerPlaneGeometry(float3 samplePoint, float2 uv, float3 d, float thickness,
   float density, float3 absorptionCoefficients, float3 scatteringCoefficients) {
   float3 color = float3(0, 0, 0);
   for (int i = 0; i < _numActiveBodies; i++) {
     float3 L = _bodyDirection[i];
     float3 lightColor = _bodyLightColor[i].xyz;
-    color += lightCloudLayerPlaneGeometryBody(samplePoint, thickness,
+    color += lightCloudLayerPlaneGeometryBody(samplePoint, uv, d, thickness,
       density, absorptionCoefficients, scatteringCoefficients, L, lightColor);
   }
   return color;
@@ -141,9 +181,10 @@ CloudShadingResult shadeCloudLayerPlaneGeometry(float3 O, float3 d, int i,
   float3 samplePoint = O + t_hit * d;
   float u = (samplePoint.x - xExtent.x) / (xExtent.y - xExtent.x);
   float v = (samplePoint.z - zExtent.x) / (zExtent.y - zExtent.x);
+  float2 uv = float2(u, v);
 
   /* Sample the density. */
-  float noise = computeDensity2DHighLOD(float2(u, v));
+  float noise = computeDensity2DHighLOD(uv, 0);
 
   /* Compute the thickness and density from the noise. */
   float thickness = noise * _cloudThickness[i];
@@ -169,7 +210,7 @@ CloudShadingResult shadeCloudLayerPlaneGeometry(float3 O, float3 d, int i,
   if (debug) {
     result.color = noise * 1000;
   } else {
-    result.color = lightCloudLayerPlaneGeometry(samplePoint, thickness, density,
+    result.color = lightCloudLayerPlaneGeometry(samplePoint, uv, d, thickness, density,
       _cloudAbsorptionCoefficients[i].xyz, _cloudScatteringCoefficients[i].xyz);
   }
 

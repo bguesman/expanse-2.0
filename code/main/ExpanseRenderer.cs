@@ -249,6 +249,7 @@ RTHandle allocatedProceduralCloudTexture2D(Vector2 resolution, string name) {
                               dimension: TextureDimension.Tex2D,
                               colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                               enableRandomWrite: true,
+                              useMipMap: true,
                               name: name);
 
   Debug.Assert(table != null);
@@ -264,6 +265,7 @@ RTHandle allocatedProceduralCloudTexture3D(Vector3 resolution, string name) {
                               dimension: TextureDimension.Tex3D,
                               colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                               enableRandomWrite: true,
+                              useMipMap: true,
                               name: name);
 
   Debug.Assert(table != null);
@@ -1638,6 +1640,25 @@ void SetGlobalCloudTextures(CommandBuffer cmd, Expanse sky, int layer, int layer
 
 void SetGlobalCloudTextures2D(CommandBuffer cmd, Expanse sky, int layer, int layerIndex) {
   CloudNoiseTexture proceduralTextures = m_cloudNoiseTextures[layer];
+  /* Set the texture sampling parameters. */
+  cmd.SetGlobalInt("_cloudCoverageTile", ((MinIntParameter) sky.GetType().GetField("cloudCoverageTile" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalFloat("_cloudCoverageIntensity", ((ClampedFloatParameter) sky.GetType().GetField("cloudCoverageIntensity" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalInt("_cloudBaseTile", ((MinIntParameter) sky.GetType().GetField("cloudBaseTile" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalInt("_cloudStructureTile", ((MinIntParameter) sky.GetType().GetField("cloudStructureTile" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalFloat("_cloudStructureIntensity", ((ClampedFloatParameter) sky.GetType().GetField("cloudStructureIntensity" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalInt("_cloudDetailTile", ((MinIntParameter) sky.GetType().GetField("cloudDetailTile" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalFloat("_cloudDetailIntensity", ((ClampedFloatParameter) sky.GetType().GetField("cloudDetailIntensity" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalInt("_cloudBaseWarpTile", ((MinIntParameter) sky.GetType().GetField("cloudBaseWarpTile" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalFloat("_cloudBaseWarpIntensity", ((ClampedFloatParameter) sky.GetType().GetField("cloudBaseWarpIntensity" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalInt("_cloudDetailWarpTile", ((MinIntParameter) sky.GetType().GetField("cloudDetailWarpTile" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalFloat("_cloudDetailWarpIntensity", ((ClampedFloatParameter) sky.GetType().GetField("cloudDetailWarpIntensity" + layerIndex).GetValue(sky)).value);
+
+  /* Set the lighting parameters. */
+  cmd.SetGlobalFloat("_cloudMSAmount", ((ClampedFloatParameter) sky.GetType().GetField("cloudMSAmount" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalFloat("_cloudMSBias", ((ClampedFloatParameter) sky.GetType().GetField("cloudMSBias" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalFloat("_cloudSilverSpread", ((ClampedFloatParameter) sky.GetType().GetField("cloudSilverSpread" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalFloat("_cloudSilverIntensity", ((ClampedFloatParameter) sky.GetType().GetField("cloudSilverIntensity" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalFloat("_cloudAnisotropy", ((ClampedFloatParameter) sky.GetType().GetField("cloudAnisotropy" + layerIndex).GetValue(sky)).value);
 
   /* This array pattern is to keep things concise. */
   string[] noiseProcedural = {"cloudCoverageNoiseProcedural", "cloudBaseNoiseProcedural",

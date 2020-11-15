@@ -729,11 +729,20 @@ CloudResult compositeClouds(float2 uv) {
     layerResult[i] = sampleCloudLayerTexture(uv, i);
   }
 
+  /* Count how many didn't hit. */
+  int numNoHit = 0;
+  for (i = 0; i < _numActiveCloudLayers; i++) {
+    if (layerResult[i].t_hit < 0) {
+      numNoHit++;
+    }
+  }
+
   /* Sort the results by their hit points using bubble sort, which is fast
-   * since we only have at most 8 results to sort. */
+   * since we only have at most 8 results to sort. All the no hit layers
+   * will end up at the front, and the rest will be sorted properly. */
   for (i = 0; i < _numActiveCloudLayers-1; i++) {
     for (j = 0; j < _numActiveCloudLayers - i - 1; j++) {
-      if (layerResult[j].t_hit > layerResult[j+1].t_hit) {
+      if (layerResult[j].t_hit < layerResult[j+1].t_hit) {
         CloudShadingResult temp = layerResult[j+1];
         layerResult[j+1] = layerResult[j];
         layerResult[j] = temp;
@@ -746,22 +755,25 @@ CloudResult compositeClouds(float2 uv) {
    * to do with the fact that monochrome transmittance starts from 2.
    * for now, getting rid of it. */
 
-  /* Now, composite the results, alpha-blending in order. */
+  /* Now, composite the results, alpha-blending in order, ensuring to start at
+   * numNoHit so we skip the layers where there was no intersection. */
   CloudShadingResult result;
   result.color = float3(0, 0, 0);
   result.transmittance = float3(1, 1, 1);
   result.blend = 0;
   float blendNormalization = 0.0;
-  for (i = 0; i < _numActiveCloudLayers; i++) {
+  for (i = 0; i < _numActiveCloudLayers-numNoHit; i++) {
     CloudShadingResult layer = layerResult[i];
-    result.color = result.color * layer.transmittance + layer.color;
+    /* HACK: why is this necessary? */
+    layer.transmittance = min(1, layer.transmittance);
+    result.color = result.color * layer.transmittance + layer.color * (1-layer.transmittance);
     result.transmittance *= layer.transmittance;
     float monochromeAlpha = saturate(dot(1-layer.transmittance, float3(1, 1, 1)/3));
     result.blend += layer.blend * monochromeAlpha;
     blendNormalization += monochromeAlpha;
   }
   if (blendNormalization > 0) {
-    result.blend = result.blend / blendNormalization;
+    result.blend /= blendNormalization;
   }
 
   CloudResult resultPacked;
@@ -812,7 +824,7 @@ float4 Composite(Varyings input, bool cubemap, float exposure) {
   /* TODO: blend clouds properly. */
   /* First, composite the clouds on top of the sky according to the cloud
    * transmittance. */
-  float3 cloudsOnSky = cloudCol * (1-cloudT) + skyCol.xyz * cloudT;
+  float3 cloudsOnSky = cloudCol + skyCol.xyz * cloudT;
   /* Then, composite the sky color on top of the clouds according to the
    * blend transmittance to fake aerial perspective. */
   float3 finalColor = cloudsOnSky * cloudBlend + skyCol.xyz * (1 - cloudBlend);

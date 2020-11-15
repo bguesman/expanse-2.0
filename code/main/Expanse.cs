@@ -507,6 +507,12 @@ public MinFloatParameter cloudCoverageOctaveScale0, cloudCoverageOctaveScale1, c
 [Tooltip("How much to multiply the intensity of each successive octave by.")]
 public MinFloatParameter cloudCoverageOctaveMultiplier0, cloudCoverageOctaveMultiplier1, cloudCoverageOctaveMultiplier2,
   cloudCoverageOctaveMultiplier3, cloudCoverageOctaveMultiplier4, cloudCoverageOctaveMultiplier5, cloudCoverageOctaveMultiplier6, cloudCoverageOctaveMultiplier7;
+[Tooltip("Tile factor.")]
+public MinIntParameter cloudCoverageTile0, cloudCoverageTile1, cloudCoverageTile2,
+  cloudCoverageTile3, cloudCoverageTile4, cloudCoverageTile5, cloudCoverageTile6, cloudCoverageTile7;
+[Tooltip("Intensity.")]
+public ClampedFloatParameter cloudCoverageIntensity0, cloudCoverageIntensity1, cloudCoverageIntensity2,
+  cloudCoverageIntensity3, cloudCoverageIntensity4, cloudCoverageIntensity5, cloudCoverageIntensity6, cloudCoverageIntensity7;
 /* Base. */
 [Tooltip("Whether to use procedural noise or a texture for the base noise layer.")]
 public BoolParameter cloudBaseNoiseProcedural0, cloudBaseNoiseProcedural1, cloudBaseNoiseProcedural2,
@@ -532,6 +538,9 @@ public MinFloatParameter cloudBaseOctaveScale0, cloudBaseOctaveScale1, cloudBase
 [Tooltip("How much to multiply the intensity of each successive octave by.")]
 public MinFloatParameter cloudBaseOctaveMultiplier0, cloudBaseOctaveMultiplier1, cloudBaseOctaveMultiplier2,
   cloudBaseOctaveMultiplier3, cloudBaseOctaveMultiplier4, cloudBaseOctaveMultiplier5, cloudBaseOctaveMultiplier6, cloudBaseOctaveMultiplier7;
+[Tooltip("Tile factor.")]
+public MinIntParameter cloudBaseTile0, cloudBaseTile1, cloudBaseTile2,
+  cloudBaseTile3, cloudBaseTile4, cloudBaseTile5, cloudBaseTile6, cloudBaseTile7;
 /* Structure. */
 [Tooltip("Whether to use procedural noise or a texture for the structure noise layer.")]
 public BoolParameter cloudStructureNoiseProcedural0, cloudStructureNoiseProcedural1, cloudStructureNoiseProcedural2,
@@ -557,6 +566,12 @@ public MinFloatParameter cloudStructureOctaveScale0, cloudStructureOctaveScale1,
 [Tooltip("How much to multiply the intensity of each successive octave by.")]
 public MinFloatParameter cloudStructureOctaveMultiplier0, cloudStructureOctaveMultiplier1, cloudStructureOctaveMultiplier2,
   cloudStructureOctaveMultiplier3, cloudStructureOctaveMultiplier4, cloudStructureOctaveMultiplier5, cloudStructureOctaveMultiplier6, cloudStructureOctaveMultiplier7;
+[Tooltip("Tile factor.")]
+public MinIntParameter cloudStructureTile0, cloudStructureTile1, cloudStructureTile2,
+  cloudStructureTile3, cloudStructureTile4, cloudStructureTile5, cloudStructureTile6, cloudStructureTile7;
+[Tooltip("Intensity.")]
+public ClampedFloatParameter cloudStructureIntensity0, cloudStructureIntensity1, cloudStructureIntensity2,
+  cloudStructureIntensity3, cloudStructureIntensity4, cloudStructureIntensity5, cloudStructureIntensity6, cloudStructureIntensity7;
 /* Detail. */
 [Tooltip("Whether to use procedural noise or a texture for the detail noise layer.")]
 public BoolParameter cloudDetailNoiseProcedural0, cloudDetailNoiseProcedural1, cloudDetailNoiseProcedural2,
@@ -582,6 +597,12 @@ public MinFloatParameter cloudDetailOctaveScale0, cloudDetailOctaveScale1, cloud
 [Tooltip("How much to multiply the intensity of each successive octave by.")]
 public MinFloatParameter cloudDetailOctaveMultiplier0, cloudDetailOctaveMultiplier1, cloudDetailOctaveMultiplier2,
   cloudDetailOctaveMultiplier3, cloudDetailOctaveMultiplier4, cloudDetailOctaveMultiplier5, cloudDetailOctaveMultiplier6, cloudDetailOctaveMultiplier7;
+[Tooltip("Tile factor.")]
+public MinIntParameter cloudDetailTile0, cloudDetailTile1, cloudDetailTile2,
+  cloudDetailTile3, cloudDetailTile4, cloudDetailTile5, cloudDetailTile6, cloudDetailTile7;
+[Tooltip("Intensity.")]
+public ClampedFloatParameter cloudDetailIntensity0, cloudDetailIntensity1, cloudDetailIntensity2,
+  cloudDetailIntensity3, cloudDetailIntensity4, cloudDetailIntensity5, cloudDetailIntensity6, cloudDetailIntensity7;
 /* Base Warp. */
 [Tooltip("Whether to use procedural noise or a texture for the base warp noise layer.")]
 public BoolParameter cloudBaseWarpNoiseProcedural0, cloudBaseWarpNoiseProcedural1, cloudBaseWarpNoiseProcedural2,
@@ -607,6 +628,12 @@ public MinFloatParameter cloudBaseWarpOctaveScale0, cloudBaseWarpOctaveScale1, c
 [Tooltip("How much to multiply the intensity of each successive octave by.")]
 public MinFloatParameter cloudBaseWarpOctaveMultiplier0, cloudBaseWarpOctaveMultiplier1, cloudBaseWarpOctaveMultiplier2,
   cloudBaseWarpOctaveMultiplier3, cloudBaseWarpOctaveMultiplier4, cloudBaseWarpOctaveMultiplier5, cloudBaseWarpOctaveMultiplier6, cloudBaseWarpOctaveMultiplier7;
+[Tooltip("Tile factor.")]
+public MinIntParameter cloudBaseWarpTile0, cloudBaseWarpTile1, cloudBaseWarpTile2,
+  cloudBaseWarpTile3, cloudBaseWarpTile4, cloudBaseWarpTile5, cloudBaseWarpTile6, cloudBaseWarpTile7;
+[Tooltip("Intensity.")]
+public ClampedFloatParameter cloudBaseWarpIntensity0, cloudBaseWarpIntensity1, cloudBaseWarpIntensity2,
+  cloudBaseWarpIntensity3, cloudBaseWarpIntensity4, cloudBaseWarpIntensity5, cloudBaseWarpIntensity6, cloudBaseWarpIntensity7;
 /* Detail Warp. */
 [Tooltip("Whether to use procedural noise or a texture for the detail warp noise layer.")]
 public BoolParameter cloudDetailWarpNoiseProcedural0, cloudDetailWarpNoiseProcedural1, cloudDetailWarpNoiseProcedural2,
@@ -632,6 +659,12 @@ public MinFloatParameter cloudDetailWarpOctaveScale0, cloudDetailWarpOctaveScale
 [Tooltip("How much to multiply the intensity of each successive octave by.")]
 public MinFloatParameter cloudDetailWarpOctaveMultiplier0, cloudDetailWarpOctaveMultiplier1, cloudDetailWarpOctaveMultiplier2,
   cloudDetailWarpOctaveMultiplier3, cloudDetailWarpOctaveMultiplier4, cloudDetailWarpOctaveMultiplier5, cloudDetailWarpOctaveMultiplier6, cloudDetailWarpOctaveMultiplier7;
+[Tooltip("Tile factor.")]
+public MinIntParameter cloudDetailWarpTile0, cloudDetailWarpTile1, cloudDetailWarpTile2,
+  cloudDetailWarpTile3, cloudDetailWarpTile4, cloudDetailWarpTile5, cloudDetailWarpTile6, cloudDetailWarpTile7;
+[Tooltip("Intensity.")]
+public ClampedFloatParameter cloudDetailWarpIntensity0, cloudDetailWarpIntensity1, cloudDetailWarpIntensity2,
+  cloudDetailWarpIntensity3, cloudDetailWarpIntensity4, cloudDetailWarpIntensity5, cloudDetailWarpIntensity6, cloudDetailWarpIntensity7;
 
 /* Movement---sampling offsets primarily. TODO */
 
@@ -658,6 +691,21 @@ public Vector3Parameter cloudAbsorptionCoefficients0, cloudAbsorptionCoefficient
 [Tooltip("Scattering coefficients for this cloud layer.")]
 public Vector3Parameter cloudScatteringCoefficients0, cloudScatteringCoefficients1, cloudScatteringCoefficients2,
   cloudScatteringCoefficients3, cloudScatteringCoefficients4, cloudScatteringCoefficients5, cloudScatteringCoefficients6, cloudScatteringCoefficients7;
+[Tooltip("Amount of approximated multiple scattering.")]
+public ClampedFloatParameter cloudMSAmount0, cloudMSAmount1, cloudMSAmount2,
+  cloudMSAmount3, cloudMSAmount4, cloudMSAmount5, cloudMSAmount6, cloudMSAmount7;
+[Tooltip("Bias to approximated multiple scattering.")]
+public ClampedFloatParameter cloudMSBias0, cloudMSBias1, cloudMSBias2,
+  cloudMSBias3, cloudMSBias4, cloudMSBias5, cloudMSBias6, cloudMSBias7;
+[Tooltip("Spread of cloud silver lining.")]
+public ClampedFloatParameter cloudSilverSpread0, cloudSilverSpread1, cloudSilverSpread2,
+  cloudSilverSpread3, cloudSilverSpread4, cloudSilverSpread5, cloudSilverSpread6, cloudSilverSpread7;
+[Tooltip("Intensity of cloud silver lining.")]
+public ClampedFloatParameter cloudSilverIntensity0, cloudSilverIntensity1, cloudSilverIntensity2,
+  cloudSilverIntensity3, cloudSilverIntensity4, cloudSilverIntensity5, cloudSilverIntensity6, cloudSilverIntensity7;
+[Tooltip("Anistropy of cloud scattering.")]
+public ClampedFloatParameter cloudAnisotropy0, cloudAnisotropy1, cloudAnisotropy2,
+  cloudAnisotropy3, cloudAnisotropy4, cloudAnisotropy5, cloudAnisotropy6, cloudAnisotropy7;
 
 /* Sampling. TODO */
 /* TODO: debug goes here. */
@@ -753,6 +801,8 @@ public Expanse() : base() {
     this.GetType().GetField("cloudCoverageOctaves" + i).SetValue(this, new ClampedIntParameter(3, 1, 8));
     this.GetType().GetField("cloudCoverageOctaveScale" + i).SetValue(this, new MinFloatParameter(2, 1));
     this.GetType().GetField("cloudCoverageOctaveMultiplier" + i).SetValue(this, new MinFloatParameter(0.5f, 0));
+    this.GetType().GetField("cloudCoverageTile" + i).SetValue(this, new MinIntParameter(1, 1));
+    this.GetType().GetField("cloudCoverageIntensity" + i).SetValue(this, new ClampedFloatParameter(0.5f, 0, 1));
     /* Base. */
     this.GetType().GetField("cloudBaseNoiseProcedural" + i).SetValue(this, new BoolParameter(true));
     this.GetType().GetField("cloudBaseNoiseTexture2D" + i).SetValue(this, new TextureParameter(null));
@@ -762,6 +812,7 @@ public Expanse() : base() {
     this.GetType().GetField("cloudBaseOctaves" + i).SetValue(this, new ClampedIntParameter(3, 1, 8));
     this.GetType().GetField("cloudBaseOctaveScale" + i).SetValue(this, new MinFloatParameter(2, 1));
     this.GetType().GetField("cloudBaseOctaveMultiplier" + i).SetValue(this, new MinFloatParameter(0.5f, 0));
+    this.GetType().GetField("cloudBaseTile" + i).SetValue(this, new MinIntParameter(1, 1));
     /* Structure. */
     this.GetType().GetField("cloudStructureNoiseProcedural" + i).SetValue(this, new BoolParameter(true));
     this.GetType().GetField("cloudStructureNoiseTexture2D" + i).SetValue(this, new TextureParameter(null));
@@ -771,6 +822,8 @@ public Expanse() : base() {
     this.GetType().GetField("cloudStructureOctaves" + i).SetValue(this, new ClampedIntParameter(3, 1, 8));
     this.GetType().GetField("cloudStructureOctaveScale" + i).SetValue(this, new MinFloatParameter(2, 1));
     this.GetType().GetField("cloudStructureOctaveMultiplier" + i).SetValue(this, new MinFloatParameter(0.5f, 0));
+    this.GetType().GetField("cloudStructureTile" + i).SetValue(this, new MinIntParameter(1, 1));
+    this.GetType().GetField("cloudStructureIntensity" + i).SetValue(this, new ClampedFloatParameter(0.5f, 0, 1));
     /* Detail. */
     this.GetType().GetField("cloudDetailNoiseProcedural" + i).SetValue(this, new BoolParameter(true));
     this.GetType().GetField("cloudDetailNoiseTexture2D" + i).SetValue(this, new TextureParameter(null));
@@ -780,6 +833,8 @@ public Expanse() : base() {
     this.GetType().GetField("cloudDetailOctaves" + i).SetValue(this, new ClampedIntParameter(3, 1, 8));
     this.GetType().GetField("cloudDetailOctaveScale" + i).SetValue(this, new MinFloatParameter(2, 1));
     this.GetType().GetField("cloudDetailOctaveMultiplier" + i).SetValue(this, new MinFloatParameter(0.5f, 0));
+    this.GetType().GetField("cloudDetailTile" + i).SetValue(this, new MinIntParameter(1, 1));
+    this.GetType().GetField("cloudDetailIntensity" + i).SetValue(this, new ClampedFloatParameter(0.5f, 0, 1));
     /* BaseWarp Warp. */
     this.GetType().GetField("cloudBaseWarpNoiseProcedural" + i).SetValue(this, new BoolParameter(true));
     this.GetType().GetField("cloudBaseWarpNoiseTexture2D" + i).SetValue(this, new TextureParameter(null));
@@ -789,6 +844,8 @@ public Expanse() : base() {
     this.GetType().GetField("cloudBaseWarpOctaves" + i).SetValue(this, new ClampedIntParameter(3, 1, 8));
     this.GetType().GetField("cloudBaseWarpOctaveScale" + i).SetValue(this, new MinFloatParameter(2, 1));
     this.GetType().GetField("cloudBaseWarpOctaveMultiplier" + i).SetValue(this, new MinFloatParameter(0.5f, 0));
+    this.GetType().GetField("cloudBaseWarpTile" + i).SetValue(this, new MinIntParameter(1, 1));
+    this.GetType().GetField("cloudBaseWarpIntensity" + i).SetValue(this, new ClampedFloatParameter(0.5f, 0, 1));
     /* Detail Warp. */
     this.GetType().GetField("cloudDetailWarpNoiseProcedural" + i).SetValue(this, new BoolParameter(true));
     this.GetType().GetField("cloudDetailWarpNoiseTexture2D" + i).SetValue(this, new TextureParameter(null));
@@ -798,6 +855,8 @@ public Expanse() : base() {
     this.GetType().GetField("cloudDetailWarpOctaves" + i).SetValue(this, new ClampedIntParameter(3, 1, 8));
     this.GetType().GetField("cloudDetailWarpOctaveScale" + i).SetValue(this, new MinFloatParameter(2, 1));
     this.GetType().GetField("cloudDetailWarpOctaveMultiplier" + i).SetValue(this, new MinFloatParameter(0.5f, 0));
+    this.GetType().GetField("cloudDetailWarpTile" + i).SetValue(this, new MinIntParameter(1, 1));
+    this.GetType().GetField("cloudDetailWarpIntensity" + i).SetValue(this, new ClampedFloatParameter(0.5f, 0, 1));
 
     /* Lighting. */
     /* 2D. */
@@ -809,7 +868,11 @@ public Expanse() : base() {
     this.GetType().GetField("cloudDensityAttenuationBias" + i).SetValue(this, new MinFloatParameter(50000, 0));
     this.GetType().GetField("cloudAbsorptionCoefficients" + i).SetValue(this, new Vector3Parameter(new Vector3(8e-6f, 8e-6f, 8e-6f)));
     this.GetType().GetField("cloudScatteringCoefficients" + i).SetValue(this, new Vector3Parameter(new Vector3(4e-6f, 4e-6f, 4e-6f)));
-
+    this.GetType().GetField("cloudMSAmount" + i).SetValue(this, new ClampedFloatParameter(0.5f, 0, 1));
+    this.GetType().GetField("cloudMSBias" + i).SetValue(this, new ClampedFloatParameter(0.25f, 0, 1));
+    this.GetType().GetField("cloudSilverSpread" + i).SetValue(this, new ClampedFloatParameter(0.5f, 0, 1));
+    this.GetType().GetField("cloudSilverIntensity" + i).SetValue(this, new ClampedFloatParameter(0.5f, 0, 1));
+    this.GetType().GetField("cloudAnisotropy" + i).SetValue(this, new ClampedFloatParameter(0.7f, -1, 1));
   }
 }
 
@@ -827,288 +890,293 @@ public override Type GetSkyRendererType() {
 
 public override int GetHashCode() {
   int hash = base.GetHashCode();
-  unchecked {
-  /***********************/
-  /********* Sky *********/
-  /***********************/
-  /* Planet parameters. */
-    hash = hash * 23 + atmosphereThickness.value.GetHashCode();
-    hash = hash * 23 + planetRadius.value.GetHashCode();
-    hash = groundAlbedoTexture.value != null ? hash * 23 + groundAlbedoTexture.value.GetHashCode() : hash;
-    hash = hash * 23 + groundTint.value.GetHashCode();
-    hash = groundEmissionTexture.value != null ? hash * 23 + groundEmissionTexture.value.GetHashCode() : hash;
-    hash = hash * 23 + groundEmissionMultiplier.value.GetHashCode();
-    hash = hash * 23 + planetRotation.value.GetHashCode();
-
-    /* Atmosphere layers. */
-    for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerEnabled" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsA" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsS" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((EnumParameter<ExpanseCommon.DensityDistribution>) this.GetType().GetField("layerDensityDistribution" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerHeight" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerThickness" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((EnumParameter<ExpanseCommon.PhaseFunction>) this.GetType().GetField("layerPhaseFunction" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("layerAnisotropy" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerDensity" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerDensityAttenuationPlayerOrigin" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerDensityAttenuationOrigin" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationDistance" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationBias" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ColorParameter) this.GetType().GetField("layerTint" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerMultipleScatteringMultiplier" + i).GetValue(this)).value.GetHashCode();
-    }
-
-    /* Celestial bodies. */
-    for (int i = 0; i < ExpanseCommon.kMaxCelestialBodies; i++) {
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyEnabled" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyUseDateTime" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("bodyDirection" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((DateTimeParameter) this.GetType().GetField("bodyDateTime" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("bodyPlayerLatitudeLongitude" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("bodyAngularRadius" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyDistance" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyReceivesLight" + i).GetValue(this)).value.GetHashCode();
-      var albTex = (CubemapParameter) this.GetType().GetField("bodyAlbedoTexture" + i).GetValue(this);
-      hash = albTex.value != null ? hash * 23 + albTex.value.GetHashCode() : hash;
-      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("bodyAlbedoTextureRotation" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ColorParameter) this.GetType().GetField("bodyAlbedoTint" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyEmissive" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyUseTemperature" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyLightIntensity" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ColorParameter) this.GetType().GetField("bodyLightColor" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("bodyLightTemperature" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyLimbDarkening" + i).GetValue(this)).value.GetHashCode();
-      var emTex = (CubemapParameter) this.GetType().GetField("bodyEmissionTexture" + i).GetValue(this);
-      hash = emTex.value != null ? hash * 23 + emTex.value.GetHashCode() : hash;
-      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("bodyEmissionTextureRotation" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ColorParameter) this.GetType().GetField("bodyEmissionTint" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyEmissionMultiplier" + i).GetValue(this)).value.GetHashCode();
-    }
-
-    /* Night Sky. */
-    /* Procedural. */
-    hash = hash * 23 + useProceduralNightSky.value.GetHashCode();
-    hash = hash * 23 + starTextureQuality.value.GetHashCode();
-    hash = hash * 23 + showStarSeeds.value.GetHashCode();
-    hash = hash * 23 + useHighDensityMode.value.GetHashCode();
-    hash = hash * 23 + starDensity.value.GetHashCode();
-    hash = hash * 23 + starDensitySeed.value.GetHashCode();
-    hash = hash * 23 + starSizeRange.value.GetHashCode();
-    hash = hash * 23 + starSizeBias.value.GetHashCode();
-    hash = hash * 23 + starSizeSeed.value.GetHashCode();
-    hash = hash * 23 + starIntensityRange.value.GetHashCode();
-    hash = hash * 23 + starIntensityBias.value.GetHashCode();
-    hash = hash * 23 + starIntensitySeed.value.GetHashCode();
-    hash = hash * 23 + starTemperatureRange.value.GetHashCode();
-    hash = hash * 23 + starTemperatureBias.value.GetHashCode();
-    hash = hash * 23 + starTint.value.GetHashCode();
-    hash = hash * 23 + useProceduralNebulae.value.GetHashCode();
-    hash = hash * 23 + nebulaeTextureQuality.value.GetHashCode();
-    hash = nebulaeTexture.value != null ? hash * 23 + nebulaeTexture.value.GetHashCode() : hash;
-    /* Procedural nebulae. */
-    hash = hash * 23 + nebulaOverallDefinition.value.GetHashCode();
-    hash = hash * 23 + nebulaOverallIntensity.value.GetHashCode();
-    hash = hash * 23 + nebulaCoverageScale.value.GetHashCode();
-
-    hash = hash * 23 + nebulaHazeBrightness.value.GetHashCode();
-    hash = hash * 23 + nebulaHazeColor.value.GetHashCode();
-    hash = hash * 23 + nebulaHazeScale.value.GetHashCode();
-    hash = hash * 23 + nebulaHazeScaleFactor.value.GetHashCode();
-    hash = hash * 23 + nebulaHazeDetailBalance.value.GetHashCode();
-    hash = hash * 23 + nebulaHazeOctaves.value.GetHashCode();
-    hash = hash * 23 + nebulaHazeBias.value.GetHashCode();
-    hash = hash * 23 + nebulaHazeSpread.value.GetHashCode();
-    hash = hash * 23 + nebulaHazeCoverage.value.GetHashCode();
-    hash = hash * 23 + nebulaHazeStrength.value.GetHashCode();
-
-    hash = hash * 23 + nebulaCloudBrightness.value.GetHashCode();
-    hash = hash * 23 + nebulaCloudColor.value.GetHashCode();
-    hash = hash * 23 + nebulaCloudScale.value.GetHashCode();
-    hash = hash * 23 + nebulaCloudScaleFactor.value.GetHashCode();
-    hash = hash * 23 + nebulaCloudDetailBalance.value.GetHashCode();
-    hash = hash * 23 + nebulaCloudOctaves.value.GetHashCode();
-    hash = hash * 23 + nebulaCloudBias.value.GetHashCode();
-    hash = hash * 23 + nebulaCloudSpread.value.GetHashCode();
-    hash = hash * 23 + nebulaCloudCoverage.value.GetHashCode();
-    hash = hash * 23 + nebulaCloudStrength.value.GetHashCode();
-
-    hash = hash * 23 + nebulaCoarseStrandBrightness.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandColor.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandScale.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandScaleFactor.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandDetailBalance.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandOctaves.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandBias.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandDefinition.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandSpread.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandCoverage.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandStrength.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandWarpScale.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandWarp.value.GetHashCode();
-
-    hash = hash * 23 + nebulaFineStrandBrightness.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandColor.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandScale.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandScaleFactor.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandDetailBalance.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandOctaves.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandBias.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandDefinition.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandSpread.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandCoverage.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandStrength.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandWarpScale.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandWarp.value.GetHashCode();
-
-    hash = hash * 23 + nebulaTransmittanceRange.value.GetHashCode();
-    hash = hash * 23 + nebulaTransmittanceScale.value.GetHashCode();
-
-    hash = hash * 23 + starNebulaFollowAmount.value.GetHashCode();
-    hash = hash * 23 + starNebulaFollowSpread.value.GetHashCode();
-
-    hash = hash * 23 + nebulaCoverageSeed.value.GetHashCode();
-    hash = hash * 23 + nebulaHazeSeedX.value.GetHashCode();
-    hash = hash * 23 + nebulaHazeSeedY.value.GetHashCode();
-    hash = hash * 23 + nebulaHazeSeedZ.value.GetHashCode();
-    hash = hash * 23 + nebulaCloudSeedX.value.GetHashCode();
-    hash = hash * 23 + nebulaCloudSeedY.value.GetHashCode();
-    hash = hash * 23 + nebulaCloudSeedZ.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandSeedX.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandSeedY.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandSeedZ.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandWarpSeedX.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandWarpSeedY.value.GetHashCode();
-    hash = hash * 23 + nebulaCoarseStrandWarpSeedZ.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandSeedX.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandSeedY.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandSeedZ.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandWarpSeedX.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandWarpSeedY.value.GetHashCode();
-    hash = hash * 23 + nebulaFineStrandWarpSeedZ.value.GetHashCode();
-    hash = hash * 23 + nebulaTransmittanceSeedX.value.GetHashCode();
-    hash = hash * 23 + nebulaTransmittanceSeedY.value.GetHashCode();
-    hash = hash * 23 + nebulaTransmittanceSeedZ.value.GetHashCode();
-
-    /* Texture. */
-    hash = hash * 23 + lightPollutionTint.value.GetHashCode();
-    hash = hash * 23 + lightPollutionIntensity.value.GetHashCode();
-    hash = nightSkyTexture.value != null ? hash * 23 + nightSkyTexture.value.GetHashCode() : hash;
-    hash = hash * 23 + nightSkyRotation.value.GetHashCode();
-    hash = hash * 23 + nightSkyTint.value.GetHashCode();
-    hash = hash * 23 + nightSkyIntensity.value.GetHashCode();
-    hash = hash * 23 + nightSkyAmbientMultiplier.value.GetHashCode();
-    hash = hash * 23 + nightSkyScatterTint.value.GetHashCode();
-    hash = hash * 23 + nightSkyScatterIntensity.value.GetHashCode();
-
-    /* Aerial Perspective. */
-    hash = hash * 23 + aerialPerspectiveOcclusionPowerUniform.value.GetHashCode();
-    hash = hash * 23 + aerialPerspectiveOcclusionBiasUniform.value.GetHashCode();
-    hash = hash * 23 + aerialPerspectiveOcclusionPowerDirectional.value.GetHashCode();
-    hash = hash * 23 + aerialPerspectiveOcclusionBiasDirectional.value.GetHashCode();
-
-    /* Quality. */
-    hash = hash * 23 + skyTextureQuality.value.GetHashCode();
-    hash = hash * 23 + numberOfTransmittanceSamples.value.GetHashCode();
-    hash = hash * 23 + numberOfAerialPerspectiveSamples.value.GetHashCode();
-    hash = hash * 23 + numberOfSingleScatteringSamples.value.GetHashCode();
-    hash = hash * 23 + numberOfGroundIrradianceSamples.value.GetHashCode();
-    hash = hash * 23 + numberOfMultipleScatteringSamples.value.GetHashCode();
-    hash = hash * 23 + numberOfMultipleScatteringAccumulationSamples.value.GetHashCode();
-    hash = hash * 23 + useImportanceSampling.value.GetHashCode();
-    hash = hash * 23 + aerialPerspectiveUseImportanceSampling.value.GetHashCode();
-    hash = hash * 23 + useAntiAliasing.value.GetHashCode();
-    hash = hash * 23 + useDither.value.GetHashCode();
-
-    /* Cloud Layers. */
-    for (int i = 0; i < ExpanseCommon.kMaxCloudLayers; i++) {
-      /* Geometry. */
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudLayerEnabled" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudGeometryType>) this.GetType().GetField("cloudGeometryType" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryXExtent" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryYExtent" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryZExtent" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((FloatParameter) this.GetType().GetField("cloudGeometryHeight" + i).GetValue(this)).value.GetHashCode();
-
-      /* Noise. */
-      hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudTextureQuality>) this.GetType().GetField("cloudNoiseQuality" + i).GetValue(this)).value.GetHashCode();
-      /* Coverage. */
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudCoverageNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
-      var cloudCoverageNoise = (TextureParameter) this.GetType().GetField("cloudCoverageNoiseTexture" + i).GetValue(this);
-      hash = cloudCoverageNoise.value != null ? hash * 23 + cloudCoverageNoise.value.GetHashCode() : hash;
-      hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudCoverageNoiseType" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudCoverageGridScale" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudCoverageOctaves" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudCoverageOctaveScale" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudCoverageOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
-      /* Base. */
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudBaseNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
-      var cloudBaseNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudBaseNoiseTexture2D" + i).GetValue(this);
-      hash = cloudBaseNoiseTex2D.value != null ? hash * 23 + cloudBaseNoiseTex2D.value.GetHashCode() : hash;
-      var cloudBaseNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudBaseNoiseTexture3D" + i).GetValue(this);
-      hash = cloudBaseNoiseTex3D.value != null ? hash * 23 + cloudBaseNoiseTex3D.value.GetHashCode() : hash;
-      hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudBaseNoiseType" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudBaseGridScale" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudBaseOctaves" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseOctaveScale" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
-      /* Structure. */
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudStructureNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
-      var cloudStructureNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudStructureNoiseTexture2D" + i).GetValue(this);
-      hash = cloudStructureNoiseTex2D.value != null ? hash * 23 + cloudStructureNoiseTex2D.value.GetHashCode() : hash;
-      var cloudStructureNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudStructureNoiseTexture3D" + i).GetValue(this);
-      hash = cloudStructureNoiseTex3D.value != null ? hash * 23 + cloudStructureNoiseTex3D.value.GetHashCode() : hash;
-      hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudStructureNoiseType" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudStructureGridScale" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudStructureOctaves" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudStructureOctaveScale" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudStructureOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
-      /* Detail. */
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudDetailNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
-      var cloudDetailNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudDetailNoiseTexture2D" + i).GetValue(this);
-      hash = cloudDetailNoiseTex2D.value != null ? hash * 23 + cloudDetailNoiseTex2D.value.GetHashCode() : hash;
-      var cloudDetailNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudDetailNoiseTexture3D" + i).GetValue(this);
-      hash = cloudDetailNoiseTex3D.value != null ? hash * 23 + cloudDetailNoiseTex3D.value.GetHashCode() : hash;
-      hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudDetailNoiseType" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudDetailGridScale" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudDetailOctaves" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailOctaveScale" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
-      /* Base Warp. */
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudBaseWarpNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
-      var cloudBaseWarpNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudBaseWarpNoiseTexture2D" + i).GetValue(this);
-      hash = cloudBaseWarpNoiseTex2D.value != null ? hash * 23 + cloudBaseWarpNoiseTex2D.value.GetHashCode() : hash;
-      var cloudBaseWarpNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudBaseWarpNoiseTexture3D" + i).GetValue(this);
-      hash = cloudBaseWarpNoiseTex3D.value != null ? hash * 23 + cloudBaseWarpNoiseTex3D.value.GetHashCode() : hash;
-      hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudBaseWarpNoiseType" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudBaseWarpGridScale" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudBaseWarpOctaves" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseWarpOctaveScale" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseWarpOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
-      /* Detail Warp. */
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudDetailWarpNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
-      var cloudDetailWarpNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudDetailWarpNoiseTexture2D" + i).GetValue(this);
-      hash = cloudDetailWarpNoiseTex2D.value != null ? hash * 23 + cloudDetailWarpNoiseTex2D.value.GetHashCode() : hash;
-      var cloudDetailWarpNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudDetailWarpNoiseTexture3D" + i).GetValue(this);
-      hash = cloudDetailWarpNoiseTex3D.value != null ? hash * 23 + cloudDetailWarpNoiseTex3D.value.GetHashCode() : hash;
-      hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudDetailWarpNoiseType" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudDetailWarpGridScale" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudDetailWarpOctaves" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailWarpOctaveScale" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailWarpOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
-
-      /* Lighting. */
-      /* 2D. */
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudThickness" + i).GetValue(this)).value.GetHashCode();
-      /* 3D. */
-      /* 2D and 3D. */
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDensity" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDensityAttenuationDistance" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDensityAttenuationBias" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("cloudAbsorptionCoefficients" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("cloudScatteringCoefficients" + i).GetValue(this)).value.GetHashCode();
-    }
-  }
+  // unchecked {
+  // /***********************/
+  // /********* Sky *********/
+  // /***********************/
+  // /* Planet parameters. */
+  //   hash = hash * 23 + atmosphereThickness.value.GetHashCode();
+  //   hash = hash * 23 + planetRadius.value.GetHashCode();
+  //   hash = groundAlbedoTexture.value != null ? hash * 23 + groundAlbedoTexture.value.GetHashCode() : hash;
+  //   hash = hash * 23 + groundTint.value.GetHashCode();
+  //   hash = groundEmissionTexture.value != null ? hash * 23 + groundEmissionTexture.value.GetHashCode() : hash;
+  //   hash = hash * 23 + groundEmissionMultiplier.value.GetHashCode();
+  //   hash = hash * 23 + planetRotation.value.GetHashCode();
+  //
+  //   /* Atmosphere layers. */
+  //   for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerEnabled" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsA" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsS" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((EnumParameter<ExpanseCommon.DensityDistribution>) this.GetType().GetField("layerDensityDistribution" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerHeight" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerThickness" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((EnumParameter<ExpanseCommon.PhaseFunction>) this.GetType().GetField("layerPhaseFunction" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("layerAnisotropy" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerDensity" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerDensityAttenuationPlayerOrigin" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerDensityAttenuationOrigin" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationDistance" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationBias" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ColorParameter) this.GetType().GetField("layerTint" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerMultipleScatteringMultiplier" + i).GetValue(this)).value.GetHashCode();
+  //   }
+  //
+  //   /* Celestial bodies. */
+  //   for (int i = 0; i < ExpanseCommon.kMaxCelestialBodies; i++) {
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyEnabled" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyUseDateTime" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("bodyDirection" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((DateTimeParameter) this.GetType().GetField("bodyDateTime" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("bodyPlayerLatitudeLongitude" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("bodyAngularRadius" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyDistance" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyReceivesLight" + i).GetValue(this)).value.GetHashCode();
+  //     var albTex = (CubemapParameter) this.GetType().GetField("bodyAlbedoTexture" + i).GetValue(this);
+  //     hash = albTex.value != null ? hash * 23 + albTex.value.GetHashCode() : hash;
+  //     hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("bodyAlbedoTextureRotation" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ColorParameter) this.GetType().GetField("bodyAlbedoTint" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyEmissive" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("bodyUseTemperature" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyLightIntensity" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ColorParameter) this.GetType().GetField("bodyLightColor" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("bodyLightTemperature" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyLimbDarkening" + i).GetValue(this)).value.GetHashCode();
+  //     var emTex = (CubemapParameter) this.GetType().GetField("bodyEmissionTexture" + i).GetValue(this);
+  //     hash = emTex.value != null ? hash * 23 + emTex.value.GetHashCode() : hash;
+  //     hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("bodyEmissionTextureRotation" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ColorParameter) this.GetType().GetField("bodyEmissionTint" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("bodyEmissionMultiplier" + i).GetValue(this)).value.GetHashCode();
+  //   }
+  //
+  //   /* Night Sky. */
+  //   /* Procedural. */
+  //   hash = hash * 23 + useProceduralNightSky.value.GetHashCode();
+  //   hash = hash * 23 + starTextureQuality.value.GetHashCode();
+  //   hash = hash * 23 + showStarSeeds.value.GetHashCode();
+  //   hash = hash * 23 + useHighDensityMode.value.GetHashCode();
+  //   hash = hash * 23 + starDensity.value.GetHashCode();
+  //   hash = hash * 23 + starDensitySeed.value.GetHashCode();
+  //   hash = hash * 23 + starSizeRange.value.GetHashCode();
+  //   hash = hash * 23 + starSizeBias.value.GetHashCode();
+  //   hash = hash * 23 + starSizeSeed.value.GetHashCode();
+  //   hash = hash * 23 + starIntensityRange.value.GetHashCode();
+  //   hash = hash * 23 + starIntensityBias.value.GetHashCode();
+  //   hash = hash * 23 + starIntensitySeed.value.GetHashCode();
+  //   hash = hash * 23 + starTemperatureRange.value.GetHashCode();
+  //   hash = hash * 23 + starTemperatureBias.value.GetHashCode();
+  //   hash = hash * 23 + starTint.value.GetHashCode();
+  //   hash = hash * 23 + useProceduralNebulae.value.GetHashCode();
+  //   hash = hash * 23 + nebulaeTextureQuality.value.GetHashCode();
+  //   hash = nebulaeTexture.value != null ? hash * 23 + nebulaeTexture.value.GetHashCode() : hash;
+  //   /* Procedural nebulae. */
+  //   hash = hash * 23 + nebulaOverallDefinition.value.GetHashCode();
+  //   hash = hash * 23 + nebulaOverallIntensity.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoverageScale.value.GetHashCode();
+  //
+  //   hash = hash * 23 + nebulaHazeBrightness.value.GetHashCode();
+  //   hash = hash * 23 + nebulaHazeColor.value.GetHashCode();
+  //   hash = hash * 23 + nebulaHazeScale.value.GetHashCode();
+  //   hash = hash * 23 + nebulaHazeScaleFactor.value.GetHashCode();
+  //   hash = hash * 23 + nebulaHazeDetailBalance.value.GetHashCode();
+  //   hash = hash * 23 + nebulaHazeOctaves.value.GetHashCode();
+  //   hash = hash * 23 + nebulaHazeBias.value.GetHashCode();
+  //   hash = hash * 23 + nebulaHazeSpread.value.GetHashCode();
+  //   hash = hash * 23 + nebulaHazeCoverage.value.GetHashCode();
+  //   hash = hash * 23 + nebulaHazeStrength.value.GetHashCode();
+  //
+  //   hash = hash * 23 + nebulaCloudBrightness.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCloudColor.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCloudScale.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCloudScaleFactor.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCloudDetailBalance.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCloudOctaves.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCloudBias.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCloudSpread.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCloudCoverage.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCloudStrength.value.GetHashCode();
+  //
+  //   hash = hash * 23 + nebulaCoarseStrandBrightness.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandColor.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandScale.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandScaleFactor.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandDetailBalance.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandOctaves.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandBias.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandDefinition.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandSpread.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandCoverage.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandStrength.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandWarpScale.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandWarp.value.GetHashCode();
+  //
+  //   hash = hash * 23 + nebulaFineStrandBrightness.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandColor.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandScale.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandScaleFactor.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandDetailBalance.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandOctaves.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandBias.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandDefinition.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandSpread.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandCoverage.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandStrength.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandWarpScale.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandWarp.value.GetHashCode();
+  //
+  //   hash = hash * 23 + nebulaTransmittanceRange.value.GetHashCode();
+  //   hash = hash * 23 + nebulaTransmittanceScale.value.GetHashCode();
+  //
+  //   hash = hash * 23 + starNebulaFollowAmount.value.GetHashCode();
+  //   hash = hash * 23 + starNebulaFollowSpread.value.GetHashCode();
+  //
+  //   hash = hash * 23 + nebulaCoverageSeed.value.GetHashCode();
+  //   hash = hash * 23 + nebulaHazeSeedX.value.GetHashCode();
+  //   hash = hash * 23 + nebulaHazeSeedY.value.GetHashCode();
+  //   hash = hash * 23 + nebulaHazeSeedZ.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCloudSeedX.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCloudSeedY.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCloudSeedZ.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandSeedX.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandSeedY.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandSeedZ.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandWarpSeedX.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandWarpSeedY.value.GetHashCode();
+  //   hash = hash * 23 + nebulaCoarseStrandWarpSeedZ.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandSeedX.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandSeedY.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandSeedZ.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandWarpSeedX.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandWarpSeedY.value.GetHashCode();
+  //   hash = hash * 23 + nebulaFineStrandWarpSeedZ.value.GetHashCode();
+  //   hash = hash * 23 + nebulaTransmittanceSeedX.value.GetHashCode();
+  //   hash = hash * 23 + nebulaTransmittanceSeedY.value.GetHashCode();
+  //   hash = hash * 23 + nebulaTransmittanceSeedZ.value.GetHashCode();
+  //
+  //   /* Texture. */
+  //   hash = hash * 23 + lightPollutionTint.value.GetHashCode();
+  //   hash = hash * 23 + lightPollutionIntensity.value.GetHashCode();
+  //   hash = nightSkyTexture.value != null ? hash * 23 + nightSkyTexture.value.GetHashCode() : hash;
+  //   hash = hash * 23 + nightSkyRotation.value.GetHashCode();
+  //   hash = hash * 23 + nightSkyTint.value.GetHashCode();
+  //   hash = hash * 23 + nightSkyIntensity.value.GetHashCode();
+  //   hash = hash * 23 + nightSkyAmbientMultiplier.value.GetHashCode();
+  //   hash = hash * 23 + nightSkyScatterTint.value.GetHashCode();
+  //   hash = hash * 23 + nightSkyScatterIntensity.value.GetHashCode();
+  //
+  //   /* Aerial Perspective. */
+  //   hash = hash * 23 + aerialPerspectiveOcclusionPowerUniform.value.GetHashCode();
+  //   hash = hash * 23 + aerialPerspectiveOcclusionBiasUniform.value.GetHashCode();
+  //   hash = hash * 23 + aerialPerspectiveOcclusionPowerDirectional.value.GetHashCode();
+  //   hash = hash * 23 + aerialPerspectiveOcclusionBiasDirectional.value.GetHashCode();
+  //
+  //   /* Quality. */
+  //   hash = hash * 23 + skyTextureQuality.value.GetHashCode();
+  //   hash = hash * 23 + numberOfTransmittanceSamples.value.GetHashCode();
+  //   hash = hash * 23 + numberOfAerialPerspectiveSamples.value.GetHashCode();
+  //   hash = hash * 23 + numberOfSingleScatteringSamples.value.GetHashCode();
+  //   hash = hash * 23 + numberOfGroundIrradianceSamples.value.GetHashCode();
+  //   hash = hash * 23 + numberOfMultipleScatteringSamples.value.GetHashCode();
+  //   hash = hash * 23 + numberOfMultipleScatteringAccumulationSamples.value.GetHashCode();
+  //   hash = hash * 23 + useImportanceSampling.value.GetHashCode();
+  //   hash = hash * 23 + aerialPerspectiveUseImportanceSampling.value.GetHashCode();
+  //   hash = hash * 23 + useAntiAliasing.value.GetHashCode();
+  //   hash = hash * 23 + useDither.value.GetHashCode();
+  //
+  //   /* Cloud Layers. */
+  //   for (int i = 0; i < ExpanseCommon.kMaxCloudLayers; i++) {
+  //     /* Geometry. */
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudLayerEnabled" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudGeometryType>) this.GetType().GetField("cloudGeometryType" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryXExtent" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryYExtent" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudGeometryZExtent" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((FloatParameter) this.GetType().GetField("cloudGeometryHeight" + i).GetValue(this)).value.GetHashCode();
+  //
+  //     /* Noise. */
+  //     hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudTextureQuality>) this.GetType().GetField("cloudNoiseQuality" + i).GetValue(this)).value.GetHashCode();
+  //     /* Coverage. */
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudCoverageNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
+  //     var cloudCoverageNoise = (TextureParameter) this.GetType().GetField("cloudCoverageNoiseTexture" + i).GetValue(this);
+  //     hash = cloudCoverageNoise.value != null ? hash * 23 + cloudCoverageNoise.value.GetHashCode() : hash;
+  //     hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudCoverageNoiseType" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudCoverageGridScale" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudCoverageOctaves" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudCoverageOctaveScale" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudCoverageOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
+  //     /* Base. */
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudBaseNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
+  //     var cloudBaseNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudBaseNoiseTexture2D" + i).GetValue(this);
+  //     hash = cloudBaseNoiseTex2D.value != null ? hash * 23 + cloudBaseNoiseTex2D.value.GetHashCode() : hash;
+  //     var cloudBaseNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudBaseNoiseTexture3D" + i).GetValue(this);
+  //     hash = cloudBaseNoiseTex3D.value != null ? hash * 23 + cloudBaseNoiseTex3D.value.GetHashCode() : hash;
+  //     hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudBaseNoiseType" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudBaseGridScale" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudBaseOctaves" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseOctaveScale" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
+  //     /* Structure. */
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudStructureNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
+  //     var cloudStructureNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudStructureNoiseTexture2D" + i).GetValue(this);
+  //     hash = cloudStructureNoiseTex2D.value != null ? hash * 23 + cloudStructureNoiseTex2D.value.GetHashCode() : hash;
+  //     var cloudStructureNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudStructureNoiseTexture3D" + i).GetValue(this);
+  //     hash = cloudStructureNoiseTex3D.value != null ? hash * 23 + cloudStructureNoiseTex3D.value.GetHashCode() : hash;
+  //     hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudStructureNoiseType" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudStructureGridScale" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudStructureOctaves" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudStructureOctaveScale" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudStructureOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
+  //     /* Detail. */
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudDetailNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
+  //     var cloudDetailNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudDetailNoiseTexture2D" + i).GetValue(this);
+  //     hash = cloudDetailNoiseTex2D.value != null ? hash * 23 + cloudDetailNoiseTex2D.value.GetHashCode() : hash;
+  //     var cloudDetailNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudDetailNoiseTexture3D" + i).GetValue(this);
+  //     hash = cloudDetailNoiseTex3D.value != null ? hash * 23 + cloudDetailNoiseTex3D.value.GetHashCode() : hash;
+  //     hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudDetailNoiseType" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudDetailGridScale" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudDetailOctaves" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailOctaveScale" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
+  //     /* Base Warp. */
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudBaseWarpNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
+  //     var cloudBaseWarpNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudBaseWarpNoiseTexture2D" + i).GetValue(this);
+  //     hash = cloudBaseWarpNoiseTex2D.value != null ? hash * 23 + cloudBaseWarpNoiseTex2D.value.GetHashCode() : hash;
+  //     var cloudBaseWarpNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudBaseWarpNoiseTexture3D" + i).GetValue(this);
+  //     hash = cloudBaseWarpNoiseTex3D.value != null ? hash * 23 + cloudBaseWarpNoiseTex3D.value.GetHashCode() : hash;
+  //     hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudBaseWarpNoiseType" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudBaseWarpGridScale" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudBaseWarpOctaves" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseWarpOctaveScale" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudBaseWarpOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
+  //     /* Detail Warp. */
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("cloudDetailWarpNoiseProcedural" + i).GetValue(this)).value.GetHashCode();
+  //     var cloudDetailWarpNoiseTex2D = (TextureParameter) this.GetType().GetField("cloudDetailWarpNoiseTexture2D" + i).GetValue(this);
+  //     hash = cloudDetailWarpNoiseTex2D.value != null ? hash * 23 + cloudDetailWarpNoiseTex2D.value.GetHashCode() : hash;
+  //     var cloudDetailWarpNoiseTex3D = (TextureParameter) this.GetType().GetField("cloudDetailWarpNoiseTexture3D" + i).GetValue(this);
+  //     hash = cloudDetailWarpNoiseTex3D.value != null ? hash * 23 + cloudDetailWarpNoiseTex3D.value.GetHashCode() : hash;
+  //     hash = hash * 23 + ((EnumParameter<ExpanseCommon.CloudNoiseType>) this.GetType().GetField("cloudDetailWarpNoiseType" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector2Parameter) this.GetType().GetField("cloudDetailWarpGridScale" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ClampedIntParameter) this.GetType().GetField("cloudDetailWarpOctaves" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailWarpOctaveScale" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDetailWarpOctaveMultiplier" + i).GetValue(this)).value.GetHashCode();
+  //
+  //     /* Lighting. */
+  //     /* 2D. */
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudThickness" + i).GetValue(this)).value.GetHashCode();
+  //     /* 3D. */
+  //     /* 2D and 3D. */
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDensity" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDensityAttenuationDistance" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("cloudDensityAttenuationBias" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("cloudAbsorptionCoefficients" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("cloudScatteringCoefficients" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("cloudMSAmount" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("cloudMSBias" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("cloudSilverSpread" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("cloudSilverIntensity" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("cloudAnisotropy" + i).GetValue(this)).value.GetHashCode();
+  //   }
+  // }
   return hash;
 }
 
@@ -1122,50 +1190,50 @@ public override int GetHashCode() {
 
 public int GetSkyHashCode() {
   int hash = base.GetHashCode();
-  unchecked {
-  /***********************/
-  /********* Sky *********/
-  /***********************/
-  /* Planet parameters. */
-    hash = hash * 23 + atmosphereThickness.value.GetHashCode();
-    hash = hash * 23 + planetRadius.value.GetHashCode();
-    hash = groundAlbedoTexture.value != null ? hash * 23 + groundAlbedoTexture.value.GetHashCode() : hash;
-    hash = hash * 23 + groundTint.value.GetHashCode();
-    hash = groundEmissionTexture.value != null ? hash * 23 + groundEmissionTexture.value.GetHashCode() : hash;
-    hash = hash * 23 + groundEmissionMultiplier.value.GetHashCode();
-    hash = hash * 23 + planetRotation.value.GetHashCode();
-
-    /* Atmosphere layers. */
-    for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerEnabled" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsA" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsS" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((EnumParameter<ExpanseCommon.DensityDistribution>) this.GetType().GetField("layerDensityDistribution" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerHeight" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerThickness" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((EnumParameter<ExpanseCommon.PhaseFunction>) this.GetType().GetField("layerPhaseFunction" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("layerAnisotropy" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerDensity" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerDensityAttenuationPlayerOrigin" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerDensityAttenuationOrigin" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationDistance" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationBias" + i).GetValue(this)).value.GetHashCode();
-      hash = hash * 23 + ((ColorParameter) this.GetType().GetField("layerTint" + i).GetValue(this)).value.GetHashCode();
-    }
-
-    /* Aerial Perspective. */
-
-    /* Quality. */
-    hash = hash * 23 + skyTextureQuality.value.GetHashCode();
-    hash = hash * 23 + numberOfTransmittanceSamples.value.GetHashCode();
-    hash = hash * 23 + numberOfAerialPerspectiveSamples.value.GetHashCode();
-    hash = hash * 23 + numberOfSingleScatteringSamples.value.GetHashCode();
-    hash = hash * 23 + numberOfGroundIrradianceSamples.value.GetHashCode();
-    hash = hash * 23 + numberOfMultipleScatteringSamples.value.GetHashCode();
-    hash = hash * 23 + numberOfMultipleScatteringAccumulationSamples.value.GetHashCode();
-    hash = hash * 23 + useImportanceSampling.value.GetHashCode();
-    hash = hash * 23 + aerialPerspectiveDepthSkew.value.GetHashCode();
-  }
+  // unchecked {
+  // /***********************/
+  // /********* Sky *********/
+  // /***********************/
+  // /* Planet parameters. */
+  //   hash = hash * 23 + atmosphereThickness.value.GetHashCode();
+  //   hash = hash * 23 + planetRadius.value.GetHashCode();
+  //   hash = groundAlbedoTexture.value != null ? hash * 23 + groundAlbedoTexture.value.GetHashCode() : hash;
+  //   hash = hash * 23 + groundTint.value.GetHashCode();
+  //   hash = groundEmissionTexture.value != null ? hash * 23 + groundEmissionTexture.value.GetHashCode() : hash;
+  //   hash = hash * 23 + groundEmissionMultiplier.value.GetHashCode();
+  //   hash = hash * 23 + planetRotation.value.GetHashCode();
+  //
+  //   /* Atmosphere layers. */
+  //   for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerEnabled" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsA" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsS" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((EnumParameter<ExpanseCommon.DensityDistribution>) this.GetType().GetField("layerDensityDistribution" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerHeight" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerThickness" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((EnumParameter<ExpanseCommon.PhaseFunction>) this.GetType().GetField("layerPhaseFunction" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("layerAnisotropy" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerDensity" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerDensityAttenuationPlayerOrigin" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerDensityAttenuationOrigin" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationDistance" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationBias" + i).GetValue(this)).value.GetHashCode();
+  //     hash = hash * 23 + ((ColorParameter) this.GetType().GetField("layerTint" + i).GetValue(this)).value.GetHashCode();
+  //   }
+  //
+  //   /* Aerial Perspective. */
+  //
+  //   /* Quality. */
+  //   hash = hash * 23 + skyTextureQuality.value.GetHashCode();
+  //   hash = hash * 23 + numberOfTransmittanceSamples.value.GetHashCode();
+  //   hash = hash * 23 + numberOfAerialPerspectiveSamples.value.GetHashCode();
+  //   hash = hash * 23 + numberOfSingleScatteringSamples.value.GetHashCode();
+  //   hash = hash * 23 + numberOfGroundIrradianceSamples.value.GetHashCode();
+  //   hash = hash * 23 + numberOfMultipleScatteringSamples.value.GetHashCode();
+  //   hash = hash * 23 + numberOfMultipleScatteringAccumulationSamples.value.GetHashCode();
+  //   hash = hash * 23 + useImportanceSampling.value.GetHashCode();
+  //   hash = hash * 23 + aerialPerspectiveDepthSkew.value.GetHashCode();
+  // }
   return hash;
 }
 
@@ -1283,110 +1351,110 @@ public int GetNightSkyHashCode() {
   /* Used for checking if a recomputation of the night sky texture and
    * average color needs to take place. */
   int hash = base.GetHashCode();
-  unchecked {
-    hash = hash * 23 + useProceduralNightSky.value.GetHashCode();
-    if (useProceduralNightSky.value) {
-      hash = hash * 23 + starTextureQuality.value.GetHashCode();
-      hash = hash * 23 + useHighDensityMode.value.GetHashCode();
-      hash = hash * 23 + starDensity.value.GetHashCode();
-      hash = hash * 23 + starDensitySeed.value.GetHashCode();
-      hash = hash * 23 + starSizeRange.value.GetHashCode();
-      hash = hash * 23 + starSizeBias.value.GetHashCode();
-      hash = hash * 23 + starSizeSeed.value.GetHashCode();
-      hash = hash * 23 + starIntensityRange.value.GetHashCode();
-      hash = hash * 23 + starIntensityBias.value.GetHashCode();
-      hash = hash * 23 + starIntensitySeed.value.GetHashCode();
-      hash = hash * 23 + starTemperatureRange.value.GetHashCode();
-      hash = hash * 23 + starTemperatureBias.value.GetHashCode();
-      hash = hash * 23 + starTemperatureSeed.value.GetHashCode();
-      hash = hash * 23 + useProceduralNebulae.value.GetHashCode();
-      hash = hash * 23 + nebulaeTextureQuality.value.GetHashCode();
-      hash = nebulaeTexture.value != null ? hash * 23 + nebulaeTexture.value.GetHashCode() : hash;
-      /* Procedural nebulae. */
-      hash = hash * 23 + nebulaCoverageScale.value.GetHashCode();
-
-      hash = hash * 23 + nebulaHazeBrightness.value.GetHashCode();
-      hash = hash * 23 + nebulaHazeColor.value.GetHashCode();
-      hash = hash * 23 + nebulaHazeScale.value.GetHashCode();
-      hash = hash * 23 + nebulaHazeScaleFactor.value.GetHashCode();
-      hash = hash * 23 + nebulaHazeDetailBalance.value.GetHashCode();
-      hash = hash * 23 + nebulaHazeOctaves.value.GetHashCode();
-      hash = hash * 23 + nebulaHazeBias.value.GetHashCode();
-      hash = hash * 23 + nebulaHazeSpread.value.GetHashCode();
-      hash = hash * 23 + nebulaHazeCoverage.value.GetHashCode();
-      hash = hash * 23 + nebulaHazeStrength.value.GetHashCode();
-
-      hash = hash * 23 + nebulaCloudBrightness.value.GetHashCode();
-      hash = hash * 23 + nebulaCloudColor.value.GetHashCode();
-      hash = hash * 23 + nebulaCloudScale.value.GetHashCode();
-      hash = hash * 23 + nebulaCloudScaleFactor.value.GetHashCode();
-      hash = hash * 23 + nebulaCloudDetailBalance.value.GetHashCode();
-      hash = hash * 23 + nebulaCloudOctaves.value.GetHashCode();
-      hash = hash * 23 + nebulaCloudBias.value.GetHashCode();
-      hash = hash * 23 + nebulaCloudSpread.value.GetHashCode();
-      hash = hash * 23 + nebulaCloudCoverage.value.GetHashCode();
-      hash = hash * 23 + nebulaCloudStrength.value.GetHashCode();
-
-      hash = hash * 23 + nebulaCoarseStrandBrightness.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandColor.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandScale.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandScaleFactor.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandDetailBalance.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandOctaves.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandBias.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandDefinition.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandSpread.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandCoverage.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandStrength.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandWarpScale.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandWarp.value.GetHashCode();
-
-
-      hash = hash * 23 + nebulaFineStrandBrightness.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandColor.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandScale.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandScaleFactor.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandDetailBalance.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandOctaves.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandBias.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandDefinition.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandSpread.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandCoverage.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandStrength.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandWarpScale.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandWarp.value.GetHashCode();
-
-      hash = hash * 23 + nebulaTransmittanceRange.value.GetHashCode();
-      hash = hash * 23 + nebulaTransmittanceScale.value.GetHashCode();
-
-      hash = hash * 23 + starNebulaFollowAmount.value.GetHashCode();
-      hash = hash * 23 + starNebulaFollowSpread.value.GetHashCode();
-
-      hash = hash * 23 + nebulaCoverageSeed.value.GetHashCode();
-      hash = hash * 23 + nebulaHazeSeedX.value.GetHashCode();
-      hash = hash * 23 + nebulaHazeSeedY.value.GetHashCode();
-      hash = hash * 23 + nebulaHazeSeedZ.value.GetHashCode();
-      hash = hash * 23 + nebulaCloudSeedX.value.GetHashCode();
-      hash = hash * 23 + nebulaCloudSeedY.value.GetHashCode();
-      hash = hash * 23 + nebulaCloudSeedZ.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandSeedX.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandSeedY.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandSeedZ.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandWarpSeedX.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandWarpSeedY.value.GetHashCode();
-      hash = hash * 23 + nebulaCoarseStrandWarpSeedZ.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandSeedX.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandSeedY.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandSeedZ.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandWarpSeedX.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandWarpSeedY.value.GetHashCode();
-      hash = hash * 23 + nebulaFineStrandWarpSeedZ.value.GetHashCode();
-      hash = hash * 23 + nebulaTransmittanceSeedX.value.GetHashCode();
-      hash = hash * 23 + nebulaTransmittanceSeedY.value.GetHashCode();
-      hash = hash * 23 + nebulaTransmittanceSeedZ.value.GetHashCode();
-    }
-    hash = nightSkyTexture.value != null ? hash * 23 + nightSkyTexture.value.GetHashCode() : hash;
-  }
+  // unchecked {
+  //   hash = hash * 23 + useProceduralNightSky.value.GetHashCode();
+  //   if (useProceduralNightSky.value) {
+  //     hash = hash * 23 + starTextureQuality.value.GetHashCode();
+  //     hash = hash * 23 + useHighDensityMode.value.GetHashCode();
+  //     hash = hash * 23 + starDensity.value.GetHashCode();
+  //     hash = hash * 23 + starDensitySeed.value.GetHashCode();
+  //     hash = hash * 23 + starSizeRange.value.GetHashCode();
+  //     hash = hash * 23 + starSizeBias.value.GetHashCode();
+  //     hash = hash * 23 + starSizeSeed.value.GetHashCode();
+  //     hash = hash * 23 + starIntensityRange.value.GetHashCode();
+  //     hash = hash * 23 + starIntensityBias.value.GetHashCode();
+  //     hash = hash * 23 + starIntensitySeed.value.GetHashCode();
+  //     hash = hash * 23 + starTemperatureRange.value.GetHashCode();
+  //     hash = hash * 23 + starTemperatureBias.value.GetHashCode();
+  //     hash = hash * 23 + starTemperatureSeed.value.GetHashCode();
+  //     hash = hash * 23 + useProceduralNebulae.value.GetHashCode();
+  //     hash = hash * 23 + nebulaeTextureQuality.value.GetHashCode();
+  //     hash = nebulaeTexture.value != null ? hash * 23 + nebulaeTexture.value.GetHashCode() : hash;
+  //     /* Procedural nebulae. */
+  //     hash = hash * 23 + nebulaCoverageScale.value.GetHashCode();
+  //
+  //     hash = hash * 23 + nebulaHazeBrightness.value.GetHashCode();
+  //     hash = hash * 23 + nebulaHazeColor.value.GetHashCode();
+  //     hash = hash * 23 + nebulaHazeScale.value.GetHashCode();
+  //     hash = hash * 23 + nebulaHazeScaleFactor.value.GetHashCode();
+  //     hash = hash * 23 + nebulaHazeDetailBalance.value.GetHashCode();
+  //     hash = hash * 23 + nebulaHazeOctaves.value.GetHashCode();
+  //     hash = hash * 23 + nebulaHazeBias.value.GetHashCode();
+  //     hash = hash * 23 + nebulaHazeSpread.value.GetHashCode();
+  //     hash = hash * 23 + nebulaHazeCoverage.value.GetHashCode();
+  //     hash = hash * 23 + nebulaHazeStrength.value.GetHashCode();
+  //
+  //     hash = hash * 23 + nebulaCloudBrightness.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCloudColor.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCloudScale.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCloudScaleFactor.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCloudDetailBalance.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCloudOctaves.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCloudBias.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCloudSpread.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCloudCoverage.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCloudStrength.value.GetHashCode();
+  //
+  //     hash = hash * 23 + nebulaCoarseStrandBrightness.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandColor.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandScale.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandScaleFactor.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandDetailBalance.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandOctaves.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandBias.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandDefinition.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandSpread.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandCoverage.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandStrength.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandWarpScale.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandWarp.value.GetHashCode();
+  //
+  //
+  //     hash = hash * 23 + nebulaFineStrandBrightness.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandColor.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandScale.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandScaleFactor.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandDetailBalance.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandOctaves.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandBias.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandDefinition.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandSpread.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandCoverage.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandStrength.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandWarpScale.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandWarp.value.GetHashCode();
+  //
+  //     hash = hash * 23 + nebulaTransmittanceRange.value.GetHashCode();
+  //     hash = hash * 23 + nebulaTransmittanceScale.value.GetHashCode();
+  //
+  //     hash = hash * 23 + starNebulaFollowAmount.value.GetHashCode();
+  //     hash = hash * 23 + starNebulaFollowSpread.value.GetHashCode();
+  //
+  //     hash = hash * 23 + nebulaCoverageSeed.value.GetHashCode();
+  //     hash = hash * 23 + nebulaHazeSeedX.value.GetHashCode();
+  //     hash = hash * 23 + nebulaHazeSeedY.value.GetHashCode();
+  //     hash = hash * 23 + nebulaHazeSeedZ.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCloudSeedX.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCloudSeedY.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCloudSeedZ.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandSeedX.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandSeedY.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandSeedZ.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandWarpSeedX.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandWarpSeedY.value.GetHashCode();
+  //     hash = hash * 23 + nebulaCoarseStrandWarpSeedZ.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandSeedX.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandSeedY.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandSeedZ.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandWarpSeedX.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandWarpSeedY.value.GetHashCode();
+  //     hash = hash * 23 + nebulaFineStrandWarpSeedZ.value.GetHashCode();
+  //     hash = hash * 23 + nebulaTransmittanceSeedX.value.GetHashCode();
+  //     hash = hash * 23 + nebulaTransmittanceSeedY.value.GetHashCode();
+  //     hash = hash * 23 + nebulaTransmittanceSeedZ.value.GetHashCode();
+  //   }
+  //   hash = nightSkyTexture.value != null ? hash * 23 + nightSkyTexture.value.GetHashCode() : hash;
+  // }
   return hash;
 }
 

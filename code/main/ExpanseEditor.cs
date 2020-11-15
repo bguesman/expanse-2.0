@@ -346,7 +346,6 @@ SerializedDataParameter[] cloudGeometryZExtent
 SerializedDataParameter[] cloudGeometryHeight
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 
-
 /* Noise generation. */
 SerializedDataParameter[] cloudNoiseQuality
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
@@ -365,6 +364,10 @@ SerializedDataParameter[] cloudCoverageOctaveScale
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 SerializedDataParameter[] cloudCoverageOctaveMultiplier
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudCoverageTile
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudCoverageIntensity
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 /* Base. */
 SerializedDataParameter[] cloudBaseNoiseProcedural
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
@@ -381,6 +384,8 @@ SerializedDataParameter[] cloudBaseOctaves
 SerializedDataParameter[] cloudBaseOctaveScale
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 SerializedDataParameter[] cloudBaseOctaveMultiplier
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudBaseTile
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 /* Structure. */
 SerializedDataParameter[] cloudStructureNoiseProcedural
@@ -399,6 +404,10 @@ SerializedDataParameter[] cloudStructureOctaveScale
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 SerializedDataParameter[] cloudStructureOctaveMultiplier
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudStructureTile
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudStructureIntensity
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 /* Detail. */
 SerializedDataParameter[] cloudDetailNoiseProcedural
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
@@ -415,6 +424,10 @@ SerializedDataParameter[] cloudDetailOctaves
 SerializedDataParameter[] cloudDetailOctaveScale
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 SerializedDataParameter[] cloudDetailOctaveMultiplier
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDetailTile
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDetailIntensity
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 /* Base Warp. */
 SerializedDataParameter[] cloudBaseWarpNoiseProcedural
@@ -433,6 +446,10 @@ SerializedDataParameter[] cloudBaseWarpOctaveScale
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 SerializedDataParameter[] cloudBaseWarpOctaveMultiplier
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudBaseWarpTile
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudBaseWarpIntensity
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 /* Detail Warp. */
 SerializedDataParameter[] cloudDetailWarpNoiseProcedural
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
@@ -449,6 +466,10 @@ SerializedDataParameter[] cloudDetailWarpOctaves
 SerializedDataParameter[] cloudDetailWarpOctaveScale
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 SerializedDataParameter[] cloudDetailWarpOctaveMultiplier
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDetailWarpTile
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDetailWarpIntensity
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 
 /* Movement---sampling offsets primarily. TODO */
@@ -468,6 +489,16 @@ SerializedDataParameter[] cloudDensityAttenuationBias
 SerializedDataParameter[] cloudAbsorptionCoefficients
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 SerializedDataParameter[] cloudScatteringCoefficients
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudMSAmount
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudMSBias
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudSilverSpread
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudSilverIntensity
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudAnisotropy
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 
 /* Sampling. TODO */
@@ -1115,6 +1146,14 @@ private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle su
     PropertyField(cloudNoiseQuality[layerIndex], new UnityEngine.GUIContent("Quality"));
     EditorGUILayout.Space();
 
+    /* Display the remap parameters. */
+    PropertyField(cloudCoverageIntensity[layerIndex], new UnityEngine.GUIContent("Coverage"));
+    PropertyField(cloudStructureIntensity[layerIndex], new UnityEngine.GUIContent("Structure"));
+    PropertyField(cloudDetailIntensity[layerIndex], new UnityEngine.GUIContent("Detail"));
+    PropertyField(cloudBaseWarpIntensity[layerIndex], new UnityEngine.GUIContent("Base Warp"));
+    PropertyField(cloudDetailWarpIntensity[layerIndex], new UnityEngine.GUIContent("Detail Warp"));
+    EditorGUILayout.Space();
+
     m_cloudNoiseLayerSelect = (ExpanseCommon.CloudNoiseLayer) EditorGUILayout.EnumPopup("Noise Layer", m_cloudNoiseLayerSelect);
     int layerSelectIndex = setEnumSelect(m_showCloudNoiseLayer, (int) m_cloudNoiseLayerSelect);
 
@@ -1133,6 +1172,7 @@ private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle su
           } else {
             PropertyField(cloudCoverageNoiseTexture[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
           }
+          PropertyField(cloudCoverageTile[layerIndex], new UnityEngine.GUIContent("Tile"));
           break;
         }
 
@@ -1151,6 +1191,7 @@ private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle su
               PropertyField(cloudBaseNoiseTexture3D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
             }
           }
+          PropertyField(cloudBaseTile[layerIndex], new UnityEngine.GUIContent("Tile"));
           break;
         }
 
@@ -1169,6 +1210,7 @@ private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle su
               PropertyField(cloudStructureNoiseTexture3D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
             }
           }
+          PropertyField(cloudStructureTile[layerIndex], new UnityEngine.GUIContent("Tile"));
           break;
         }
 
@@ -1187,6 +1229,7 @@ private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle su
               PropertyField(cloudDetailNoiseTexture3D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
             }
           }
+          PropertyField(cloudDetailTile[layerIndex], new UnityEngine.GUIContent("Tile"));
           break;
         }
 
@@ -1205,6 +1248,7 @@ private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle su
               PropertyField(cloudBaseWarpNoiseTexture3D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
             }
           }
+          PropertyField(cloudBaseWarpTile[layerIndex], new UnityEngine.GUIContent("Tile"));
           break;
         }
 
@@ -1223,6 +1267,7 @@ private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle su
               PropertyField(cloudDetailWarpNoiseTexture3D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
             }
           }
+          PropertyField(cloudDetailWarpTile[layerIndex], new UnityEngine.GUIContent("Tile"));
           break;
         }
 
@@ -1268,6 +1313,11 @@ private void cloudLighting(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle
     PropertyField(cloudDensityAttenuationBias[layerIndex], new UnityEngine.GUIContent("Density Attenuation Bias"));
     PropertyField(cloudAbsorptionCoefficients[layerIndex], new UnityEngine.GUIContent("Absorption Coefficients"));
     PropertyField(cloudScatteringCoefficients[layerIndex], new UnityEngine.GUIContent("Scattering Coefficients"));
+    PropertyField(cloudMSAmount[layerIndex], new UnityEngine.GUIContent("Multiple Scattering Amount"));
+    PropertyField(cloudMSBias[layerIndex], new UnityEngine.GUIContent("Multiple Scattering Bias"));
+    PropertyField(cloudSilverIntensity[layerIndex], new UnityEngine.GUIContent("Silver Intensity"));
+    PropertyField(cloudSilverSpread[layerIndex], new UnityEngine.GUIContent("Silver Spread"));
+    PropertyField(cloudAnisotropy[layerIndex], new UnityEngine.GUIContent("Anisotropy"));
 
     EditorGUILayout.Space();
   }
@@ -1516,6 +1566,8 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     cloudCoverageOctaves[i] = Unpack(o.Find("cloudCoverageOctaves" + i));
     cloudCoverageOctaveScale[i] = Unpack(o.Find("cloudCoverageOctaveScale" + i));
     cloudCoverageOctaveMultiplier[i] = Unpack(o.Find("cloudCoverageOctaveMultiplier" + i));
+    cloudCoverageTile[i] = Unpack(o.Find("cloudCoverageTile" + i));
+    cloudCoverageIntensity[i] = Unpack(o.Find("cloudCoverageIntensity" + i));
     /* Base. */
     cloudBaseNoiseProcedural[i] = Unpack(o.Find("cloudBaseNoiseProcedural" + i));
     cloudBaseNoiseTexture2D[i] = Unpack(o.Find("cloudBaseNoiseTexture2D" + i));
@@ -1525,6 +1577,7 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     cloudBaseOctaves[i] = Unpack(o.Find("cloudBaseOctaves" + i));
     cloudBaseOctaveScale[i] = Unpack(o.Find("cloudBaseOctaveScale" + i));
     cloudBaseOctaveMultiplier[i] = Unpack(o.Find("cloudBaseOctaveMultiplier" + i));
+    cloudBaseTile[i] = Unpack(o.Find("cloudBaseTile" + i));
     /* Structure. */
     cloudStructureNoiseProcedural[i] = Unpack(o.Find("cloudStructureNoiseProcedural" + i));
     cloudStructureNoiseTexture2D[i] = Unpack(o.Find("cloudStructureNoiseTexture2D" + i));
@@ -1534,6 +1587,8 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     cloudStructureOctaves[i] = Unpack(o.Find("cloudStructureOctaves" + i));
     cloudStructureOctaveScale[i] = Unpack(o.Find("cloudStructureOctaveScale" + i));
     cloudStructureOctaveMultiplier[i] = Unpack(o.Find("cloudStructureOctaveMultiplier" + i));
+    cloudStructureTile[i] = Unpack(o.Find("cloudStructureTile" + i));
+    cloudStructureIntensity[i] = Unpack(o.Find("cloudStructureIntensity" + i));
     /* Detail. */
     cloudDetailNoiseProcedural[i] = Unpack(o.Find("cloudDetailNoiseProcedural" + i));
     cloudDetailNoiseTexture2D[i] = Unpack(o.Find("cloudDetailNoiseTexture2D" + i));
@@ -1543,6 +1598,8 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     cloudDetailOctaves[i] = Unpack(o.Find("cloudDetailOctaves" + i));
     cloudDetailOctaveScale[i] = Unpack(o.Find("cloudDetailOctaveScale" + i));
     cloudDetailOctaveMultiplier[i] = Unpack(o.Find("cloudDetailOctaveMultiplier" + i));
+    cloudDetailTile[i] = Unpack(o.Find("cloudDetailTile" + i));
+    cloudDetailIntensity[i] = Unpack(o.Find("cloudDetailIntensity" + i));
     /* Base Warp. */
     cloudBaseWarpNoiseProcedural[i] = Unpack(o.Find("cloudBaseWarpNoiseProcedural" + i));
     cloudBaseWarpNoiseTexture2D[i] = Unpack(o.Find("cloudBaseWarpNoiseTexture2D" + i));
@@ -1552,6 +1609,8 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     cloudBaseWarpOctaves[i] = Unpack(o.Find("cloudBaseWarpOctaves" + i));
     cloudBaseWarpOctaveScale[i] = Unpack(o.Find("cloudBaseWarpOctaveScale" + i));
     cloudBaseWarpOctaveMultiplier[i] = Unpack(o.Find("cloudBaseWarpOctaveMultiplier" + i));
+    cloudBaseWarpTile[i] = Unpack(o.Find("cloudBaseWarpTile" + i));
+    cloudBaseWarpIntensity[i] = Unpack(o.Find("cloudBaseWarpIntensity" + i));
     /* Detail Warp. */
     cloudDetailWarpNoiseProcedural[i] = Unpack(o.Find("cloudDetailWarpNoiseProcedural" + i));
     cloudDetailWarpNoiseTexture2D[i] = Unpack(o.Find("cloudDetailWarpNoiseTexture2D" + i));
@@ -1561,6 +1620,8 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     cloudDetailWarpOctaves[i] = Unpack(o.Find("cloudDetailWarpOctaves" + i));
     cloudDetailWarpOctaveScale[i] = Unpack(o.Find("cloudDetailWarpOctaveScale" + i));
     cloudDetailWarpOctaveMultiplier[i] = Unpack(o.Find("cloudDetailWarpOctaveMultiplier" + i));
+    cloudDetailWarpTile[i] = Unpack(o.Find("cloudDetailWarpTile" + i));
+    cloudDetailWarpIntensity[i] = Unpack(o.Find("cloudDetailWarpIntensity" + i));
 
     /* Movement---sampling offsets primarily. TODO */
 
@@ -1574,6 +1635,11 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     cloudDensityAttenuationBias[i] = Unpack(o.Find("cloudDensityAttenuationBias" + i));
     cloudAbsorptionCoefficients[i] = Unpack(o.Find("cloudAbsorptionCoefficients" + i));
     cloudScatteringCoefficients[i] = Unpack(o.Find("cloudScatteringCoefficients" + i));
+    cloudMSAmount[i] = Unpack(o.Find("cloudMSAmount" + i));
+    cloudMSBias[i] = Unpack(o.Find("cloudMSBias" + i));
+    cloudSilverSpread[i] = Unpack(o.Find("cloudSilverSpread" + i));
+    cloudSilverIntensity[i] = Unpack(o.Find("cloudSilverIntensity" + i));
+    cloudAnisotropy[i] = Unpack(o.Find("cloudAnisotropy" + i));
 
     /* Sampling. TODO */
 

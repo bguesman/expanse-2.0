@@ -459,7 +459,7 @@ float perlin2DSeeded(float2 uv, float2 cells, float2 seed_x,
   float noise_11 = dot(gradient_11, offset_11);
 
   /* Lerp. */
-  float2 a = saturate(frac(p));
+  float2 a = smoothstep(0, 1, saturate(frac(p)));
   /* y. */
   float noise_0 = lerp(noise_00, noise_01, a.y);
   float noise_1 = lerp(noise_10, noise_11, a.y);
@@ -540,7 +540,7 @@ NoiseResultAndCoordinate perlin3DSeeded(float3 uv, float3 cells, float3 seed_x,
   float noise_111 = dot(gradient_111, offset_111);
 
   /* Lerp. */
-  float3 a = saturate(frac(p));
+  float3 a = smoothstep(0, 1, saturate(frac(p)));
   /* z. */
   float noise_00 = lerp(noise_000, noise_001, a.z);
   float noise_01 = lerp(noise_010, noise_011, a.z);

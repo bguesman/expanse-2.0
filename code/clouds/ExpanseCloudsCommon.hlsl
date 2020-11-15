@@ -21,6 +21,31 @@ float _cloudGeometryZMin[MAX_CLOUD_LAYERS];
 float _cloudGeometryZMax[MAX_CLOUD_LAYERS];
 float _cloudGeometryHeight[MAX_CLOUD_LAYERS];
 
+/* Noise. */
+/* Coverage. */
+int _cloudCoverageTile;
+float _cloudCoverageIntensity;
+/* Base. */
+int _cloudBaseTile;
+/* Structure. */
+int _cloudStructureTile;
+float _cloudStructureIntensity;
+/* Detail. */
+int _cloudDetailTile;
+float _cloudDetailIntensity;
+/* Base Warp. */
+int _cloudBaseWarpTile;
+float _cloudBaseWarpIntensity;
+/* Detail Warp. */
+int _cloudDetailWarpTile;
+float _cloudDetailWarpIntensity;
+
+#define CLOUD_BASE_WARP_MAX 0.25
+#define CLOUD_DETAIL_WARP_MAX 0.1
+
+/* TODO: probably rename these in UI, but "intensity" is a good name
+ * internally. */
+
 /* Lighting. */
 /* 2D. */
 float _cloudThickness[MAX_CLOUD_LAYERS];
@@ -31,6 +56,11 @@ float _cloudDensityAttenuationDistance[MAX_CLOUD_LAYERS];
 float _cloudDensityAttenuationBias[MAX_CLOUD_LAYERS];
 float4 _cloudAbsorptionCoefficients[MAX_CLOUD_LAYERS];
 float4 _cloudScatteringCoefficients[MAX_CLOUD_LAYERS];
+float _cloudMSAmount;// = 0.75;
+float _cloudMSBias;// = 0.25;
+float _cloudSilverSpread;// = 0.5;
+float _cloudSilverIntensity;// = 1;
+float _cloudAnisotropy;// = 0.3;
 
 /* Noise textures defining the cloud densities. */
 TEXTURE2D(_cloudCoverageNoise); /* Coverage is always 2D. */

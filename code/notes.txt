@@ -70,6 +70,8 @@ TODO LIST:
   -maybe just don't allow grid size in y direction to change. make it a
   function of geometry of box volume and x and z grid sizes.
 
+  -Add some kind of softening/bleedthrough parameter to the remap?
+
   -2D
     -some kind of self shadowing hack based on density and derivative of
     low mipped texture in each direction?
