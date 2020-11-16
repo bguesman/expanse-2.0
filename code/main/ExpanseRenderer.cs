@@ -1631,6 +1631,8 @@ void SetGlobalCloudTextures(CommandBuffer cmd, Expanse sky, int layer, int layer
   /* Set the noise textures we'll be using. */
   ExpanseCommon.CloudGeometryType geoType = ((EnumParameter<ExpanseCommon.CloudGeometryType>) sky.GetType().GetField("cloudGeometryType" + layerIndex).GetValue(sky)).value;
 
+  SetGlobalCloudTexturesCommon(cmd, sky, layer, layerIndex);
+
   if (geoType == ExpanseCommon.CloudGeometryType.Plane) {
     SetGlobalCloudTextures2D(cmd, sky, layer, layerIndex);
   } else {
@@ -1638,8 +1640,7 @@ void SetGlobalCloudTextures(CommandBuffer cmd, Expanse sky, int layer, int layer
   }
 }
 
-void SetGlobalCloudTextures2D(CommandBuffer cmd, Expanse sky, int layer, int layerIndex) {
-  CloudNoiseTexture proceduralTextures = m_cloudNoiseTextures[layer];
+void SetGlobalCloudTexturesCommon(CommandBuffer cmd, Expanse sky, int layer, int layerIndex) {
   /* Set the texture sampling parameters. */
   cmd.SetGlobalInt("_cloudCoverageTile", ((MinIntParameter) sky.GetType().GetField("cloudCoverageTile" + layerIndex).GetValue(sky)).value);
   cmd.SetGlobalFloat("_cloudCoverageIntensity", ((ClampedFloatParameter) sky.GetType().GetField("cloudCoverageIntensity" + layerIndex).GetValue(sky)).value);
@@ -1659,7 +1660,10 @@ void SetGlobalCloudTextures2D(CommandBuffer cmd, Expanse sky, int layer, int lay
   cmd.SetGlobalFloat("_cloudSilverSpread", ((ClampedFloatParameter) sky.GetType().GetField("cloudSilverSpread" + layerIndex).GetValue(sky)).value);
   cmd.SetGlobalFloat("_cloudSilverIntensity", ((ClampedFloatParameter) sky.GetType().GetField("cloudSilverIntensity" + layerIndex).GetValue(sky)).value);
   cmd.SetGlobalFloat("_cloudAnisotropy", ((ClampedFloatParameter) sky.GetType().GetField("cloudAnisotropy" + layerIndex).GetValue(sky)).value);
+}
 
+void SetGlobalCloudTextures2D(CommandBuffer cmd, Expanse sky, int layer, int layerIndex) {
+  CloudNoiseTexture proceduralTextures = m_cloudNoiseTextures[layer];
   /* This array pattern is to keep things concise. */
   string[] noiseProcedural = {"cloudCoverageNoiseProcedural", "cloudBaseNoiseProcedural",
     "cloudStructureNoiseProcedural", "cloudDetailNoiseProcedural",
@@ -1686,7 +1690,30 @@ void SetGlobalCloudTextures2D(CommandBuffer cmd, Expanse sky, int layer, int lay
 }
 
 void SetGlobalCloudTextures3D(CommandBuffer cmd, Expanse sky, int layer, int layerIndex) {
-  // TODO
+  CloudNoiseTexture proceduralTextures = m_cloudNoiseTextures[layer];
+  /* This array pattern is to keep things concise. */
+  string[] noiseProcedural = {"cloudCoverageNoiseProcedural", "cloudBaseNoiseProcedural",
+    "cloudStructureNoiseProcedural", "cloudDetailNoiseProcedural",
+    "cloudBaseWarpNoiseProcedural", "cloudDetailWarpNoiseProcedural"};
+  string[] shaderVariable = {"_cloudCoverageNoise", "_cloudBaseNoise2D",
+    "_cloudStructureNoise2D", "_cloudDetailNoise2D", "_cloudBaseWarpNoise2D",
+    "_cloudDetailWarpNoise2D"};
+  string[] imageTexture = {"cloudCoverageNoiseTexture", "cloudBaseNoiseTexture3D",
+    "cloudStructureNoiseTexture3D", "cloudDetailNoiseTexture3D",
+    "cloudBaseWarpNoiseTexture3D", "cloudDetailWarpNoiseTexture3D"};
+  RTHandle[] proceduralTexture = {proceduralTextures.coverageTex, proceduralTextures.baseTex,
+    proceduralTextures.structureTex, proceduralTextures.detailTex,
+    proceduralTextures.baseWarpTex, proceduralTextures.detailWarpTex};
+
+  for (int i = 0; i < noiseProcedural.Length; i++) {
+    bool procedural = ((BoolParameter) sky.GetType().GetField(noiseProcedural[i] + layerIndex).GetValue(sky)).value;
+    if (procedural) {
+      cmd.SetGlobalTexture(shaderVariable[i], proceduralTexture[i]);
+    } else {
+      Texture tex = ((TextureParameter) sky.GetType().GetField(imageTexture[i] + layerIndex).GetValue(sky)).value;
+      cmd.SetGlobalTexture(shaderVariable[i], tex);
+    }
+  }
 }
 
 /******************************************************************************/

@@ -239,6 +239,32 @@ CloudShadingResult shadeCloudLayerSphereGeometry(float3 O, float3 d, int i,
   return cloudNoIntersectionResult();
 }
 
+CloudShadingResult lightCloudLayerBoxVolumeGeometry(float3 startPoint, float3 d, float dist,
+  float2 xExtent, float2 yExtent, float2 zExtent) {
+  CloudShadingResult result = cloudNoIntersectionResult();
+  result.t_hit = dist; /* Initialize at dist and decrease if necessary. */
+  result.transmittance = float3(1, 1, 1);
+  result.color = float3(0, 0, 0);
+  /* HACK: for now, fixed number of samples. */
+  int numSamples = 8;
+  for (int i = 0; i < numSamples; i++) {
+    float t = ((i + 0.5) / numSamples) * dist;
+    float3 sample = startPoint + d * t;
+    float u = (sample.x - xExtent.x) / (xExtent.y - xExtent.x);
+    float v = (sample.y - yExtent.x) / (yExtent.y - yExtent.x);
+    float w = (sample.z - zExtent.x) / (zExtent.y - zExtent.x);
+    /* HACK: for now, compute some noise. */
+    float density = 1050 * worley3D(float3(u, v, w), float3(64, 4, 64)).result;
+    /* Compute optical depth for this sample. */
+    float opticalDepth = density * (dist/numSamples);
+    /* TODO: sebh better integration? */
+    result.transmittance *= exp(8e-6 * opticalDepth);
+    /* Compute lighting thru transmittance. */
+    result.color += result.transmittance * 10000 * 4e-6 * opticalDepth;
+  }
+  return result;
+}
+
 CloudShadingResult shadeCloudLayerBoxVolumeGeometry(float3 O, float3 d, int i,
   float depth, bool geoHit, SkyIntersectionData skyIntersection) {
   /* Final result. */
@@ -265,21 +291,25 @@ CloudShadingResult shadeCloudLayerBoxVolumeGeometry(float3 O, float3 d, int i,
   }
 
   /* We're outside the cloud volume, and we hit it. */
-
-  /* Compute the UV coordinate from the intersection point. */
-  float3 sample = O + t_hit.x * d;
-  float u = (sample.x - xExtent.x) / (xExtent.y - xExtent.x);
-  float v = (sample.y - yExtent.x) / (yExtent.y - yExtent.x);
-  float w = (sample.z - zExtent.x) / (zExtent.y - zExtent.x);
-
-  /* For now, compute some noise. */
-  float noise = 1000 * worley3D(float3(u, v, w), float3(128, 128, 128)).result;
-
-  result.color = float3(noise, noise, noise);
-  result.transmittance = float3(0, 0, 0);
-  result.blend = 0;
   result.hit = true;
-  result.t_hit = t_hit.x;
+
+  /* Light the clouds. HACK */
+  bool debug = false;
+  if (debug) {
+    result.color = 1000;
+    result.transmittance = float3(0, 0, 0);
+    result.t_hit = t_hit.x;
+  } else {
+    CloudShadingResult litResult = lightCloudLayerBoxVolumeGeometry(O + d * t_hit.x, d,
+      t_hit.y - t_hit.x, xExtent, yExtent, zExtent);
+    result.color = litResult.color;
+    result.transmittance = litResult.transmittance;
+    result.t_hit = litResult.t_hit + t_hit.x;
+  }
+
+  /* TODO: compute the blend to t_hit. */
+  result.blend = 1;
+
   return result;
 }
 
