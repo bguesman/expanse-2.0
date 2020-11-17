@@ -155,10 +155,10 @@ void NEBULAE(uint3 id : SV_DispatchThreadID) {
    * coordinate. */
   const float WARP_MAX = 0.08;
   float3 coarseCurl = curlNoise3DSeeded(saturate(textureCoordinate),
-    float3(_nebulaCoarseStrandWarpScale, _nebulaCoarseStrandWarpScale, _nebulaCoarseStrandWarpScale),
+    float3(_nebulaCoarseStrandWarpScale, _nebulaCoarseStrandWarpScale, _nebulaCoarseStrandWarpScale), 2, 0.5, 3,
     _nebulaCoarseStrandWarpSeedX.xyz, _nebulaCoarseStrandWarpSeedY.xyz, _nebulaCoarseStrandWarpSeedZ.xyz);
   float3 fineCurl = curlNoise3DSeeded(saturate(textureCoordinate),
-    float3(_nebulaFineStrandWarpScale, _nebulaFineStrandWarpScale, _nebulaFineStrandWarpScale),
+    float3(_nebulaFineStrandWarpScale, _nebulaFineStrandWarpScale, _nebulaFineStrandWarpScale), 2, 0.5, 3,
       _nebulaFineStrandWarpSeedX.xyz, _nebulaFineStrandWarpSeedY.xyz, _nebulaFineStrandWarpSeedZ.xyz);
 
   /* HACK: to avoid artifacts we get from warping at the poles, scale back the

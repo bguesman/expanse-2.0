@@ -69,6 +69,11 @@ TEXTURE2D(_cloudStructureNoise2D);
 TEXTURE2D(_cloudDetailNoise2D);
 TEXTURE2D(_cloudBaseWarpNoise2D);
 TEXTURE2D(_cloudDetailWarpNoise2D);
+TEXTURE3D(_cloudBaseNoise3D);
+TEXTURE3D(_cloudStructureNoise3D);
+TEXTURE3D(_cloudDetailNoise3D);
+TEXTURE3D(_cloudBaseWarpNoise3D);
+TEXTURE3D(_cloudDetailWarpNoise3D);
 
 CBUFFER_END // Expanse Cloud
 

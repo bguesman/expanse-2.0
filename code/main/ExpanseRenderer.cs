@@ -259,9 +259,9 @@ RTHandle allocatedProceduralCloudTexture2D(Vector2 resolution, string name) {
 
 /* Takes up less space by using a single color channel. */
 RTHandle allocatedProceduralCloudTexture3D(Vector3 resolution, string name) {
-  var table = RTHandles.Alloc((int) Mathf.Min(256, resolution.x), // HACK
-                              (int) Mathf.Min(256, resolution.y),
-                              (int) Mathf.Min(256, resolution.z),
+  var table = RTHandles.Alloc((int) resolution.x, // HACK
+                              (int) resolution.y,
+                              (int) resolution.z,
                               dimension: TextureDimension.Tex3D,
                               colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                               enableRandomWrite: true,
@@ -303,12 +303,13 @@ CloudNoiseTexture buildCloudNoiseTexture2D(ExpanseCommon.CloudTextureResolution 
 CloudNoiseTexture buildCloudNoiseTexture3D(ExpanseCommon.CloudTextureResolution res, int index) {
   CloudNoiseTexture c;
   c.dimension = 3;
-  c.coverageTex = allocatedProceduralCloudTexture3D(new Vector3(res.Coverage, res.Coverage, res.Coverage), "CloudCoverage_" + index);
-  c.baseTex = allocatedProceduralCloudTexture3D(new Vector3(res.Base, res.Base, res.Base), "CloudBase_" + index);
-  c.structureTex = allocatedProceduralCloudTexture3D(new Vector3(res.Structure, res.Structure, res.Structure), "CloudStructure_" + index);
-  c.detailTex = allocatedProceduralCloudTexture3D(new Vector3(res.Detail, res.Detail, res.Detail), "CloudDetail_" + index);
-  c.baseWarpTex = allocatedProceduralCloudTexture3D(new Vector3(res.BaseWarp, res.BaseWarp, res.BaseWarp), "CloudBaseWarp_" + index);
-  c.detailWarpTex = allocatedProceduralCloudTexture3D(new Vector3(res.DetailWarp, res.DetailWarp, res.DetailWarp), "CloudDetailWarp_" + index);
+  /* Coverage is always 2D. */
+  c.coverageTex = allocatedProceduralCloudTexture2D(new Vector2(res.Coverage, res.Coverage), "CloudCoverage_" + index);
+  c.baseTex = allocatedProceduralCloudTexture3D(new Vector3(res.Base, ExpanseCommon.cloudXZResolutionToYResolution(res.Base), res.Base), "CloudBase_" + index);
+  c.structureTex = allocatedProceduralCloudTexture3D(new Vector3(res.Structure, ExpanseCommon.cloudXZResolutionToYResolution(res.Structure), res.Structure), "CloudStructure_" + index);
+  c.detailTex = allocatedProceduralCloudTexture3D(new Vector3(res.Detail, ExpanseCommon.cloudXZResolutionToYResolution(res.Detail), res.Detail), "CloudDetail_" + index);
+  c.baseWarpTex = allocatedProceduralCloudTexture3D(new Vector3(res.BaseWarp, ExpanseCommon.cloudXZResolutionToYResolution(res.BaseWarp), res.BaseWarp), "CloudBaseWarp_" + index);
+  c.detailWarpTex = allocatedProceduralCloudTexture3D(new Vector3(res.DetailWarp, ExpanseCommon.cloudXZResolutionToYResolution(res.DetailWarp), res.DetailWarp), "CloudDetailWarp_" + index);
   return c;
 }
 
@@ -359,17 +360,16 @@ void allocateCloudTextures(Expanse sky) {
 
       int layerIndex = m_enabledCloudLayers[i];
       ExpanseCommon.CloudTextureQuality quality = ((EnumParameter<ExpanseCommon.CloudTextureQuality>) sky.GetType().GetField("cloudNoiseQuality" + layerIndex).GetValue(sky)).value;
+      ExpanseCommon.CloudGeometryType cloudGeometryType = ((EnumParameter<ExpanseCommon.CloudGeometryType>) sky.GetType().GetField("cloudGeometryType" + layerIndex).GetValue(sky)).value;
+      ExpanseCommon.CloudNoiseDimension dimension = ExpanseCommon.cloudGeometryTypeToDimension[cloudGeometryType];
 
-      if (quality != m_cloudTextureResolutions[i].quality) {
+      if (quality != m_cloudTextureResolutions[i].quality && dimension != m_cloudTextureResolutions[i].dimension) {
         /* Have to update these tables. */
-        ExpanseCommon.CloudTextureResolution res = ExpanseCommon.cloudQualityToCloudTextureResolution(quality);
+        ExpanseCommon.CloudTextureResolution res = ExpanseCommon.cloudQualityToCloudTextureResolution(quality, dimension);
         m_cloudTextureResolutions[i] = res;
-        ExpanseCommon.CloudGeometryType cloudGeometryType = ((EnumParameter<ExpanseCommon.CloudGeometryType>) sky.GetType().GetField("cloudGeometryType" + layerIndex).GetValue(sky)).value;
-        if (cloudGeometryType == ExpanseCommon.CloudGeometryType.Plane) {
-          /* 2D. */
+        if (dimension == ExpanseCommon.CloudNoiseDimension.TwoD) {
           m_cloudNoiseTextures[i] = buildCloudNoiseTexture2D(res, i);
-        } else if (cloudGeometryType == ExpanseCommon.CloudGeometryType.BoxVolume) {
-          /* 3D. */
+        } else if (dimension == ExpanseCommon.CloudNoiseDimension.ThreeD) {
           m_cloudNoiseTextures[i] = buildCloudNoiseTexture3D(res, i);
         } else {
           // TODO: Unhandled.
@@ -393,16 +393,15 @@ void allocateCloudTextures(Expanse sky) {
   /* Loop through all the enabled textures and allocate each one. */
   for (int i = 0; i < m_enabledCloudLayers.Length; i++) {
     int layerIndex = m_enabledCloudLayers[i];
-    ExpanseCommon.CloudTextureQuality quality = ((EnumParameter<ExpanseCommon.CloudTextureQuality>) sky.GetType().GetField("cloudNoiseQuality" + layerIndex).GetValue(sky)).value;
-    ExpanseCommon.CloudTextureResolution res = ExpanseCommon.cloudQualityToCloudTextureResolution(quality);
     ExpanseCommon.CloudGeometryType cloudGeometryType = ((EnumParameter<ExpanseCommon.CloudGeometryType>) sky.GetType().GetField("cloudGeometryType" + layerIndex).GetValue(sky)).value;
+    ExpanseCommon.CloudTextureQuality quality = ((EnumParameter<ExpanseCommon.CloudTextureQuality>) sky.GetType().GetField("cloudNoiseQuality" + layerIndex).GetValue(sky)).value;
+    ExpanseCommon.CloudNoiseDimension dimension = ExpanseCommon.cloudGeometryTypeToDimension[cloudGeometryType];
+    ExpanseCommon.CloudTextureResolution res = ExpanseCommon.cloudQualityToCloudTextureResolution(quality, dimension);
     m_cloudTextureResolutions[i] = res;
 
-    if (cloudGeometryType == ExpanseCommon.CloudGeometryType.Plane) {
-      /* 2D. */
+    if (dimension == ExpanseCommon.CloudNoiseDimension.TwoD) {
       m_cloudNoiseTextures[i] = buildCloudNoiseTexture2D(res, i);
-    } else if (cloudGeometryType == ExpanseCommon.CloudGeometryType.BoxVolume) {
-      /* 3D. */
+    } else if (dimension == ExpanseCommon.CloudNoiseDimension.ThreeD) {
       m_cloudNoiseTextures[i] = buildCloudNoiseTexture3D(res, i);
     } else {
       // TODO: Unhandled.
@@ -633,7 +632,7 @@ public override void Build() {
   m_skyTextureResolution = ExpanseCommon.skyQualityToSkyTextureResolution(ExpanseCommon.SkyTextureQuality.Medium);
   m_cloudTextureResolutions = new ExpanseCommon.CloudTextureResolution[m_enabledCloudLayers.Length];
   for (int i = 0; i < m_enabledCloudLayers.Length; i++) {
-    m_cloudTextureResolutions[i] = ExpanseCommon.cloudQualityToCloudTextureResolution(ExpanseCommon.CloudTextureQuality.Medium);
+    m_cloudTextureResolutions[i] = ExpanseCommon.cloudQualityToCloudTextureResolution(ExpanseCommon.CloudTextureQuality.Medium, ExpanseCommon.CloudNoiseDimension.TwoD);
   }
   m_cloudNoiseTextures = new CloudNoiseTexture[m_enabledCloudLayers.Length];
 
@@ -1083,7 +1082,6 @@ private void DispatchCloudCompute(CommandBuffer cmd, Expanse sky) {
 
 private void DispatchCloudCompute2D(CommandBuffer cmd, Expanse sky, int layer,
   int layerIndex, ExpanseCommon.CloudTextureResolution res, CloudNoiseTexture tex) {
-
   string[] layerName = {"cloudCoverage", "cloudBase",
     "cloudStructure", "cloudDetail",
     "cloudBaseWarp", "cloudDetailWarp"};
@@ -1126,7 +1124,58 @@ private void DispatchCloudCompute2D(CommandBuffer cmd, Expanse sky, int layer,
 
 private void DispatchCloudCompute3D(CommandBuffer cmd, Expanse sky, int layer,
   int layerIndex, ExpanseCommon.CloudTextureResolution res, CloudNoiseTexture tex) {
-  // TODO
+  string[] layerName = {"cloudCoverage", "cloudBase",
+    "cloudStructure", "cloudDetail",
+    "cloudBaseWarp", "cloudDetailWarp"};
+  // string[] kernelName = {"VALUE2D", "WORLEY2D", "VALUE2D", "VALUE2D", "VALUE2D", "VALUE2D"};
+  RTHandle[] noiseTexture = {tex.coverageTex, tex.baseTex, tex.structureTex,
+    tex.detailTex, tex.baseWarpTex, tex.detailWarpTex};
+  int[] resolution = {res.Coverage, res.Base, res.Structure, res.Detail,
+    res.BaseWarp, res.DetailWarp};
+
+  for (int i = 0; i < layerName.Length; i++) {
+    bool procedural = ((BoolParameter) sky.GetType().GetField(layerName[i] + "NoiseProcedural" + layerIndex).GetValue(sky)).value;
+    if (procedural) {
+      /* Gather and set parameters. */
+      ExpanseCommon.CloudNoiseType noiseType = ((EnumParameter<ExpanseCommon.CloudNoiseType>) sky.GetType().GetField(layerName[i] + "NoiseType" + layerIndex).GetValue(sky)).value;
+      string kernelName = ExpanseCommon.cloudNoiseTypeToKernelName[noiseType] + ((i == 0) ? "2D" : "3D"); // coverage is always 2D
+      Vector2 gridScale = ((Vector2Parameter) sky.GetType().GetField(layerName[i] + "GridScale" + layerIndex).GetValue(sky)).value;
+      int octaves = ((ClampedIntParameter) sky.GetType().GetField(layerName[i] + "Octaves" + layerIndex).GetValue(sky)).value;
+      float octaveScale = ((MinFloatParameter) sky.GetType().GetField(layerName[i] + "OctaveScale" + layerIndex).GetValue(sky)).value;
+      float octaveMultiplier = ((MinFloatParameter) sky.GetType().GetField(layerName[i] + "OctaveMultiplier" + layerIndex).GetValue(sky)).value;
+
+      /* HACK: workaround overwriting data. */
+      ComputeShader cs = (ComputeShader) UnityEngine.Object.Instantiate(m_cloudCS);
+      int handle = cs.FindKernel(kernelName);
+
+      /* Set all the parameters. */
+      int yRes = ExpanseCommon.cloudXZResolutionToYResolution(resolution[i]);
+      if (i > 0) {
+        cs.SetTexture(handle, "Noise_3D", noiseTexture[i]);
+        cs.SetVector("_resNoise", new Vector4(resolution[i], yRes, resolution[i], 0));
+        cs.SetVector("_gridScale", new Vector4(gridScale.x, gridScale.x/10, gridScale.y, 1)); // TODO HACK: y grid scale ratio?
+      } else {
+        /* Coverage texture is always 2d. */
+        cs.SetTexture(handle, "Noise_2D", noiseTexture[i]);
+        cs.SetVector("_resNoise", new Vector4(resolution[i], resolution[i], 0, 0));
+        cs.SetVector("_gridScale", new Vector4(gridScale.x, gridScale.y, 1, 1));
+      }
+      cs.SetFloat("_octaveScale", octaveScale);
+      cs.SetFloat("_octaveMultiplier", octaveMultiplier);
+      cs.SetInt("_octaves", octaves);
+
+      /* Dispatch! */
+      if (i > 0) {
+        cmd.DispatchCompute(cs, handle,
+          (int) resolution[i] / 8,
+          (int) yRes / 8, (int) resolution[i] / 8);
+      } else {
+        cmd.DispatchCompute(cs, handle,
+          (int) resolution[i] / 8,
+          (int) resolution[i] / 8, 1);
+      }
+    }
+  }
 }
 /******************************************************************************/
 /************************ END COMPUTE SHADER FUNCTIONS ************************/
@@ -1629,11 +1678,9 @@ void SetGlobalCloudTextures(CommandBuffer cmd, Expanse sky, int layer, int layer
   m_PropertyBlock.SetInt("_cloudLayerToDraw", layer);
 
   /* Set the noise textures we'll be using. */
-  ExpanseCommon.CloudGeometryType geoType = ((EnumParameter<ExpanseCommon.CloudGeometryType>) sky.GetType().GetField("cloudGeometryType" + layerIndex).GetValue(sky)).value;
-
   SetGlobalCloudTexturesCommon(cmd, sky, layer, layerIndex);
 
-  if (geoType == ExpanseCommon.CloudGeometryType.Plane) {
+  if (m_cloudTextureResolutions[layer].dimension == ExpanseCommon.CloudNoiseDimension.TwoD) {
     SetGlobalCloudTextures2D(cmd, sky, layer, layerIndex);
   } else {
     SetGlobalCloudTextures3D(cmd, sky, layer, layerIndex);
@@ -1695,9 +1742,9 @@ void SetGlobalCloudTextures3D(CommandBuffer cmd, Expanse sky, int layer, int lay
   string[] noiseProcedural = {"cloudCoverageNoiseProcedural", "cloudBaseNoiseProcedural",
     "cloudStructureNoiseProcedural", "cloudDetailNoiseProcedural",
     "cloudBaseWarpNoiseProcedural", "cloudDetailWarpNoiseProcedural"};
-  string[] shaderVariable = {"_cloudCoverageNoise", "_cloudBaseNoise2D",
-    "_cloudStructureNoise2D", "_cloudDetailNoise2D", "_cloudBaseWarpNoise2D",
-    "_cloudDetailWarpNoise2D"};
+  string[] shaderVariable = {"_cloudCoverageNoise", "_cloudBaseNoise3D",
+    "_cloudStructureNoise3D", "_cloudDetailNoise3D", "_cloudBaseWarpNoise3D",
+    "_cloudDetailWarpNoise3D"};
   string[] imageTexture = {"cloudCoverageNoiseTexture", "cloudBaseNoiseTexture3D",
     "cloudStructureNoiseTexture3D", "cloudDetailNoiseTexture3D",
     "cloudBaseWarpNoiseTexture3D", "cloudDetailWarpNoiseTexture3D"};

@@ -24,9 +24,25 @@ CloudShadingResult cloudNoIntersectionResult() {
   return result;
 }
 
-float cloudPhaseFunction(float dot_L_d, float _cloudAnisotropy, float _cloudSilverIntensity, float _cloudSilverSpread) {
-  return max(miePhase(dot_L_d, _cloudAnisotropy), _cloudSilverIntensity * miePhase(dot_L_d, 0.99 - _cloudSilverSpread));
+float henyeyGreensteinPhase(float dLd, float e) {
+  return ((1 - e * e) / pow(1 + e * e - 2 * e * dLd, 3.0/2.0)) / (4 * PI);
 }
+
+float cloudPhaseFunction(float dot_L_d, float cloudAnisotropy, float cloudSilverIntensity, float cloudSilverSpread) {
+  return max(henyeyGreensteinPhase(dot_L_d, cloudAnisotropy), cloudSilverIntensity * henyeyGreensteinPhase(dot_L_d, 0.99 - cloudSilverSpread));
+}
+
+
+
+
+
+
+
+
+
+/******************************************************************************/
+/************************************ 2D **************************************/
+/******************************************************************************/
 
 float computeDensity2DHighLOD(float2 uv, int mipLevel) {
   /* NOTE/TODO: we HAVE to use the linear repeat sampler to avoid seams in
@@ -131,7 +147,7 @@ float3 lightCloudLayerPlaneGeometryBody(float3 samplePoint, float2 uv, float3 d,
      * instead of just marching along UV's. */
     float distance = (1-abs(projLY)) * thickness * 2;
     selfShadowDensity = (density * selfShadowDensity) / numSteps;
-    float3 selfShadow = exp(-absorptionCoefficients*distance*selfShadowDensity);
+    float3 selfShadow = max(exp(-absorptionCoefficients*distance*selfShadowDensity), exp(-absorptionCoefficients*distance*selfShadowDensity * _cloudMSBias) * msAmount);
 
     result = selfShadow * T_cloud
       * (T_sampleL * lightColor * scatteringCoefficients/absorptionCoefficients);
@@ -239,31 +255,399 @@ CloudShadingResult shadeCloudLayerSphereGeometry(float3 O, float3 d, int i,
   return cloudNoIntersectionResult();
 }
 
-CloudShadingResult lightCloudLayerBoxVolumeGeometry(float3 startPoint, float3 d, float dist,
-  float2 xExtent, float2 yExtent, float2 zExtent) {
+/******************************************************************************/
+/********************************** END 2D ************************************/
+/******************************************************************************/
+
+
+
+
+
+
+
+/******************************************************************************/
+/************************************ 3D **************************************/
+/******************************************************************************/
+
+float3 positionToUVBoxVolume(float3 position, float2 xExtent, float2 yExtent,
+  float2 zExtent) {
+  float3 minimum = float3(xExtent.x, yExtent.x, zExtent.x);
+  float3 maximum = float3(xExtent.y, yExtent.y, zExtent.y);
+  return (position - minimum) / (maximum - minimum);
+}
+
+float3 computeMSModifiedTransmittance(float3 absorptionCoefficients,
+  float opticalDepth, float MSAmount, float MSBias) {
+  return max(exp(-absorptionCoefficients * opticalDepth), exp(-absorptionCoefficients * opticalDepth * MSBias) * MSAmount);
+}
+
+float computeDensity3DHighLOD(float3 uv, int mipLevel) {
+  /* NOTE/TODO: we HAVE to use the linear repeat sampler to avoid seams in
+   * the tileable textures! */
+
+  /* Get the warp noises, use them to advect the texture coordinates. */
+  float3 baseWarpNoise = SAMPLE_TEXTURE3D_LOD(_cloudBaseWarpNoise3D, s_linear_repeat_sampler,
+    frac(uv * _cloudBaseWarpTile), mipLevel).xyz;
+  float3 detailWarpNoise = SAMPLE_TEXTURE3D_LOD(_cloudDetailWarpNoise3D, s_linear_repeat_sampler,
+    frac(uv * _cloudDetailWarpTile), mipLevel).xyz;
+  float3 baseUV = frac(frac(uv * _cloudBaseTile) - baseWarpNoise * _cloudBaseWarpIntensity * CLOUD_BASE_WARP_MAX);
+  float3 detailUV = frac(frac(uv * _cloudDetailTile) - detailWarpNoise * _cloudDetailWarpIntensity * CLOUD_DETAIL_WARP_MAX);
+
+  /* Remap the base noise according to coverage. */
+  float coverageNoise = SAMPLE_TEXTURE2D_LOD(_cloudCoverageNoise, s_linear_repeat_sampler,
+    frac(uv.xz * _cloudCoverageTile), mipLevel).x;
+  float baseNoise = SAMPLE_TEXTURE3D_LOD(_cloudBaseNoise3D, s_linear_repeat_sampler,
+    baseUV, mipLevel).x;
+  float noise = max(0, remap(saturate(baseNoise), _cloudCoverageIntensity * saturate(coverageNoise), 1.0, 0.0, 1.0));
+
+  /* Compute the height gradient and remap accordingly. TODO: doesn't seem quite right. */
+  float heightGradient = saturate(remap(uv.y, 0, 0.1, 0, 1)) * saturate(remap(uv.y, 0.25, 1, 1, 0));
+  noise *= heightGradient;
+
+  /* Remap that result using the tiled structure noise. */
+  float structureNoise = SAMPLE_TEXTURE3D_LOD(_cloudStructureNoise3D, s_linear_repeat_sampler,
+    frac(uv * _cloudStructureTile), mipLevel).x;
+  noise = max(0, remap(noise, _cloudStructureIntensity * structureNoise, 1.0, 0.0, 1.0));
+
+  /* Finally, remap that result using the tiled detail noise. */
+  float detailNoise = SAMPLE_TEXTURE3D_LOD(_cloudDetailNoise3D, s_linear_repeat_sampler,
+    detailUV, mipLevel).x;
+  noise = max(0, remap(noise, _cloudDetailIntensity * detailNoise, 1.0, 0.0, 1.0));
+
+  return noise;
+}
+
+float computeDensity3DLowLOD(float3 uv, int mipLevel) {
+  /* Get the warp noises, use them to advect the texture coordinates. */
+  float3 baseWarpNoise = SAMPLE_TEXTURE3D_LOD(_cloudBaseWarpNoise3D, s_linear_repeat_sampler,
+    frac(uv * _cloudBaseWarpTile), mipLevel).xyz;
+  float3 detailWarpNoise = SAMPLE_TEXTURE3D_LOD(_cloudDetailWarpNoise3D, s_linear_repeat_sampler,
+    frac(uv * _cloudDetailWarpTile), mipLevel).xyz;
+  float3 baseUV = frac(frac(uv * _cloudBaseTile) - baseWarpNoise * _cloudBaseWarpIntensity * CLOUD_BASE_WARP_MAX);
+  float3 detailUV = frac(frac(uv * _cloudDetailTile) - detailWarpNoise * _cloudDetailWarpIntensity * CLOUD_DETAIL_WARP_MAX);
+
+  /* Remap the base noise according to coverage. */
+  float coverageNoise = SAMPLE_TEXTURE2D_LOD(_cloudCoverageNoise, s_linear_repeat_sampler,
+    frac(uv.xz * _cloudCoverageTile), mipLevel).x;
+  float baseNoise = SAMPLE_TEXTURE3D_LOD(_cloudBaseNoise3D, s_linear_repeat_sampler,
+    baseUV, mipLevel).x;
+  float noise = max(0, remap(saturate(baseNoise), _cloudCoverageIntensity * saturate(coverageNoise), 1.0, 0.0, 1.0));
+
+  /* Compute the height gradient and remap accordingly. TODO: doesn't seem quite right. */
+  float heightGradient = saturate(remap(uv.y, 0, 0.1, 0, 1)) * saturate(remap(uv.y, 0.25, 1, 1, 0));
+  noise *= heightGradient;
+  return noise;
+}
+
+float computeShadowBlur(float r, float mu, float thickness, float sharpness) {
+  float h = r - _planetRadius;
+  float cos_h = -safeSqrt(h * (2 * _planetRadius + h)) / (_planetRadius + h);
+  return 1 - pow(saturate(thickness / abs(cos_h - mu)), sharpness);
+}
+
+float3 getVolumetricShadowBoxVolumeGeometry(float3 samplePoint, float3 d,
+  float3 L, SkyIntersectionData lightIntersection, float densityModifier,
+  float density, float3 absorptionCoefficients, float3 uvw, float2 xExtent, float2 yExtent,
+  float2 zExtent) {
+  /* Compute the transmittance through the atmosphere. */
+  float r = length(samplePoint);
+  float mu = dot(normalize(samplePoint), L);
+  float t_lightHit = lightIntersection.endT - lightIntersection.startT;
+  float2 lightTransmittanceCoord = mapSky2DCoord(r, mu,
+    _atmosphereRadius, _planetRadius, t_lightHit,
+    false, _resT.y);
+  float3 T_sampleL = exp(sampleSkyTTextureRaw(lightTransmittanceCoord));
+
+  /* To soften the shadow due to the horizon line, blur the occlusion. */
+  float shadowBlur = computeShadowBlur(r, mu, 0.002, 0.1);
+
+  /* Use the "powdered sugar" hack to get some detail around the edges. */
+  float powderedSugar = saturate(0.05 + pow(density/(0.1*densityModifier), remap(uvw.y, 0.2, 0.8, 0.5, 2)));
+
+  /* Finally, raymarch toward the light and accumulate self-shadowing. */
+  const int numShadowSamples = 4;
+  float marchedDist = 0;
+  float opticalDepth = 0;
+  for (int i = 0; i < numShadowSamples; i++) {
+    float t = pow(5, i);
+    float ds = t + marchedDist;
+    float3 shadowSamplePoint = samplePoint + t;
+    if (boundsCheck(shadowSamplePoint.x, xExtent) &&
+        boundsCheck(shadowSamplePoint.y, yExtent) &&
+        boundsCheck(shadowSamplePoint.z, zExtent)) {
+      float3 uvwShadow = positionToUVBoxVolume(shadowSamplePoint,
+        xExtent, yExtent, zExtent);
+      float shadowSample = computeDensity3DHighLOD(uvwShadow, 0);
+      opticalDepth += t * shadowSample;
+    }
+  }
+  opticalDepth *= densityModifier;
+  float3 shadowT = computeMSModifiedTransmittance(absorptionCoefficients,
+    opticalDepth, _cloudMSAmount, _cloudMSBias);
+
+  return shadowT * T_sampleL * shadowBlur * powderedSugar;
+}
+
+float3 lightCloudLayerBoxVolumeGeometry(float3 samplePoint, float3 d, float3
+  transmittance, float3 totalTransmittance, float densityModifier, float density,
+  float3 absorptionCoefficients, float3 scatteringCoefficients, float3 uvw, float2 xExtent,
+  float2 yExtent, float2 zExtent) {
+  int i; // Loop variable
+
+  float3 color = float3(0, 0, 0); // Final result.
+
+  /* Precompute the phase function for all bodies. */
+  float lightPhases[MAX_BODIES];
+  for (i = 0; i < _numActiveBodies; i++) {
+    float3 L = _bodyDirection[i];
+    lightPhases[i] = cloudPhaseFunction(dot(L, d), _cloudAnisotropy,
+      _cloudSilverIntensity, _cloudSilverSpread);
+  }
+
+  /* Light the clouds according to each body. */
+  for (i = 0; i < _numActiveBodies; i++) {
+    float3 L = _bodyDirection[i];
+    /* Check occlusion. */
+    SkyIntersectionData lightIntersection = traceSkyVolume(samplePoint, L,
+      _planetRadius, _atmosphereRadius);
+    if (!lightIntersection.groundHit) {
+      /* Get the body luminance. */
+      float3 luminance = _bodyLightColor[i].xyz
+        * getVolumetricShadowBoxVolumeGeometry(samplePoint, d, L, lightIntersection,
+          densityModifier, density, absorptionCoefficients, uvw, xExtent, yExtent, zExtent);
+
+      /* Integrate the in-scattered luminance. */
+      float3 inScatter = scatteringCoefficients * density
+        * (luminance - luminance * transmittance)
+        / max(0.000001, density * absorptionCoefficients);
+
+      color += totalTransmittance * inScatter * lightPhases[i];
+    }
+  }
+
+  return color;
+}
+
+CloudShadingResult raymarchCloudLayerBoxVolumeGeometry(float3 startPoint, float3 d, float dist,
+  float2 xExtent, float2 yExtent, float2 zExtent, float density,
+  float3 absorptionCoefficients, float3 scatteringCoefficients) {
+
+  /* Final result. */
   CloudShadingResult result = cloudNoIntersectionResult();
-  result.t_hit = dist; /* Initialize at dist and decrease if necessary. */
   result.transmittance = float3(1, 1, 1);
   result.color = float3(0, 0, 0);
-  /* HACK: for now, fixed number of samples. */
-  int numSamples = 8;
-  for (int i = 0; i < numSamples; i++) {
-    float t = ((i + 0.5) / numSamples) * dist;
-    float3 sample = startPoint + d * t;
-    float u = (sample.x - xExtent.x) / (xExtent.y - xExtent.x);
-    float v = (sample.y - yExtent.x) / (yExtent.y - yExtent.x);
-    float w = (sample.z - zExtent.x) / (zExtent.y - zExtent.x);
-    /* HACK: for now, compute some noise. */
-    float density = 1050 * worley3D(float3(u, v, w), float3(64, 4, 64)).result;
-    /* Compute optical depth for this sample. */
-    float opticalDepth = density * (dist/numSamples);
-    /* TODO: sebh better integration? */
-    result.transmittance *= exp(8e-6 * opticalDepth);
-    /* Compute lighting thru transmittance. */
-    result.color += result.transmittance * 10000 * 4e-6 * opticalDepth;
+  result.t_hit = dist; /* Initialize at dist and decrease if necessary. */
+  result.hit = true;
+  float3 totalLightingTransmittance = float3(1, 1, 1);
+
+  /* Constants that could be tweakable. */
+  const float detailStep = max(1.0/256.0, 1.0/(256.0 * (dist/20000)));
+  const float coarseStep = 1.0/32.0;
+
+  /* Marching state. */
+  float marchedFraction = 0;
+  float stepSize = coarseStep;
+  int consecutiveZeroSamples = 0;
+
+  while (marchedFraction < 1 && averageFloat3(result.transmittance) > 0.0001) {
+
+    /* Switch back to coarse marching if we've taken enough zero samples. */
+    if (consecutiveZeroSamples > 10) {
+      consecutiveZeroSamples = 0;
+      stepSize = coarseStep;
+    }
+
+    /* March coarse. */
+    if (floatEq(stepSize, coarseStep)) {
+      /* Sample low LOD density. */
+      float t = (marchedFraction + stepSize/2.0) * dist;
+      float3 samplePoint = startPoint + d * t;
+      float3 sampleUVW = positionToUVBoxVolume(samplePoint, xExtent, yExtent, zExtent);
+      float coarseDensity = computeDensity3DLowLOD(sampleUVW, 0);
+      if (coarseDensity < 0.00000001) {
+        /* Keep marching coarse. */
+        marchedFraction += stepSize;
+        continue;
+      }
+      /* Switch to detail march. */
+      stepSize = detailStep;
+    }
+
+    /* Otherwise, march detail. */
+    float t = (marchedFraction + (stepSize/2.0)) * dist;
+    float3 samplePoint = startPoint + d * t;
+    float3 sampleUVW = positionToUVBoxVolume(samplePoint, xExtent, yExtent, zExtent);
+    float detailDensity = computeDensity3DHighLOD(sampleUVW, 0);
+
+    if (detailDensity == 0) {
+      /* Skip and note that we did. */
+      marchedFraction += stepSize;
+      consecutiveZeroSamples++;
+    }
+    consecutiveZeroSamples = 0;
+
+    /* Compute the optical depth. */
+    detailDensity *= density;
+    float opticalDepth = detailDensity * stepSize * dist;
+
+    /* Compute the transmittance and accumulate. */
+    float3 sampleTransmittance = exp(-absorptionCoefficients * opticalDepth);
+    float3 lightingTransmittance = computeMSModifiedTransmittance(absorptionCoefficients,
+      opticalDepth, _cloudMSAmount, _cloudMSBias);
+    result.transmittance *= sampleTransmittance;
+    totalLightingTransmittance *= lightingTransmittance;
+
+    /* Light the clouds. */
+    result.color += lightCloudLayerBoxVolumeGeometry(samplePoint, d, lightingTransmittance,
+      totalLightingTransmittance, density, detailDensity, absorptionCoefficients,
+      scatteringCoefficients, sampleUVW, xExtent, yExtent, zExtent); // TODO: extinction needs to be cased out according to ms approximation
+
+    /* If transmittance is less than 0.5, write t_hit for the blend. */
+    if (result.t_hit > dist-0.01 && averageFloat3(result.transmittance) < 0.5) {
+      result.t_hit = t;
+    }
+
+    marchedFraction += stepSize;
+    consecutiveZeroSamples++;
   }
+
   return result;
 }
+
+// CloudShadingResult lightCloudLayerBoxVolumeGeometry(float3 startPoint, float3 d, float dist,
+//   float2 xExtent, float2 yExtent, float2 zExtent, float density,
+//   float3 absorptionCoefficients, float3 scatteringCoefficients) {
+//   CloudShadingResult result = cloudNoIntersectionResult();
+//   result.t_hit = dist; /* Initialize at dist and decrease if necessary. */
+//   result.transmittance = float3(1, 1, 1);
+//   result.color = float3(0, 0, 0);
+//   /* HACK: for now, fixed number of samples. */
+//   bool highLOD = false;
+//   const float detailStep = 1.0/64.0;
+//   const float coarseStep = 1.0/32.0;
+//   float stepSize = coarseStep;
+//   float marchedFraction = 0;
+//   int numSamples = 0;
+//   int maxNumSamples = 512;
+//   int consecutiveDetailZeroSamples = 0;
+//   float3 totalClampedTransmittance = float3(1, 1, 1);
+//   while (marchedFraction < 1 && numSamples < maxNumSamples && dot(result.transmittance, float3(1, 1, 1)/3) > 0.001) {//dot(result.transmittance, float3(1, 1, 1)/3) > 0.001 && numSamples < maxNumSamples && marchedFraction < 1) {
+//     if (consecutiveDetailZeroSamples == 10) {
+//       consecutiveDetailZeroSamples = 0;
+//       highLOD = false;
+//       stepSize = coarseStep;
+//     }
+//     if (!highLOD) {
+//       float t = ((marchedFraction + stepSize * random_3_1(d * _tick))) * dist;
+//       float3 samplePoint = startPoint + d * t;
+//       float u = (samplePoint.x - xExtent.x) / (xExtent.y - xExtent.x);
+//       float v = (samplePoint.y - yExtent.x) / (yExtent.y - yExtent.x);
+//       float w = (samplePoint.z - zExtent.x) / (zExtent.y - zExtent.x);
+//       float3 uvw = float3(u, v, w);
+//       float testDensity = max(0, computeDensity3DLowLOD(uvw, 0));
+//       if (testDensity == 0) {
+//         numSamples++;
+//         marchedFraction += stepSize;
+//         continue;
+//       } else {
+//         stepSize = detailStep;
+//       }
+//     }
+//     float t = (marchedFraction + (stepSize * random_3_1(d * _tick))) * dist;
+//     float3 samplePoint = startPoint + d * t;
+//     float u = (samplePoint.x - xExtent.x) / (xExtent.y - xExtent.x);
+//     float v = (samplePoint.y - yExtent.x) / (yExtent.y - yExtent.x);
+//     float w = (samplePoint.z - zExtent.x) / (zExtent.y - zExtent.x);
+//     float3 uvw = float3(u, v, w);
+//     float fullDensity = density * max(0, computeDensity3DHighLOD(uvw, 0));
+//     if (fullDensity < 0.001) {
+//       consecutiveDetailZeroSamples++;
+//     } else {
+//       consecutiveDetailZeroSamples = 0;
+//     }
+//     /* Compute optical depth for this sample. */
+//     float opticalDepth = fullDensity * (dist * stepSize);
+//     /* TODO: sebh better integration? */
+//     // float dot_L_d = dot(L, d);
+//     // float msRampdown = saturate(1 - dot_L_d);
+//     // float msAmount = (_cloudMSAmount) * msRampdown;
+//     float3 regularTransmittance = exp(-absorptionCoefficients * opticalDepth);
+//     float3 clampedTransmittance = max(regularTransmittance,  exp(-absorptionCoefficients * opticalDepth * _cloudMSBias) * _cloudMSAmount);
+//     result.transmittance *= regularTransmittance;
+//     totalClampedTransmittance *= clampedTransmittance;
+//     /* Compute lighting thru transmittance. */
+//     for (int j = 0; j < _numActiveBodies; j++) {
+//       float3 L = _bodyDirection[j];
+//       float3 lightColor = _bodyLightColor[j].xyz;
+//
+//       /* Do an occlusion check for lighting. */
+//       SkyIntersectionData lightIntersection = traceSkyVolume(samplePoint, L,
+//         _planetRadius, _atmosphereRadius);
+//       /* TODO: we need to fudge this because it looks bad having a
+//        * flat line between shadow and no shadow. */
+//       if (!lightIntersection.groundHit) {
+//         /* HACK: to get rid of the super intense shadow/lit split we get from the
+//          * intersection, test how close we are to the horizon line. It may
+//          * be better to do this the other way around---push more light into
+//          * clouds that are technically occluded. */
+//         float r = length(samplePoint);
+//         float mu = dot(normalize(samplePoint), L);
+//         float h = r - _planetRadius;
+//         float cos_h = -safeSqrt(h * (2 * _planetRadius + h)) / (_planetRadius + h);
+//         float shadowBlur = 1 - pow(saturate(0.001 / abs(cos_h - mu)), 0.25);
+//
+//         float t_lightHit = lightIntersection.endT - lightIntersection.startT;
+//         float2 lightTransmittanceCoord = mapSky2DCoord(r, mu,
+//           _atmosphereRadius, _planetRadius, t_lightHit,
+//           false, _resT.y);
+//
+//         /* TODO: probably unnecessary to compute analytical transmittance here, since
+//          * we will unlikely be in a height fog layer and also in a cloud. */
+//         float3 T_sampleL = shadowBlur * exp(sampleSkyTTextureRaw(lightTransmittanceCoord));
+//
+//         /* Perform volumetric shadow traces. */
+//         float shadowOpticalDepth = 0;
+//         int numShadowSamples = 15;
+//         float shadowMarchedDist = 0;
+//         for (int k = 0; k < numShadowSamples; k++) {
+//           float stepSize = pow(2, k);
+//           float3 volumetricShadowPoint = samplePoint + (shadowMarchedDist + stepSize * random_3_1(_tick * d)) * L;
+//           if (boundsCheck(volumetricShadowPoint.x, xExtent) &&
+//               boundsCheck(volumetricShadowPoint.y, yExtent) &&
+//               boundsCheck(volumetricShadowPoint.z, zExtent)) {
+//             float uShadow = (volumetricShadowPoint.x - xExtent.x) / (xExtent.y - xExtent.x);
+//             float vShadow = (volumetricShadowPoint.y - yExtent.x) / (yExtent.y - yExtent.x);
+//             float wShadow = (volumetricShadowPoint.z - zExtent.x) / (zExtent.y - zExtent.x);
+//             float3 uvwShadow = float3(uShadow, vShadow, wShadow);
+//
+//             shadowOpticalDepth += stepSize * max(0, computeDensity3DHighLOD(uvwShadow, 0));
+//           }
+//           shadowMarchedDist += stepSize;
+//         }
+//         shadowOpticalDepth *= density;
+//         float3 shadowT = max(exp(-absorptionCoefficients * shadowOpticalDepth), exp(-absorptionCoefficients * shadowOpticalDepth * _cloudMSBias) * _cloudMSAmount);
+//
+//         float3 powderedSugar = saturate(0.05 + pow(computeDensity3DHighLOD(uvw, 0)*5, remap(1-uvw.y, 0.15, 1, 0.5, 2)));
+//
+//         /* TODO: Can compute outside if we store color for each light. */
+//         float phase = cloudPhaseFunction(dot(L, d), _cloudAnisotropy, _cloudSilverIntensity, _cloudSilverSpread);
+//
+//         float3 luminance = powderedSugar * shadowT * T_sampleL * phase * shadowBlur * lightColor;
+//         float3 integratedScattering = scatteringCoefficients * opticalDepth * (luminance - luminance * clampedTransmittance) / (max(0.00001, absorptionCoefficients * opticalDepth * _cloudMSBias));
+//         result.color += totalClampedTransmittance * integratedScattering;
+//       }
+//     }
+//
+//     /* Set t_hit once monochrome transmittance is less than 0.5. */
+//     if (floatGT(result.t_hit, dist - 0.001) && dot(result.transmittance, float3(1, 1, 1)/3) < 0.5) {
+//       result.t_hit = t;
+//     }
+//
+//     numSamples++;
+//     marchedFraction += stepSize;
+//   }
+//   return result;
+// }
 
 CloudShadingResult shadeCloudLayerBoxVolumeGeometry(float3 O, float3 d, int i,
   float depth, bool geoHit, SkyIntersectionData skyIntersection) {
@@ -285,33 +669,47 @@ CloudShadingResult shadeCloudLayerBoxVolumeGeometry(float3 O, float3 d, int i,
     return cloudNoIntersectionResult();
   }
 
-  /* TODO: we are inside the cloud volume. */
-  if (t_hit.x < 0) {
-    return cloudNoIntersectionResult();
-  }
+  /* If we're inside the cloud volume, just set the start t to zero. */
+  t_hit.x = max(0, t_hit.x);
 
-  /* We're outside the cloud volume, and we hit it. */
   result.hit = true;
 
-  /* Light the clouds. HACK */
-  bool debug = false;
-  if (debug) {
-    result.color = 1000;
-    result.transmittance = float3(0, 0, 0);
-    result.t_hit = t_hit.x;
-  } else {
-    CloudShadingResult litResult = lightCloudLayerBoxVolumeGeometry(O + d * t_hit.x, d,
-      t_hit.y - t_hit.x, xExtent, yExtent, zExtent);
-    result.color = litResult.color;
-    result.transmittance = litResult.transmittance;
-    result.t_hit = litResult.t_hit + t_hit.x;
-  }
+  /* Light the clouds. */
+  CloudShadingResult litResult = raymarchCloudLayerBoxVolumeGeometry(O + d * t_hit.x, d,
+    t_hit.y - t_hit.x, xExtent, yExtent, zExtent, _cloudDensity[i],
+    _cloudAbsorptionCoefficients[i].xyz, _cloudScatteringCoefficients[i].xyz);
+  result.color = litResult.color;
+  result.transmittance = litResult.transmittance;
+  result.t_hit = litResult.t_hit + t_hit.x;
 
   /* TODO: compute the blend to t_hit. */
-  result.blend = 1;
+  float2 oToSample = mapSky2DCoord(length(O), dot(normalize(O), d),
+    _atmosphereRadius, _planetRadius, skyIntersection.endT,
+    skyIntersection.groundHit, _resT.y);
+  float3 samplePoint = O + d * result.t_hit;
+  float2 sampleOut = mapSky2DCoord(length(samplePoint), dot(normalize(samplePoint), d),
+    _atmosphereRadius, _planetRadius, skyIntersection.endT - result.t_hit,
+    skyIntersection.groundHit, _resT.y);
+  float3 t_oToSample = sampleSkyTTextureRaw(oToSample);
+  float3 t_sampleOut = sampleSkyTTextureRaw(sampleOut);
+  float3 blendTransmittanceColor = exp(t_oToSample - max(t_oToSample, t_sampleOut)
+   + computeTransmittanceDensityAttenuation(O, d, t_hit));
+  result.blend = dot(blendTransmittanceColor, float3(1, 1, 1) / 3.0); // TODO: put back
 
   return result;
 }
+
+/******************************************************************************/
+/********************************** END 3D ************************************/
+/******************************************************************************/
+
+
+
+
+
+
+
+
 
 CloudShadingResult shadeCloudLayer(float3 O, float3 d, int i, float depth,
   bool geoHit) {

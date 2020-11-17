@@ -769,12 +769,26 @@ CloudResult compositeClouds(float2 uv) {
     result.color = result.color * layer.transmittance + layer.color * (1-layer.transmittance);
     result.transmittance *= layer.transmittance;
     float monochromeAlpha = saturate(dot(1-layer.transmittance, float3(1, 1, 1)/3));
-    result.blend += layer.blend * monochromeAlpha;
-    blendNormalization += monochromeAlpha;
+    result.blend += layer.blend * monochromeAlpha / max(0.001, result.transmittance);
+    blendNormalization += monochromeAlpha / max(0.001, result.transmittance);
   }
   if (blendNormalization > 0) {
     result.blend /= blendNormalization;
   }
+
+  /* Finally, blend with previous frame. */
+  // float4x4 prev = unity_MatrixPreviousM;
+  // float reuseProportion = 0.0;
+  // float newProportion = 1-reuseProportion;
+  // float4 cloudColAndBlendPrev = SAMPLE_TEXTURE2D_LOD(_lastFullscreenCloudColorRT,
+  //   s_linear_clamp_sampler, uv, 0);
+  // float3 cloudColPrev = cloudColAndBlendPrev.xyz;
+  // float cloudBlendPrev = cloudColAndBlendPrev.w;
+  // float3 cloudTPrev = SAMPLE_TEXTURE2D_LOD(_lastFullscreenCloudTransmittanceRT,
+  //   s_linear_clamp_sampler, uv, 0).xyz;
+  // result.color = result.color * newProportion + cloudColPrev * reuseProportion;
+  // result.transmittance = result.transmittance * newProportion + cloudTPrev * reuseProportion;
+  // result.blend = result.blend * newProportion + cloudBlendPrev * reuseProportion;
 
   CloudResult resultPacked;
   resultPacked.color = float4(result.color, result.blend);
@@ -957,8 +971,8 @@ SubShader
   Pass
   {
     ZWrite Off
-    ZTest LEqual //  TODO: back for windows. Always
-    //Blend One SrcAlpha
+    ZTest Always
+    Blend One SrcAlpha
     Cull Off
 
     HLSLPROGRAM

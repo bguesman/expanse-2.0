@@ -141,6 +141,10 @@ float safeSqrt(float s) {
   return sqrt(max(0.0, s));
 }
 
+float averageFloat3(float3 x) {
+  return dot(x, float3(1, 1, 1)/3);
+}
+
 /* Returns minimum non-negative number, given that one number is
  * non-negative. If both numbers are negative, returns a negative number. */
 float minNonNegative(float a, float b) {
@@ -163,6 +167,14 @@ bool floatLT(float a, float b) {
 }
 bool floatLT(float a, float b, float eps) {
   return a < b + eps;
+}
+
+/* True if a within [b - FLT_EPSILON, b + FLT_EPSILON]*/
+bool floatEq(float a, float b) {
+  return (a > b - FLT_EPSILON && a < b + FLT_EPSILON);
+}
+bool floatEq(float a, float b, float eps) {
+  return (a > b - eps && a < b + eps);
 }
 
 /* Returns whether x is within [bounds.x, bounds.y]. */

@@ -112,7 +112,7 @@ NoiseResultAndCoordinate voronoi3DSeeded(float3 uv, float3 cells,
 
   result.result = minD;
   /* Normalize by max distance. */
-  result.result /= sqrt(12);
+  // result.result /= sqrt(12);
   result.coordinate = minPoint;
   return result;
 }
@@ -659,7 +659,8 @@ float2 curlNoise2D(float2 uv, float2 cells, float gridScaleFactor,
     float2(EXPANSE_DEFAULT_SEED_Y_1, EXPANSE_DEFAULT_SEED_Y_2));
 }
 
-float3 curlNoise3DSeeded(float3 uv, float3 cells, float3 seed_x, float3 seed_y,
+float3 curlNoise3DSeeded(float3 uv, float3 cells, float gridScaleFactor,
+  float amplitudeFactor, int layers, float3 seed_x, float3 seed_y,
   float3 seed_z) {
   float epsilon = 0.00001;
 
@@ -672,18 +673,12 @@ float3 curlNoise3DSeeded(float3 uv, float3 cells, float3 seed_x, float3 seed_y,
   float3 uvzf = float3(uv.x, uv.y, uv.z + epsilon - floor(uv.z + epsilon));
 
   /* Compute noise values for finite differencing. */
-  // float x0 = perlin3DSeeded(uvx0, cells, seed_x, seed_y, seed_z).result;
-  // float xf = perlin3DSeeded(uvxf, cells, seed_x, seed_y, seed_z).result;
-  // float y0 = perlin3DSeeded(uvy0, cells, seed_x, seed_y, seed_z).result;
-  // float yf = perlin3DSeeded(uvyf, cells, seed_x, seed_y, seed_z).result;
-  // float z0 = perlin3DSeeded(uvz0, cells, seed_x, seed_y, seed_z).result;
-  // float zf = perlin3DSeeded(uvzf, cells, seed_x, seed_y, seed_z).result;
-  float x0 = value3DSeeded(uvx0, cells, seed_x).result;
-  float xf = value3DSeeded(uvxf, cells, seed_x).result;
-  float y0 = value3DSeeded(uvy0, cells, seed_y).result;
-  float yf = value3DSeeded(uvyf, cells, seed_y).result;
-  float z0 = value3DSeeded(uvz0, cells, seed_z).result;
-  float zf = value3DSeeded(uvzf, cells, seed_z).result;
+  float x0 = perlin3DLayeredSeeded(uvx0, cells, gridScaleFactor, amplitudeFactor, layers, seed_x, seed_y, seed_z);
+  float xf = perlin3DLayeredSeeded(uvxf, cells, gridScaleFactor, amplitudeFactor, layers, seed_x, seed_y, seed_z);
+  float y0 = perlin3DLayeredSeeded(uvy0, cells, gridScaleFactor, amplitudeFactor, layers, seed_x, seed_y, seed_z);
+  float yf = perlin3DLayeredSeeded(uvyf, cells, gridScaleFactor, amplitudeFactor, layers, seed_x, seed_y, seed_z);
+  float z0 = perlin3DLayeredSeeded(uvz0, cells, gridScaleFactor, amplitudeFactor, layers, seed_x, seed_y, seed_z);
+  float zf = perlin3DLayeredSeeded(uvzf, cells, gridScaleFactor, amplitudeFactor, layers, seed_x, seed_y, seed_z);
 
   /* Compute the derivatives via finite differencing. */
   float dx = (xf - x0) / (2 * epsilon);
@@ -694,8 +689,9 @@ float3 curlNoise3DSeeded(float3 uv, float3 cells, float3 seed_x, float3 seed_y,
   return float3(dz - dy, dx - dz, dy - dx);
 }
 
-float3 curlNoise3D(float3 uv, float3 cells) {
-  return curlNoise3DSeeded(uv, cells,
+float3 curlNoise3D(float3 uv, float3 cells, float gridScaleFactor,
+  float amplitudeFactor, int layers) {
+  return curlNoise3DSeeded(uv, cells, gridScaleFactor, amplitudeFactor, layers,
     float3(EXPANSE_DEFAULT_SEED_X_1, EXPANSE_DEFAULT_SEED_X_2, EXPANSE_DEFAULT_SEED_X_3),
     float3(EXPANSE_DEFAULT_SEED_Y_1, EXPANSE_DEFAULT_SEED_Y_2, EXPANSE_DEFAULT_SEED_Y_3),
     float3(EXPANSE_DEFAULT_SEED_Z_1, EXPANSE_DEFAULT_SEED_Z_2, EXPANSE_DEFAULT_SEED_Z_3));

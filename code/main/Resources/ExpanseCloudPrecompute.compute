@@ -1,4 +1,4 @@
-#pragma only_renderers d3d11 ps4 xboxone vulkan metal switch
+#pragma only_renderers d3d11 ps4 xboxCONSTANT vulkan metal switch
 
 /* 2D noises. */
 #pragma kernel VALUE2D main=VALUE2D
@@ -6,9 +6,17 @@
 #pragma kernel VORONOI2D main=VORONOI2D
 #pragma kernel WORLEY2D main=WORLEY2D
 #pragma kernel CURL2D main=CURL2D
+#pragma kernel PERLINWORLEY2D main=PERLINWORLEY2D
+#pragma kernel CONSTANT2D main=CONSTANT2D
 
 /* 3D noises. */
 #pragma kernel VALUE3D main=VALUE3D
+#pragma kernel PERLIN3D main=PERLIN3D
+#pragma kernel VORONOI3D main=VORONOI3D
+#pragma kernel WORLEY3D main=WORLEY3D
+#pragma kernel CURL3D main=CURL3D
+#pragma kernel PERLINWORLEY3D main=PERLINWORLEY3D
+#pragma kernel CONSTANT3D main=CONSTANT3D
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 #include "../../common/shaders/ExpanseNoise.hlsl"
@@ -67,7 +75,74 @@ void CURL2D(uint3 id : SV_DispatchThreadID) {
 }
 
 [numthreads(8,8,8)]
+void PERLINWORLEY2D(uint3 id : SV_DispatchThreadID) {
+  float2 uv = (id.xy + 0.5) / _resNoise.xy;
+  float pNoise = perlin2DLayered(uv, max(float2(1, 1), _gridScale.xy),
+    _octaveScale, _octaveMultiplier, _octaves);
+  float wNoise = worley2DLayered(uv, max(float2(1, 1), _gridScale.xy),
+    _octaveScale, _octaveMultiplier, _octaves);
+  Noise_2D[id.xy] =  saturate(remap(pNoise, 1-wNoise, 1, 0, 1));
+}
+
+[numthreads(8,8,8)]
+void CONSTANT2D(uint3 id : SV_DispatchThreadID) {
+  Noise_2D[id.xy] = 0.5;
+}
+
+
+
+
+[numthreads(8,8,8)]
 void VALUE3D(uint3 id : SV_DispatchThreadID) {
-  // TODO
-  Noise_3D[id] = 1;
+  float3 uv = (id + 0.5) / _resNoise.xyz;
+  float noise = value3DLayered(uv, max(float3(1, 1, 1), _gridScale.xyz),
+    _octaveScale, _octaveMultiplier, _octaves);
+  Noise_3D[id] = saturate(noise);
+}
+
+[numthreads(8,8,8)]
+void PERLIN3D(uint3 id : SV_DispatchThreadID) {
+  float3 uv = (id + 0.5) / _resNoise.xyz;
+  float noise = perlin3DLayered(uv, max(float3(1, 1, 1), _gridScale.xyz),
+    _octaveScale, _octaveMultiplier, _octaves);
+  Noise_3D[id] = saturate(noise);
+}
+
+[numthreads(8,8,8)]
+void VORONOI3D(uint3 id : SV_DispatchThreadID) {
+  float3 uv = (id + 0.5) / _resNoise.xyz;
+  float noise = voronoi3DLayered(uv, max(float3(1, 1, 1), _gridScale.xyz),
+    _octaveScale, _octaveMultiplier, _octaves);
+  Noise_3D[id] = saturate(noise);
+}
+
+[numthreads(8,8,8)]
+void WORLEY3D(uint3 id : SV_DispatchThreadID) {
+  float3 uv = (id + 0.5) / _resNoise.xyz;
+  float noise = worley3DLayered(uv, max(float3(1, 1, 1), _gridScale.xyz),
+    _octaveScale, _octaveMultiplier, _octaves);
+  Noise_3D[id] = noise;
+}
+
+[numthreads(8,8,8)]
+void CURL3D(uint3 id : SV_DispatchThreadID) {
+  float3 uv = (id + 0.5) / _resNoise.xyz;
+  float3 noise = curlNoise3D(uv, _gridScale.xyz, _octaveScale,
+    _octaveMultiplier, _octaves);
+  Noise_3D[id] = float4(noise.x, noise.y, noise.z, 0);
+}
+
+[numthreads(8,8,8)]
+void PERLINWORLEY3D(uint3 id : SV_DispatchThreadID) {
+  float3 uv = (id + 0.5) / _resNoise.xyz;
+  float pNoise = perlin3DLayered(uv, max(float3(1, 1, 1), _gridScale.xyz),
+    _octaveScale, _octaveMultiplier, _octaves);
+  float wNoise = worley3DLayered(uv, max(float3(1, 1, 1), 4*_gridScale.xyz),
+    _octaveScale, _octaveMultiplier, _octaves);
+  Noise_3D[id] = remap(pNoise, 0.5*(1-wNoise), 1, 0, 1);
+}
+
+[numthreads(8,8,8)]
+void CONSTANT3D(uint3 id : SV_DispatchThreadID) {
+  Noise_3D[id] = 0.5;
 }
