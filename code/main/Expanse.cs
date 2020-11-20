@@ -1351,25 +1351,25 @@ public int GetNightSkyHashCode() {
   /* Used for checking if a recomputation of the night sky texture and
    * average color needs to take place. */
   int hash = base.GetHashCode();
-  // unchecked {
-  //   hash = hash * 23 + useProceduralNightSky.value.GetHashCode();
-  //   if (useProceduralNightSky.value) {
-  //     hash = hash * 23 + starTextureQuality.value.GetHashCode();
-  //     hash = hash * 23 + useHighDensityMode.value.GetHashCode();
-  //     hash = hash * 23 + starDensity.value.GetHashCode();
-  //     hash = hash * 23 + starDensitySeed.value.GetHashCode();
-  //     hash = hash * 23 + starSizeRange.value.GetHashCode();
-  //     hash = hash * 23 + starSizeBias.value.GetHashCode();
-  //     hash = hash * 23 + starSizeSeed.value.GetHashCode();
-  //     hash = hash * 23 + starIntensityRange.value.GetHashCode();
-  //     hash = hash * 23 + starIntensityBias.value.GetHashCode();
-  //     hash = hash * 23 + starIntensitySeed.value.GetHashCode();
-  //     hash = hash * 23 + starTemperatureRange.value.GetHashCode();
-  //     hash = hash * 23 + starTemperatureBias.value.GetHashCode();
-  //     hash = hash * 23 + starTemperatureSeed.value.GetHashCode();
-  //     hash = hash * 23 + useProceduralNebulae.value.GetHashCode();
-  //     hash = hash * 23 + nebulaeTextureQuality.value.GetHashCode();
-  //     hash = nebulaeTexture.value != null ? hash * 23 + nebulaeTexture.value.GetHashCode() : hash;
+  unchecked {
+    hash = hash * 23 + useProceduralNightSky.value.GetHashCode();
+    if (useProceduralNightSky.value) {
+      hash = hash * 23 + starTextureQuality.value.GetHashCode();
+      hash = hash * 23 + useHighDensityMode.value.GetHashCode();
+      hash = hash * 23 + starDensity.value.GetHashCode();
+      hash = hash * 23 + starDensitySeed.value.GetHashCode();
+      hash = hash * 23 + starSizeRange.value.GetHashCode();
+      hash = hash * 23 + starSizeBias.value.GetHashCode();
+      hash = hash * 23 + starSizeSeed.value.GetHashCode();
+      hash = hash * 23 + starIntensityRange.value.GetHashCode();
+      hash = hash * 23 + starIntensityBias.value.GetHashCode();
+      hash = hash * 23 + starIntensitySeed.value.GetHashCode();
+      hash = hash * 23 + starTemperatureRange.value.GetHashCode();
+      hash = hash * 23 + starTemperatureBias.value.GetHashCode();
+      hash = hash * 23 + starTemperatureSeed.value.GetHashCode();
+      hash = hash * 23 + useProceduralNebulae.value.GetHashCode();
+      hash = hash * 23 + nebulaeTextureQuality.value.GetHashCode();
+      hash = nebulaeTexture.value != null ? hash * 23 + nebulaeTexture.value.GetHashCode() : hash;
   //     /* Procedural nebulae. */
   //     hash = hash * 23 + nebulaCoverageScale.value.GetHashCode();
   //
@@ -1452,9 +1452,9 @@ public int GetNightSkyHashCode() {
   //     hash = hash * 23 + nebulaTransmittanceSeedX.value.GetHashCode();
   //     hash = hash * 23 + nebulaTransmittanceSeedY.value.GetHashCode();
   //     hash = hash * 23 + nebulaTransmittanceSeedZ.value.GetHashCode();
-  //   }
-  //   hash = nightSkyTexture.value != null ? hash * 23 + nightSkyTexture.value.GetHashCode() : hash;
-  // }
+    }
+    hash = nightSkyTexture.value != null ? hash * 23 + nightSkyTexture.value.GetHashCode() : hash;
+  }
   return hash;
 }
 

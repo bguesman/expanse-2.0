@@ -245,7 +245,7 @@ float intersectXZAlignedPlane(float3 O, float3 d, float2 xExtent,
  * the box.
  * TODO: edges have artifacts, kind of as expected. If artifacts show up
  * later, this is certainly a place to look. */
-float2 intersectXZAlignedBoxVolume(float3 O, float3 d, float2 xExtent,
+float2 intersectAxisAlignedBoxVolume(float3 O, float3 d, float2 xExtent,
   float2 yExtent, float2 zExtent) {
   /* Compute the intersection with all 6 bounding planes. */
   float2 t_x = (xExtent - O.x) / d.x;
@@ -282,13 +282,6 @@ float2 intersectXZAlignedBoxVolume(float3 O, float3 d, float2 xExtent,
   }
 
   return float2(min(inBounds0, inBounds1), max(inBounds0, inBounds1));
-}
-
-/* Returns t values of ray intersection with box volume. Third value indicates
- * if there was an intersection at all; if negative, there was no
- * intersection. */
-float3 intersectBoxVolume() {
-  return float3(-1, -1, -1);
 }
 
 /* Struct containing data for ray intersection queries. */

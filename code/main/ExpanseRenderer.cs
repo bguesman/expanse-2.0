@@ -971,14 +971,14 @@ public override void RenderSky(BuiltinSkyParameters builtinParams,
      * if we have to. */
     checkAndResizeFramebuffers(builtinParams, renderForCubemap);
 
-    /* Render sky pass. */
-    RenderSkyPass(builtinParams, renderForCubemap);
-
     /* Render clouds pass. */
     RenderCloudsPass(builtinParams, renderForCubemap);
 
     /* Composite the clouds. */
     RenderCloudsCompositePass(builtinParams, renderForCubemap);
+
+    /* Render sky pass. */
+    RenderSkyPass(builtinParams, renderForCubemap);
 
     /* Composite the two together. */
     RenderCompositePass(builtinParams, renderForCubemap);
@@ -1163,7 +1163,7 @@ private void DispatchCloudCompute3D(CommandBuffer cmd, Expanse sky, int layer,
       if (i > 0) {
         cs.SetTexture(handle, "Noise_3D", noiseTexture[i]);
         cs.SetVector("_resNoise", new Vector4(resolution[i], yRes, resolution[i], 0));
-        cs.SetVector("_gridScale", new Vector4(gridScale.x, (int) (gridScale.x * xyAspectRatio), gridScale.y, 1)); // TODO HACK: y grid scale ratio?
+        cs.SetVector("_gridScale", new Vector4(gridScale.x, gridScale.x, gridScale.y, 1)); // TODO HACK: y grid scale ratio?
       } else {
         /* Coverage texture is always 2d. */
         cs.SetTexture(handle, "Noise_2D", noiseTexture[i]);

@@ -81,4 +81,33 @@ CBUFFER_END // Expanse Cloud
 /*************************** END GLOBAL VARIABLES *****************************/
 /******************************************************************************/
 
+/* As a note---all cloud volume computations are done still done in
+ * planet space. */
+
+struct CloudShadingResult {
+  float3 color;             /* Color result. */
+  float3 transmittance;     /* Transmittance of the clouds. */
+  float blend;              /* Transmittance to the clouds. */
+  bool hit;                 /* Whether or not we intersected the clouds. */
+  float t_hit;              /* Hit point to use in sorting. */
+};
+
+CloudShadingResult cloudNoIntersectionResult() {
+  CloudShadingResult result;
+  result.color = float3(0, 0, 0);
+  result.transmittance = float3(1, 1, 1);
+  result.blend = 1;
+  result.hit = false;
+  result.t_hit = -1;
+  return result;
+}
+
+float henyeyGreensteinPhase(float dLd, float e) {
+  return ((1 - e * e) / pow(1 + e * e - 2 * e * dLd, 3.0/2.0)) / (4 * PI);
+}
+
+float cloudPhaseFunction(float dot_L_d, float cloudAnisotropy, float cloudSilverIntensity, float cloudSilverSpread) {
+  return max(henyeyGreensteinPhase(dot_L_d, cloudAnisotropy), cloudSilverIntensity * henyeyGreensteinPhase(dot_L_d, 0.99 - cloudSilverSpread));
+}
+
 #endif // EXPANSE_CLOUD_COMMON_INCLUDED

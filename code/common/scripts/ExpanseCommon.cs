@@ -227,7 +227,7 @@ public enum CloudLayer {
 public const uint kMaxCloudLayers = 8;
 
 public enum CloudGeometryType {
-  Plane,      /* Clouds are 2D, on a flat plane at some altitude. */
+  Plane = 0,      /* Clouds are 2D, on a flat plane at some altitude. */
   Sphere,     /* Clouds surround the planet in a sphere at some altitude. */
   BoxVolume   /* Clouds are volumetric and distributed throughout a rectangular box. */
 };
@@ -462,7 +462,7 @@ public static CloudTextureResolution cloudQualityToCloudTextureResolution(CloudT
           return new CloudTextureResolution() {
             dimension = dimension,
             quality = quality,
-            Coverage = 512,
+            Coverage = 256,
             Base = 128,
             Structure = 128,
             Detail = 64,
@@ -478,7 +478,7 @@ public static CloudTextureResolution cloudQualityToCloudTextureResolution(CloudT
  * with the same base resolution struct, so this is just a conversion
  * function to allow that. */
 public static int cloudXZResolutionToYResolution(int xzResolution) {
-  return Mathf.Max(8, xzResolution/8);
+  return xzResolution;//Mathf.Max(8, xzResolution/8);
 }
 
 /******************************************************************************/
