@@ -1190,50 +1190,50 @@ public override int GetHashCode() {
 
 public int GetSkyHashCode() {
   int hash = base.GetHashCode();
-  // unchecked {
-  // /***********************/
-  // /********* Sky *********/
-  // /***********************/
-  // /* Planet parameters. */
-  //   hash = hash * 23 + atmosphereThickness.value.GetHashCode();
-  //   hash = hash * 23 + planetRadius.value.GetHashCode();
-  //   hash = groundAlbedoTexture.value != null ? hash * 23 + groundAlbedoTexture.value.GetHashCode() : hash;
-  //   hash = hash * 23 + groundTint.value.GetHashCode();
-  //   hash = groundEmissionTexture.value != null ? hash * 23 + groundEmissionTexture.value.GetHashCode() : hash;
-  //   hash = hash * 23 + groundEmissionMultiplier.value.GetHashCode();
-  //   hash = hash * 23 + planetRotation.value.GetHashCode();
-  //
-  //   /* Atmosphere layers. */
-  //   for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
-  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerEnabled" + i).GetValue(this)).value.GetHashCode();
-  //     hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsA" + i).GetValue(this)).value.GetHashCode();
-  //     hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsS" + i).GetValue(this)).value.GetHashCode();
-  //     hash = hash * 23 + ((EnumParameter<ExpanseCommon.DensityDistribution>) this.GetType().GetField("layerDensityDistribution" + i).GetValue(this)).value.GetHashCode();
-  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerHeight" + i).GetValue(this)).value.GetHashCode();
-  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerThickness" + i).GetValue(this)).value.GetHashCode();
-  //     hash = hash * 23 + ((EnumParameter<ExpanseCommon.PhaseFunction>) this.GetType().GetField("layerPhaseFunction" + i).GetValue(this)).value.GetHashCode();
-  //     hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("layerAnisotropy" + i).GetValue(this)).value.GetHashCode();
-  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerDensity" + i).GetValue(this)).value.GetHashCode();
-  //     hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerDensityAttenuationPlayerOrigin" + i).GetValue(this)).value.GetHashCode();
-  //     hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerDensityAttenuationOrigin" + i).GetValue(this)).value.GetHashCode();
-  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationDistance" + i).GetValue(this)).value.GetHashCode();
-  //     hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationBias" + i).GetValue(this)).value.GetHashCode();
-  //     hash = hash * 23 + ((ColorParameter) this.GetType().GetField("layerTint" + i).GetValue(this)).value.GetHashCode();
-  //   }
-  //
-  //   /* Aerial Perspective. */
-  //
-  //   /* Quality. */
-  //   hash = hash * 23 + skyTextureQuality.value.GetHashCode();
-  //   hash = hash * 23 + numberOfTransmittanceSamples.value.GetHashCode();
-  //   hash = hash * 23 + numberOfAerialPerspectiveSamples.value.GetHashCode();
-  //   hash = hash * 23 + numberOfSingleScatteringSamples.value.GetHashCode();
-  //   hash = hash * 23 + numberOfGroundIrradianceSamples.value.GetHashCode();
-  //   hash = hash * 23 + numberOfMultipleScatteringSamples.value.GetHashCode();
-  //   hash = hash * 23 + numberOfMultipleScatteringAccumulationSamples.value.GetHashCode();
-  //   hash = hash * 23 + useImportanceSampling.value.GetHashCode();
-  //   hash = hash * 23 + aerialPerspectiveDepthSkew.value.GetHashCode();
-  // }
+  unchecked {
+  /***********************/
+  /********* Sky *********/
+  /***********************/
+  /* Planet parameters. */
+    hash = hash * 23 + atmosphereThickness.value.GetHashCode();
+    hash = hash * 23 + planetRadius.value.GetHashCode();
+    hash = groundAlbedoTexture.value != null ? hash * 23 + groundAlbedoTexture.value.GetHashCode() : hash;
+    hash = hash * 23 + groundTint.value.GetHashCode();
+    hash = groundEmissionTexture.value != null ? hash * 23 + groundEmissionTexture.value.GetHashCode() : hash;
+    hash = hash * 23 + groundEmissionMultiplier.value.GetHashCode();
+    hash = hash * 23 + planetRotation.value.GetHashCode();
+
+    /* Atmosphere layers. */
+    for (int i = 0; i < ExpanseCommon.kMaxAtmosphereLayers; i++) {
+      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerEnabled" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsA" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerCoefficientsS" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((EnumParameter<ExpanseCommon.DensityDistribution>) this.GetType().GetField("layerDensityDistribution" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerHeight" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerThickness" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((EnumParameter<ExpanseCommon.PhaseFunction>) this.GetType().GetField("layerPhaseFunction" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((ClampedFloatParameter) this.GetType().GetField("layerAnisotropy" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerDensity" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((BoolParameter) this.GetType().GetField("layerDensityAttenuationPlayerOrigin" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((Vector3Parameter) this.GetType().GetField("layerDensityAttenuationOrigin" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationDistance" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((MinFloatParameter) this.GetType().GetField("layerAttenuationBias" + i).GetValue(this)).value.GetHashCode();
+      hash = hash * 23 + ((ColorParameter) this.GetType().GetField("layerTint" + i).GetValue(this)).value.GetHashCode();
+    }
+
+    /* Aerial Perspective. */
+
+    /* Quality. */
+    hash = hash * 23 + skyTextureQuality.value.GetHashCode();
+    hash = hash * 23 + numberOfTransmittanceSamples.value.GetHashCode();
+    hash = hash * 23 + numberOfAerialPerspectiveSamples.value.GetHashCode();
+    hash = hash * 23 + numberOfSingleScatteringSamples.value.GetHashCode();
+    hash = hash * 23 + numberOfGroundIrradianceSamples.value.GetHashCode();
+    hash = hash * 23 + numberOfMultipleScatteringSamples.value.GetHashCode();
+    hash = hash * 23 + numberOfMultipleScatteringAccumulationSamples.value.GetHashCode();
+    hash = hash * 23 + useImportanceSampling.value.GetHashCode();
+    hash = hash * 23 + aerialPerspectiveDepthSkew.value.GetHashCode();
+  }
   return hash;
 }
 

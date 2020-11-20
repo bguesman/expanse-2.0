@@ -454,7 +454,7 @@ public static CloudTextureResolution cloudQualityToCloudTextureResolution(CloudT
             Coverage = 128,
             Base = 256,
             Structure = 256,
-            Detail = 64,
+            Detail = 256,
             BaseWarp = 128,
             DetailWarp = 64
           };

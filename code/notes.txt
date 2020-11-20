@@ -62,32 +62,29 @@ TODO LIST:
   -checkbox for bodies for if they affect clouds so that we can add bodies
   without them having to light the clouds and slow things down
 
-  -possibly render cloud layers to a texture array, so that we don't need
-  to use the slow split out sampling code. Or, just allocate a separate
-  texture array and copy the regular fullscreen textures into that for
-  compositing.
-
-  -maybe just don't allow grid size in y direction to change. make it a
-  function of geometry of box volume and x and z grid sizes.
-
   -Add some kind of softening/bleedthrough parameter to the remap?
+
+  -figure out perlin-worley noise. in particular, how do we do noises where
+  the grid size is fractional?
+    -these cannot be tileable
+    -could keep y-res the same and generate full cube texture, then just
+    sample some portion of it based on the resolution
+    -no tiling in y-direction, or at least tiling is tricky since uv
+    is within a different range (i.e. [0, 0.05])
+    -this might be the move
+
+  -figure out the best way to approximate multiple scattering so that
+  clouds look bright enough. or figure out if there is a bug with the
+  lighting model.
+
+  -figure out mip level generation. absolutely key for shadowing.
 
   -2D
     -some kind of self shadowing hack based on density and derivative of
     low mipped texture in each direction?
-    -noise generation. for each layer, 6 noises, generated or texture.
-      -coverage
-      -base
-      -structure (remap low freq)
-      -detail (remap high freq)
-      -big warp (low frequency warping)
-      -detail warp (high frequency warping of detail texture)
     -movement
       -uv offsets for each texture
       -warping?
-    -lighting
-      -phase function from nubis
     -sampling
-      -
 
 Parameters:

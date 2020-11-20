@@ -38,7 +38,7 @@ void VALUE2D(uint3 id : SV_DispatchThreadID) {
   float2 uv = (id.xy + 0.5) / _resNoise.xy;
   float noise = value2DLayered(uv, max(float2(1, 1), _gridScale.xy),
     _octaveScale, _octaveMultiplier, _octaves);
-  Noise_2D[id.xy] = saturate(noise);
+  Noise_2D[id.xy] = noise;
 }
 
 [numthreads(8,8,1)]
@@ -46,7 +46,7 @@ void PERLIN2D(uint3 id : SV_DispatchThreadID) {
   float2 uv = (id.xy + 0.5) / _resNoise.xy;
   float noise = perlin2DLayered(uv, max(float2(1, 1), _gridScale.xy),
     _octaveScale, _octaveMultiplier, _octaves);
-  Noise_2D[id.xy] = saturate(noise);
+  Noise_2D[id.xy] = noise > 1 ? 0 : noise;
 }
 
 [numthreads(8,8,1)]
@@ -54,7 +54,7 @@ void VORONOI2D(uint3 id : SV_DispatchThreadID) {
   float2 uv = (id.xy + 0.5) / _resNoise.xy;
   float noise = voronoi2DLayered(uv, max(float2(1, 1), _gridScale.xy),
     _octaveScale, _octaveMultiplier, _octaves);
-  Noise_2D[id.xy] = saturate(noise);
+  Noise_2D[id.xy] = noise;
 }
 
 [numthreads(8,8,1)]
@@ -62,12 +62,11 @@ void WORLEY2D(uint3 id : SV_DispatchThreadID) {
   float2 uv = (id.xy + 0.5) / _resNoise.xy;
   float noise = worley2DLayered(uv, max(float2(1, 1), _gridScale.xy),
     _octaveScale, _octaveMultiplier, _octaves);
-  Noise_2D[id.xy] = saturate(noise);
+  Noise_2D[id.xy] = noise;
 }
 
 [numthreads(8,8,1)]
 void CURL2D(uint3 id : SV_DispatchThreadID) {
-  // TODO
   float2 uv = (id.xy + 0.5) / _resNoise.xy;
   float2 noise = curlNoise2D(uv, _gridScale.xy, _octaveScale,
     _octaveMultiplier, _octaves);
@@ -80,8 +79,9 @@ void PERLINWORLEY2D(uint3 id : SV_DispatchThreadID) {
   float pNoise = perlin2DLayered(uv, max(float2(1, 1), _gridScale.xy),
     _octaveScale, _octaveMultiplier, _octaves);
   float wNoise = worley2DLayered(uv, max(float2(1, 1), _gridScale.xy),
-    _octaveScale, _octaveMultiplier, _octaves);
-  Noise_2D[id.xy] =  saturate(remap(pNoise, 1-wNoise, 1, 0, 1));
+    _octaveScale, _octaveMultiplier, (int) (_octaves * 1));
+  float noise = remap(pNoise, 0.5*(1-wNoise), 1, 0, 1);
+  Noise_2D[id.xy] = noise;
 }
 
 [numthreads(8,8,8)]
@@ -137,9 +137,10 @@ void PERLINWORLEY3D(uint3 id : SV_DispatchThreadID) {
   float3 uv = (id + 0.5) / _resNoise.xyz;
   float pNoise = perlin3DLayered(uv, max(float3(1, 1, 1), _gridScale.xyz),
     _octaveScale, _octaveMultiplier, _octaves);
-  float wNoise = worley3DLayered(uv, max(float3(1, 1, 1), 4*_gridScale.xyz),
+  float wNoise = voronoi3DLayered(uv, max(float3(1, 1, 1), _gridScale.xyz),
     _octaveScale, _octaveMultiplier, _octaves);
-  Noise_3D[id] = remap(pNoise, 0.5*(1-wNoise), 1, 0, 1);
+  // TODO: remap value (0.15) tweakable
+  Noise_3D[id] = remap(pNoise, 0.5*(wNoise), 1, 0, 1);
 }
 
 [numthreads(8,8,8)]

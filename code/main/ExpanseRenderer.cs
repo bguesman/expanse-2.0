@@ -250,6 +250,7 @@ RTHandle allocatedProceduralCloudTexture2D(Vector2 resolution, string name) {
                               colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                               enableRandomWrite: true,
                               useMipMap: true,
+                              autoGenerateMips: false,
                               name: name);
 
   Debug.Assert(table != null);
@@ -266,6 +267,7 @@ RTHandle allocatedProceduralCloudTexture3D(Vector3 resolution, string name) {
                               colorFormat: GraphicsFormat.R16G16B16A16_SFloat,
                               enableRandomWrite: true,
                               useMipMap: true,
+                              autoGenerateMips: false,
                               name: name);
 
   Debug.Assert(table != null);
@@ -1118,6 +1120,9 @@ private void DispatchCloudCompute2D(CommandBuffer cmd, Expanse sky, int layer,
       cmd.DispatchCompute(cs, handle,
         (int) resolution[i] / 8,
         (int) resolution[i] / 8, 1);
+
+      /* Generate the mipmap. */
+      cmd.GenerateMips(noiseTexture[i]);
     }
   }
 }
@@ -1127,11 +1132,16 @@ private void DispatchCloudCompute3D(CommandBuffer cmd, Expanse sky, int layer,
   string[] layerName = {"cloudCoverage", "cloudBase",
     "cloudStructure", "cloudDetail",
     "cloudBaseWarp", "cloudDetailWarp"};
-  // string[] kernelName = {"VALUE2D", "WORLEY2D", "VALUE2D", "VALUE2D", "VALUE2D", "VALUE2D"};
   RTHandle[] noiseTexture = {tex.coverageTex, tex.baseTex, tex.structureTex,
     tex.detailTex, tex.baseWarpTex, tex.detailWarpTex};
   int[] resolution = {res.Coverage, res.Base, res.Structure, res.Detail,
     res.BaseWarp, res.DetailWarp};
+
+  /* Compute grid y-x proportionality. */
+  Vector2 yExtent = ((Vector2Parameter) sky.GetType().GetField("cloudGeometryYExtent" + layerIndex).GetValue(sky)).value;
+  Vector2 xExtent = ((Vector2Parameter) sky.GetType().GetField("cloudGeometryXExtent" + layerIndex).GetValue(sky)).value;
+  float xyAspectRatio = Mathf.Abs((yExtent.y - yExtent.x) / (xExtent.y - xExtent.x));
+  Debug.Log("aspect" + xyAspectRatio);
 
   for (int i = 0; i < layerName.Length; i++) {
     bool procedural = ((BoolParameter) sky.GetType().GetField(layerName[i] + "NoiseProcedural" + layerIndex).GetValue(sky)).value;
@@ -1153,7 +1163,7 @@ private void DispatchCloudCompute3D(CommandBuffer cmd, Expanse sky, int layer,
       if (i > 0) {
         cs.SetTexture(handle, "Noise_3D", noiseTexture[i]);
         cs.SetVector("_resNoise", new Vector4(resolution[i], yRes, resolution[i], 0));
-        cs.SetVector("_gridScale", new Vector4(gridScale.x, gridScale.x/10, gridScale.y, 1)); // TODO HACK: y grid scale ratio?
+        cs.SetVector("_gridScale", new Vector4(gridScale.x, (int) (gridScale.x * xyAspectRatio), gridScale.y, 1)); // TODO HACK: y grid scale ratio?
       } else {
         /* Coverage texture is always 2d. */
         cs.SetTexture(handle, "Noise_2D", noiseTexture[i]);
@@ -1174,6 +1184,9 @@ private void DispatchCloudCompute3D(CommandBuffer cmd, Expanse sky, int layer,
           (int) resolution[i] / 8,
           (int) resolution[i] / 8, 1);
       }
+
+      /* Generate the mipmap. */
+      cmd.GenerateMips(noiseTexture[i]);
     }
   }
 }
@@ -1603,15 +1616,16 @@ private void setGlobalCBufferClouds(CommandBuffer cmd, Expanse sky) {
 }
 
 private void setGlobalCBufferCloudsGeometry(CommandBuffer cmd, Expanse sky) {
+  uint n = ExpanseCommon.kMaxCloudLayers;
 
-  float[] cloudGeometryType = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)]; /* Should be int, but unity can only set float arrays. */
-  float[] cloudGeometryXMin = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
-  float[] cloudGeometryXMax = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
-  float[] cloudGeometryYMin = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
-  float[] cloudGeometryYMax = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
-  float[] cloudGeometryZMin = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
-  float[] cloudGeometryZMax = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
-  float[] cloudGeometryHeight = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
+  float[] cloudGeometryType = new float[n]; /* Should be int, but unity can only set float arrays. */
+  float[] cloudGeometryXMin = new float[n];
+  float[] cloudGeometryXMax = new float[n];
+  float[] cloudGeometryYMin = new float[n];
+  float[] cloudGeometryYMax = new float[n];
+  float[] cloudGeometryZMin = new float[n];
+  float[] cloudGeometryZMax = new float[n];
+  float[] cloudGeometryHeight = new float[n];
 
   for (int i = 0; i < m_enabledCloudLayers.Length; i++) {
     int layerIndex = m_enabledCloudLayers[i];
@@ -1644,13 +1658,14 @@ private void setGlobalCBufferCloudsGeometry(CommandBuffer cmd, Expanse sky) {
 }
 
 private void setGlobalCBufferCloudsLighting(CommandBuffer cmd, Expanse sky) {
+  uint n = ExpanseCommon.kMaxCloudLayers;
 
-  float[] cloudThickness = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
-  float[] cloudDensity = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
-  float[] cloudDensityAttenuationDistance = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
-  float[] cloudDensityAttenuationBias = new float[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
-  Vector4[] cloudAbsorptionCoefficients = new Vector4[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
-  Vector4[] cloudScatteringCoefficients = new Vector4[(int) Mathf.Max(1, m_enabledCloudLayers.Length)];
+  float[] cloudThickness = new float[n];
+  float[] cloudDensity = new float[n];
+  float[] cloudDensityAttenuationDistance = new float[n];
+  float[] cloudDensityAttenuationBias = new float[n];
+  Vector4[] cloudAbsorptionCoefficients = new Vector4[n];
+  Vector4[] cloudScatteringCoefficients = new Vector4[n];
 
   for (int i = 0; i < m_enabledCloudLayers.Length; i++) {
     int layerIndex = m_enabledCloudLayers[i];

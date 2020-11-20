@@ -753,7 +753,7 @@ CloudResult compositeClouds(float2 uv) {
   /* TODO: this strategy of blend causes artifacts when transitioning
    * from intersecting two layers to intersecting one layer. Probably
    * to do with the fact that monochrome transmittance starts from 2.
-   * for now, getting rid of it. */
+   * for now, getting rid of it. recompile. */
 
   /* Now, composite the results, alpha-blending in order, ensuring to start at
    * numNoHit so we skip the layers where there was no intersection. */
@@ -778,7 +778,7 @@ CloudResult compositeClouds(float2 uv) {
 
   /* Finally, blend with previous frame. */
   // float4x4 prev = unity_MatrixPreviousM;
-  // float reuseProportion = 0.0;
+  // float reuseProportion = 0.8;
   // float newProportion = 1-reuseProportion;
   // float4 cloudColAndBlendPrev = SAMPLE_TEXTURE2D_LOD(_lastFullscreenCloudColorRT,
   //   s_linear_clamp_sampler, uv, 0);

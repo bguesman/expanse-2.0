@@ -36,7 +36,7 @@ float voronoi2DSeeded(float2 uv, float2 cells, float2 seed_x, float2 seed_y) {
   float2 o = tl + random_2_2_seeded(tl, seed_x, seed_y);
 
   /* Compute distance from p to the cell point. */
-  float minD = length(p - o);
+  float minD = min(1, length(p - o));
 
   /* Compute the distance to the points in the neighboring cells. */
   for (int x = -1; x < 2; x++) {
@@ -53,8 +53,6 @@ float voronoi2DSeeded(float2 uv, float2 cells, float2 seed_x, float2 seed_y) {
     }
   }
 
-  /* Normalize by max distance. */
-  minD /= sqrt(8);
   return minD;
 }
 
@@ -87,7 +85,7 @@ NoiseResultAndCoordinate voronoi3DSeeded(float3 uv, float3 cells,
   float3 o = tl + random_3_3_seeded(tl, seed_x, seed_y, seed_z);
 
   /* Compute distance from p to the cell point. */
-  float minD = length(p - o);
+  float minD = min(1, length(p - o));
   float3 minPoint = tl;
 
   /* Compute the distance to the points in the neighboring cells. */
@@ -111,8 +109,6 @@ NoiseResultAndCoordinate voronoi3DSeeded(float3 uv, float3 cells,
   }
 
   result.result = minD;
-  /* Normalize by max distance. */
-  // result.result /= sqrt(12);
   result.coordinate = minPoint;
   return result;
 }
