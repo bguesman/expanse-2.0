@@ -17,6 +17,11 @@ float remap(float value, float original_min, float original_max, float new_min, 
   return new_min + ((value - original_min) / (original_max - original_min)) * (new_max - new_min);
 }
 
+float powerRemap(float value, float original_min, float original_max, float new_min, float new_max, float power) {
+  // TODO: still not the right formula
+  return new_min + pow((value - original_min) / (original_max - original_min), power) * (new_max - new_min);
+}
+
 /******************************************************************************/
 /*************************** END UTILITY FUNCTIONS ****************************/
 /******************************************************************************/

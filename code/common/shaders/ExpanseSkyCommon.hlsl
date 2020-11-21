@@ -133,6 +133,16 @@ float _tick;
 
 #define FLT_EPSILON 0.000001
 
+float clampAboveZero(float a) {
+  return max(1e-9, a);
+}
+float2 clampAboveZero(float2 a) {
+  return max(1e-9, a);
+}
+float3 clampAboveZero(float3 a) {
+  return max(1e-9, a);
+}
+
 float clampCosine(float c) {
   return clamp(c, -1.0, 1.0);
 }
@@ -454,6 +464,18 @@ float2 generateCubicSampleFromIndex(int i, int numberOfSamples) {
   t_left *= t_left * t_left;
   t_middle *= t_middle * t_middle;
   t_right *= t_right * t_right;
+  return float2(t_middle, t_right - t_left);
+}
+
+/* Generates cubed "importance sample" location from a sample index.
+ * Returns (sample, ds). */
+float2 generateNthPowerSampleFromIndex(int i, int numberOfSamples, float n) {
+  float t_left = float(i) / float(numberOfSamples);
+  float t_middle = (float(i) + 0.5) / float(numberOfSamples);
+  float t_right = (float(i) + 1.0) / float(numberOfSamples);
+  t_left = pow(t_left, n);
+  t_middle = pow(t_middle, n);
+  t_right = pow(t_right, n);
   return float2(t_middle, t_right - t_left);
 }
 
