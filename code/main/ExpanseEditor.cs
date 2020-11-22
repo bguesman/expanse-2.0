@@ -471,6 +471,11 @@ SerializedDataParameter[] cloudDetailWarpTile
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 SerializedDataParameter[] cloudDetailWarpIntensity
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+/* Height gradient. */
+SerializedDataParameter[] cloudHeightGradientBottom
+= new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudHeightGradientTop
+= new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 
 /* Movement---sampling offsets primarily. TODO */
 
@@ -479,6 +484,18 @@ SerializedDataParameter[] cloudDetailWarpIntensity
 SerializedDataParameter[] cloudThickness
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 /* 3D. */
+SerializedDataParameter[] cloudVerticalProbabilityHeightRange
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudVerticalProbabilityStrength
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDepthProbabilityHeightRange
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDepthProbabilityStrengthRange
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDepthProbabilityDensityMultiplier
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDepthProbabilityBias
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 /* 2D and 3D. */
 SerializedDataParameter[] cloudDensity
   = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
@@ -1152,6 +1169,8 @@ private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle su
     PropertyField(cloudDetailIntensity[layerIndex], new UnityEngine.GUIContent("Detail"));
     PropertyField(cloudBaseWarpIntensity[layerIndex], new UnityEngine.GUIContent("Base Warp"));
     PropertyField(cloudDetailWarpIntensity[layerIndex], new UnityEngine.GUIContent("Detail Warp"));
+    PropertyField(cloudHeightGradientBottom[layerIndex], new UnityEngine.GUIContent("Bottom Height Gradient"));
+    PropertyField(cloudHeightGradientTop[layerIndex], new UnityEngine.GUIContent("Top Height Gradient"));
     EditorGUILayout.Space();
 
     m_cloudNoiseLayerSelect = (ExpanseCommon.CloudNoiseLayer) EditorGUILayout.EnumPopup("Noise Layer", m_cloudNoiseLayerSelect);
@@ -1300,8 +1319,13 @@ private void cloudLighting(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle
 
   if (cloudLightingFoldout) {
     if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume) {
-      /* 3D. */
-
+      /* 3D. TODO: better names */
+      PropertyField(cloudVerticalProbabilityHeightRange[layerIndex], new UnityEngine.GUIContent("Vertical Probability Height Range"));
+      PropertyField(cloudVerticalProbabilityStrength[layerIndex], new UnityEngine.GUIContent("Vertical Probability Strength"));
+      PropertyField(cloudDepthProbabilityHeightRange[layerIndex], new UnityEngine.GUIContent("Depth Probability Height Range"));
+      PropertyField(cloudDepthProbabilityStrengthRange[layerIndex], new UnityEngine.GUIContent("Depth Probability Strength Range"));
+      PropertyField(cloudDepthProbabilityDensityMultiplier[layerIndex], new UnityEngine.GUIContent("Depth Probability Density Multiplier"));
+      PropertyField(cloudDepthProbabilityBias[layerIndex], new UnityEngine.GUIContent("Depth Probability Bias"));
     } else {
       /* 2D. */
       PropertyField(cloudThickness[layerIndex], new UnityEngine.GUIContent("Apparent Thickness"));
@@ -1622,6 +1646,9 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     cloudDetailWarpOctaveMultiplier[i] = Unpack(o.Find("cloudDetailWarpOctaveMultiplier" + i));
     cloudDetailWarpTile[i] = Unpack(o.Find("cloudDetailWarpTile" + i));
     cloudDetailWarpIntensity[i] = Unpack(o.Find("cloudDetailWarpIntensity" + i));
+    /* Height gradient. */
+    cloudHeightGradientBottom[i] = Unpack(o.Find("cloudHeightGradientBottom" + i));
+    cloudHeightGradientTop[i] = Unpack(o.Find("cloudHeightGradientTop" + i));
 
     /* Movement---sampling offsets primarily. TODO */
 
@@ -1629,6 +1656,12 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     /* 2D. */
     cloudThickness[i] = Unpack(o.Find("cloudThickness" + i));
     /* 3D. */
+    cloudVerticalProbabilityHeightRange[i] = Unpack(o.Find("cloudVerticalProbabilityHeightRange" + i));
+    cloudVerticalProbabilityStrength[i] = Unpack(o.Find("cloudVerticalProbabilityStrength" + i));
+    cloudDepthProbabilityHeightRange[i] = Unpack(o.Find("cloudDepthProbabilityHeightRange" + i));
+    cloudDepthProbabilityStrengthRange[i] = Unpack(o.Find("cloudDepthProbabilityStrengthRange" + i));
+    cloudDepthProbabilityDensityMultiplier[i] = Unpack(o.Find("cloudDepthProbabilityDensityMultiplier" + i));
+    cloudDepthProbabilityBias[i] = Unpack(o.Find("cloudDepthProbabilityBias" + i));
     /* 2D and 3D. */
     cloudDensity[i] = Unpack(o.Find("cloudDensity" + i));
     cloudDensityAttenuationDistance[i] = Unpack(o.Find("cloudDensityAttenuationDistance" + i));

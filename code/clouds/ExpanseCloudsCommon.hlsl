@@ -43,6 +43,8 @@ float _cloudBaseWarpIntensity;
 /* Detail Warp. */
 int _cloudDetailWarpTile;
 float _cloudDetailWarpIntensity;
+/* Height gradient. [bottom_min, bottom_max, top_min, top_max] */
+float4 _cloudHeightGradient;
 
 #define CLOUD_BASE_WARP_MAX 0.25
 #define CLOUD_DETAIL_WARP_MAX 0.1
@@ -54,6 +56,12 @@ float _cloudDetailWarpIntensity;
 /* 2D. */
 float _cloudThickness[MAX_CLOUD_LAYERS];
 /* 3D. */
+// Min, max, strength.
+float4 _cloudVerticalProbability[MAX_CLOUD_LAYERS];
+// Height min/max, strength min/max
+float4 _cloudDepthProbabilityHeightStrength[MAX_CLOUD_LAYERS];
+float _cloudDepthProbabilityDensityMultiplier[MAX_CLOUD_LAYERS];
+float _cloudDepthProbabilityBias[MAX_CLOUD_LAYERS];
 /* 2D and 3D. */
 float _cloudDensity[MAX_CLOUD_LAYERS];
 float _cloudDensityAttenuationDistance[MAX_CLOUD_LAYERS];
@@ -126,6 +134,22 @@ float computeShadowBlur(float r, float mu, float offset, float distance) {
 
 float computeHeightGradient(float y, float2 bottom, float2 top) {
   return saturate(remap(y, bottom.x, bottom.y, 0, 1)) * saturate(remap(y, top.x, top.y, 1, 0));
+}
+
+float computeVerticalInScatterProbability(float height, float2 heightRange,
+  float strength) {
+  float clampedHeight = clamp(height, heightRange.x, heightRange.y);
+  float remappedHeight = remap(clampedHeight, heightRange.x, heightRange.y, 0.1, 1.0);
+  return pow(abs(remappedHeight), strength);
+}
+
+float computeDepthInScatterProbability(float loddedDensity, float height,
+  float2 heightRange, float2 strengthRange, float multiplier, float bias) {
+  float multipliedLoddedDensity = abs(loddedDensity * multiplier);
+  float clampedHeight = clamp(height, heightRange.x, heightRange.y);
+  float strength = remap(clampedHeight, heightRange.x, heightRange.y,
+    strengthRange.x, strengthRange.y);
+  return saturate(bias + pow(multipliedLoddedDensity, strength));
 }
 
 float computeAtmosphericBlend(float3 O, float3 d, float3 samplePoint, float t_hit,
@@ -250,12 +274,9 @@ float takeMediaSample3DLowLOD(float3 p, ICloudGeometry geometry, int mipLevel) {
     sample = remap(sample, coverage, 1, 0, 1);
   }
 
-  /* TODO: height gradient params tweakable. */
-  const float2 bottom = float2(0, 0.1);
-  const float2 top = float2(0.5, 1);
   float heightGradient = geometry.heightGradient(p);
-  heightGradient = computeHeightGradient(heightGradient, bottom, top);
-  sample *= heightGradient;
+  heightGradient = computeHeightGradient(heightGradient, _cloudHeightGradient.xy, _cloudHeightGradient.zw);
+  sample = remap(sample, 0, 1, 0, heightGradient);
 
   // TODO: why is it below zero?
   return max(0, sample);

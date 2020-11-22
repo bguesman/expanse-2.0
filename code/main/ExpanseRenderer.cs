@@ -1716,6 +1716,11 @@ void SetGlobalCloudTexturesCommon(CommandBuffer cmd, Expanse sky, int layer, int
   cmd.SetGlobalInt("_cloudDetailWarpTile", ((MinIntParameter) sky.GetType().GetField("cloudDetailWarpTile" + layerIndex).GetValue(sky)).value);
   cmd.SetGlobalFloat("_cloudDetailWarpIntensity", ((ClampedFloatParameter) sky.GetType().GetField("cloudDetailWarpIntensity" + layerIndex).GetValue(sky)).value);
 
+  Vector2 heightGradientBottom = ((FloatRangeParameter) sky.GetType().GetField("cloudHeightGradientBottom" + layerIndex).GetValue(sky)).value;
+  Vector2 heightGradientTop = ((FloatRangeParameter) sky.GetType().GetField("cloudHeightGradientTop" + layerIndex).GetValue(sky)).value;
+  Vector4 heightGradient = new Vector4(heightGradientBottom.x, heightGradientBottom.y, heightGradientTop.x, heightGradientTop.y);
+  cmd.SetGlobalVector("_cloudHeightGradient", heightGradient);
+
   /* Set the lighting parameters. */
   cmd.SetGlobalFloat("_cloudMSAmount", ((ClampedFloatParameter) sky.GetType().GetField("cloudMSAmount" + layerIndex).GetValue(sky)).value);
   cmd.SetGlobalFloat("_cloudMSBias", ((ClampedFloatParameter) sky.GetType().GetField("cloudMSBias" + layerIndex).GetValue(sky)).value);
@@ -1752,6 +1757,19 @@ void SetGlobalCloudTextures2D(CommandBuffer cmd, Expanse sky, int layer, int lay
 }
 
 void SetGlobalCloudTextures3D(CommandBuffer cmd, Expanse sky, int layer, int layerIndex) {
+  /* Set the 3D lighting parameters. */
+  // Min, max, strength.
+  Vector2 vertProbHeightRange = ((FloatRangeParameter) sky.GetType().GetField("cloudVerticalProbabilityHeightRange" + layerIndex).GetValue(sky)).value;
+  float vertProbStrength = ((MinFloatParameter) sky.GetType().GetField("cloudVerticalProbabilityStrength" + layerIndex).GetValue(sky)).value;
+  cmd.SetGlobalVector("_cloudVerticalProbability", new Vector4(vertProbHeightRange.x, vertProbHeightRange.y, vertProbStrength, 0));
+
+  Vector2 depthProbHeightRange = ((FloatRangeParameter) sky.GetType().GetField("cloudDepthProbabilityHeightRange" + layerIndex).GetValue(sky)).value;
+  Vector2 depthProbStrengthRange = ((FloatRangeParameter) sky.GetType().GetField("cloudDepthProbabilityStrengthRange" + layerIndex).GetValue(sky)).value;
+  cmd.SetGlobalVector("_cloudDepthProbabilityHeightStrength", new Vector4(depthProbHeightRange.x, depthProbHeightRange.y, depthProbStrengthRange.x, depthProbStrengthRange.y));
+
+  cmd.SetGlobalFloat("_cloudDepthProbabilityDensityMultiplier", ((MinFloatParameter) sky.GetType().GetField("cloudDepthProbabilityDensityMultiplier" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalFloat("_cloudDepthProbabilityBias", ((ClampedFloatParameter) sky.GetType().GetField("cloudDepthProbabilityBias" + layerIndex).GetValue(sky)).value);
+
   CloudNoiseTexture proceduralTextures = m_cloudNoiseTextures[layer];
   /* This array pattern is to keep things concise. */
   string[] noiseProcedural = {"cloudCoverageNoiseProcedural", "cloudBaseNoiseProcedural",

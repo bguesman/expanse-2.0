@@ -665,6 +665,13 @@ public MinIntParameter cloudDetailWarpTile0, cloudDetailWarpTile1, cloudDetailWa
 [Tooltip("Intensity.")]
 public ClampedFloatParameter cloudDetailWarpIntensity0, cloudDetailWarpIntensity1, cloudDetailWarpIntensity2,
   cloudDetailWarpIntensity3, cloudDetailWarpIntensity4, cloudDetailWarpIntensity5, cloudDetailWarpIntensity6, cloudDetailWarpIntensity7;
+/* Height gradient. */
+[Tooltip("Height gradient bottom.")]
+public FloatRangeParameter cloudHeightGradientBottom0, cloudHeightGradientBottom1, cloudHeightGradientBottom2,
+  cloudHeightGradientBottom3, cloudHeightGradientBottom4, cloudHeightGradientBottom5, cloudHeightGradientBottom6, cloudHeightGradientBottom7;
+[Tooltip("Height gradient top.")]
+public FloatRangeParameter cloudHeightGradientTop0, cloudHeightGradientTop1, cloudHeightGradientTop2,
+  cloudHeightGradientTop3, cloudHeightGradientTop4, cloudHeightGradientTop5, cloudHeightGradientTop6, cloudHeightGradientTop7;
 
 /* Movement---sampling offsets primarily. TODO */
 
@@ -674,6 +681,24 @@ public ClampedFloatParameter cloudDetailWarpIntensity0, cloudDetailWarpIntensity
 public MinFloatParameter cloudThickness0, cloudThickness1, cloudThickness2,
   cloudThickness3, cloudThickness4, cloudThickness5, cloudThickness6, cloudThickness7;
 /* 3D. */
+[Tooltip("Unit height range to apply vertical in-scattering probability to.")]
+public FloatRangeParameter cloudVerticalProbabilityHeightRange0, cloudVerticalProbabilityHeightRange1, cloudVerticalProbabilityHeightRange2,
+  cloudVerticalProbabilityHeightRange3, cloudVerticalProbabilityHeightRange4, cloudVerticalProbabilityHeightRange5, cloudVerticalProbabilityHeightRange6, cloudVerticalProbabilityHeightRange7;
+[Tooltip("Strength of vertical in-scattering probablity.")]
+public MinFloatParameter cloudVerticalProbabilityStrength0, cloudVerticalProbabilityStrength1, cloudVerticalProbabilityStrength2,
+  cloudVerticalProbabilityStrength3, cloudVerticalProbabilityStrength4, cloudVerticalProbabilityStrength5, cloudVerticalProbabilityStrength6, cloudVerticalProbabilityStrength7;
+[Tooltip("Unit height range to apply depth in-scattering probability to.")]
+public FloatRangeParameter cloudDepthProbabilityHeightRange0, cloudDepthProbabilityHeightRange1, cloudDepthProbabilityHeightRange2,
+  cloudDepthProbabilityHeightRange3, cloudDepthProbabilityHeightRange4, cloudDepthProbabilityHeightRange5, cloudDepthProbabilityHeightRange6, cloudDepthProbabilityHeightRange7;
+[Tooltip("Strength range of depth in-scattering probability, from min height to max height.")]
+public FloatRangeParameter cloudDepthProbabilityStrengthRange0, cloudDepthProbabilityStrengthRange1, cloudDepthProbabilityStrengthRange2,
+  cloudDepthProbabilityStrengthRange3, cloudDepthProbabilityStrengthRange4, cloudDepthProbabilityStrengthRange5, cloudDepthProbabilityStrengthRange6, cloudDepthProbabilityStrengthRange7;
+[Tooltip("Pre-multiplier on density for depth in-scattering probability. Can be useful for bringing the density into a range where the effect is noticeable.")]
+public MinFloatParameter cloudDepthProbabilityDensityMultiplier0, cloudDepthProbabilityDensityMultiplier1, cloudDepthProbabilityDensityMultiplier2,
+  cloudDepthProbabilityDensityMultiplier3, cloudDepthProbabilityDensityMultiplier4, cloudDepthProbabilityDensityMultiplier5, cloudDepthProbabilityDensityMultiplier6, cloudDepthProbabilityDensityMultiplier7;
+[Tooltip("Bias to depth in-scattering probability.")]
+public ClampedFloatParameter cloudDepthProbabilityBias0, cloudDepthProbabilityBias1, cloudDepthProbabilityBias2,
+  cloudDepthProbabilityBias3, cloudDepthProbabilityBias4, cloudDepthProbabilityBias5, cloudDepthProbabilityBias6, cloudDepthProbabilityBias7;
 
 /* 2D and 3D. */
 [Tooltip("Density of this cloud layer.")]
@@ -857,11 +882,20 @@ public Expanse() : base() {
     this.GetType().GetField("cloudDetailWarpOctaveMultiplier" + i).SetValue(this, new MinFloatParameter(0.5f, 0));
     this.GetType().GetField("cloudDetailWarpTile" + i).SetValue(this, new MinIntParameter(1, 1));
     this.GetType().GetField("cloudDetailWarpIntensity" + i).SetValue(this, new ClampedFloatParameter(0.5f, 0, 1));
+    /* Height gradient. */
+    this.GetType().GetField("cloudHeightGradientBottom" + i).SetValue(this, new FloatRangeParameter(new Vector2(0.05f, 0.1f), 0.0f, 1.0f));
+    this.GetType().GetField("cloudHeightGradientTop" + i).SetValue(this, new FloatRangeParameter(new Vector2(0.5f, 1.0f), 0.0f, 1.0f));
 
     /* Lighting. */
     /* 2D. */
     this.GetType().GetField("cloudThickness" + i).SetValue(this, new MinFloatParameter(10, 0));
     /* 3D. */
+    this.GetType().GetField("cloudVerticalProbabilityHeightRange" + i).SetValue(this, new FloatRangeParameter(new Vector2(0, 1), 0, 1));
+    this.GetType().GetField("cloudVerticalProbabilityStrength" + i).SetValue(this, new MinFloatParameter(0.8f, 0));
+    this.GetType().GetField("cloudDepthProbabilityHeightRange" + i).SetValue(this, new FloatRangeParameter(new Vector2(0, 1), 0, 1));
+    this.GetType().GetField("cloudDepthProbabilityStrengthRange" + i).SetValue(this, new FloatRangeParameter(new Vector2(0.5f, 2), 0.1f, 5));
+    this.GetType().GetField("cloudDepthProbabilityDensityMultiplier" + i).SetValue(this, new MinFloatParameter(15, 0));
+    this.GetType().GetField("cloudDepthProbabilityBias" + i).SetValue(this, new ClampedFloatParameter(0.05f, 0, 1));
     /* 2D and 3D. */
     this.GetType().GetField("cloudDensity" + i).SetValue(this, new MinFloatParameter(100, 0));
     this.GetType().GetField("cloudDensityAttenuationDistance" + i).SetValue(this, new MinFloatParameter(50000, 0));
