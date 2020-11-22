@@ -429,10 +429,10 @@ public static CloudTextureResolution cloudQualityToCloudTextureResolution(CloudT
           return new CloudTextureResolution() {
             dimension = dimension,
             quality = quality,
-            Coverage = 256,
-            Base = 128,
-            Structure = 128,
-            Detail = 64,
+            Coverage = 1024,
+            Base = 256,
+            Structure = 256,
+            Detail = 256,
             BaseWarp = 128,
             DetailWarp = 64
           };
@@ -440,10 +440,10 @@ public static CloudTextureResolution cloudQualityToCloudTextureResolution(CloudT
           return new CloudTextureResolution() {
             dimension = dimension,
             quality = quality,
-            Coverage = 256,
-            Base = 128,
-            Structure = 128,
-            Detail = 64,
+            Coverage = 1024,
+            Base = 256,
+            Structure = 256,
+            Detail = 256,
             BaseWarp = 128,
             DetailWarp = 64
           };
@@ -451,7 +451,7 @@ public static CloudTextureResolution cloudQualityToCloudTextureResolution(CloudT
           return new CloudTextureResolution() {
             dimension = dimension,
             quality = quality,
-            Coverage = 128,
+            Coverage = 1024,
             Base = 256,
             Structure = 256,
             Detail = 256,

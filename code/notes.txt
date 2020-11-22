@@ -62,29 +62,13 @@ TODO LIST:
   -checkbox for bodies for if they affect clouds so that we can add bodies
   without them having to light the clouds and slow things down
 
-  -Add some kind of softening/bleedthrough parameter to the remap?
-
-  -figure out perlin-worley noise. in particular, how do we do noises where
-  the grid size is fractional?
-    -these cannot be tileable
-    -could keep y-res the same and generate full cube texture, then just
-    sample some portion of it based on the resolution
-    -no tiling in y-direction, or at least tiling is tricky since uv
-    is within a different range (i.e. [0, 0.05])
-    -this might be the move
-
-  -figure out the best way to approximate multiple scattering so that
-  clouds look bright enough. or figure out if there is a bug with the
-  lighting model.
-
-  -figure out mip level generation. absolutely key for shadowing.
-
-  -2D
-    -some kind of self shadowing hack based on density and derivative of
-    low mipped texture in each direction?
-    -movement
-      -uv offsets for each texture
-      -warping?
-    -sampling
+  -To get to where we need to be:
+    -performance needs to be significantly better
+    -the compositing over direct light bug needs to be fixed
+    -the multiple layers turns volumetric layers black bug needs to be fixed
+    -generally, the compositing needs to look better I think. there's this weird
+    bubble-looking thing around the clouds where transmittance isn't quite zero,
+    but there's not enough in-scattering for there to be any noticeable light.
+    it appears introducing depth probability makes it worse.
 
 Parameters:

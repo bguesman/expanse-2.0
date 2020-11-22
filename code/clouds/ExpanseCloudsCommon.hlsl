@@ -258,6 +258,7 @@ float takeMediaSample3DLowLOD(float3 p, ICloudGeometry geometry, int mipLevel) {
     baseWarp = _cloudBaseWarpIntensity * CLOUD_BASE_WARP_MAX
       * SAMPLE_TEXTURE3D_LOD(_cloudBaseWarpNoise3D, s_linear_repeat_sampler,
       baseWarpUV, mipLevel).xyz;
+    baseWarp = float3(baseWarp.x, 0, baseWarp.z); // HACK: just trying this...
   }
 
   /* Base. */

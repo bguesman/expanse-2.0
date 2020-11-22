@@ -185,7 +185,7 @@ float3 lightCloudLayer3D(float3 p, float3 d, ICloudGeometry geometry,
      * density hack proposed by Andrew Schneider in his Nubis system.
      * TODO: HEAVY tweaking to be done here. */
     // TODO: density attenuation?
-    float loddedDensity = takeMediaSample3DHighLOD(p, geometry, 0);
+    float loddedDensity = takeMediaSample3DHighLOD(p, geometry, 1);
     float height = geometry.heightGradient(p);
     lighting *= computeVerticalInScatterProbability(height,
       _cloudVerticalProbability[i].xy, _cloudVerticalProbability[i].z);
@@ -209,7 +209,7 @@ float3 lightCloudLayer3D(float3 p, float3 d, ICloudGeometry geometry,
         float3 shadowSamplePoint = p + L * t_ds.x * shadowDistance;
         if (geometry.inBounds(shadowSamplePoint)) {
           // TODO: density attenuation
-          float shadowSample = takeMediaSample3DHighLOD(shadowSamplePoint, geometry, 0);
+          float shadowSample = takeMediaSample3DHighLOD(shadowSamplePoint, geometry, j*1.5);
           float attenuation = geometry.densityAttenuation(shadowSamplePoint, _cloudDensityAttenuationDistance[i], _cloudDensityAttenuationBias[i]);
           float opticalDepth = _cloudDensity[i] * attenuation * shadowSample * t_ds.y * shadowDistance;
           float3 shadowTransmittance = computeMSModifiedTransmittance(_cloudAbsorptionCoefficients[i].xyz, opticalDepth);
@@ -244,8 +244,8 @@ CloudShadingResult raymarchCloudLayer3D(float3 start, float3 d, float t,
   const float detailStep = 1.0/128.0;
   const float coarseStep = 1.0/32.0;
   const int maxSamples = 128;
-  const float mediaZeroThreshold = 0.00001;
-  const float transmittanceZeroThreshold = 0.00001;
+  const float mediaZeroThreshold = 0.0001;
+  const float transmittanceZeroThreshold = 0.0001;
   const int maxConsecutiveZeroSamples = 10;
 
   /* Marching state. */
@@ -289,16 +289,19 @@ CloudShadingResult raymarchCloudLayer3D(float3 start, float3 d, float t,
       continue;
     }
 
-    /* Accumulate transmittance---including a modified transmittance used
+    /* Compute transmittance---including a modified transmittance used
      * in the lighting calculation to simulate multiple scattering. */
     float attenuation = geometry.densityAttenuation(p, _cloudDensityAttenuationDistance[i], _cloudDensityAttenuationBias[i]);
     float attenuatedDensity = (attenuation * _cloudDensity[i]);
     float opticalDepth = attenuatedDensity * mediaSample * ds;
-    result.transmittance *= exp(-_cloudAbsorptionCoefficients[i].xyz * opticalDepth);
+    float3 transmittance = exp(-_cloudAbsorptionCoefficients[i].xyz * opticalDepth);
     float3 lightingTransmittance = computeMSModifiedTransmittance(_cloudAbsorptionCoefficients[i].xyz, opticalDepth);
 
     /* Accumulate lighting. */
     result.color += lightCloudLayer3D(p, d, geometry, lightingTransmittance, totalLightingTransmittance, i);
+
+    /* Accumulate transmittance. */
+    result.transmittance *= transmittance;
     totalLightingTransmittance *= lightingTransmittance;
 
     /* Accumulate our weighted average for t_hit. */
@@ -332,6 +335,12 @@ CloudShadingResult shadeCloudLayer3D(float3 O, float3 d, ICloudGeometry geometry
   CloudShadingResult result = raymarchCloudLayer3D(start, d, t_hit.y - t_hit.x,
     geometry, i);
   result.t_hit += t_hit.x;
+  // This is a super HACK -ey way to get rid of the splotchy edges. It
+  // significantly improves the look of the composite. I really don't like
+  // hacks like this at all, so I consider this a temporary solution to the
+  // problem.
+  float avgTransmittance = averageFloat3(result.transmittance);
+  result.transmittance = pow(result.transmittance, 1 - 0.9 * pow(avgTransmittance, 1.5));
 
   /* Atmospheric blend. */
   result.blend = computeAtmosphericBlend(O, d, O + d * result.t_hit,
