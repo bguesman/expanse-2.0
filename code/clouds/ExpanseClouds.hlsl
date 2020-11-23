@@ -188,10 +188,10 @@ float3 lightCloudLayer3D(float3 p, float3 d, ICloudGeometry geometry,
     float loddedDensity = takeMediaSample3DHighLOD(p, geometry, 1);
     float height = geometry.heightGradient(p);
     lighting *= computeVerticalInScatterProbability(height,
-      _cloudVerticalProbability[i].xy, _cloudVerticalProbability[i].z);
+      _cloudVerticalProbability.xy, _cloudVerticalProbability.z);
     lighting *= computeDepthInScatterProbability(loddedDensity, height,
-      _cloudDepthProbabilityHeightStrength[i].xy, _cloudDepthProbabilityHeightStrength[i].zw,
-      _cloudDepthProbabilityDensityMultiplier[i], _cloudDepthProbabilityBias[i]);
+      _cloudDepthProbabilityHeightStrength.xy, _cloudDepthProbabilityHeightStrength.zw,
+      _cloudDepthProbabilityDensityMultiplier, _cloudDepthProbabilityBias);
 
     /* If we are permitted, take a few samples at increasing mip levels to
      * model self-shadowing. */

@@ -243,7 +243,7 @@ private int[] m_enabledCloudLayers;
 private ExpanseCommon.CloudTextureResolution[] m_cloudTextureResolutions;
 
 /* Takes up less space by using a single color channel. */
-RTHandle allocatedProceduralCloudTexture2D(Vector2 resolution, string name) {
+RTHandle allocatedProceduralCloudTexture2DRGB(Vector2 resolution, string name) {
   var table = RTHandles.Alloc((int) resolution.x,
                               (int) resolution.y,
                               dimension: TextureDimension.Tex2D,
@@ -259,8 +259,24 @@ RTHandle allocatedProceduralCloudTexture2D(Vector2 resolution, string name) {
 }
 
 /* Takes up less space by using a single color channel. */
-RTHandle allocatedProceduralCloudTexture3D(Vector3 resolution, string name) {
-  var table = RTHandles.Alloc((int) resolution.x, // HACK
+RTHandle allocatedProceduralCloudTexture2DGrayscale(Vector2 resolution, string name) {
+  var table = RTHandles.Alloc((int) resolution.x,
+                              (int) resolution.y,
+                              dimension: TextureDimension.Tex2D,
+                              colorFormat: GraphicsFormat.R16_SFloat,
+                              enableRandomWrite: true,
+                              useMipMap: true,
+                              autoGenerateMips: false,
+                              name: name);
+
+  Debug.Assert(table != null);
+
+  return table;
+}
+
+/* Takes up less space by using a single color channel. */
+RTHandle allocatedProceduralCloudTexture3DRGB(Vector3 resolution, string name) {
+  var table = RTHandles.Alloc((int) resolution.x,
                               (int) resolution.y,
                               (int) resolution.z,
                               dimension: TextureDimension.Tex3D,
@@ -275,6 +291,22 @@ RTHandle allocatedProceduralCloudTexture3D(Vector3 resolution, string name) {
   return table;
 }
 
+/* Takes up less space by using a single color channel. */
+RTHandle allocatedProceduralCloudTexture3DGrayscale(Vector3 resolution, string name) {
+  var table = RTHandles.Alloc((int) resolution.x,
+                              (int) resolution.y,
+                              (int) resolution.z,
+                              dimension: TextureDimension.Tex3D,
+                              colorFormat: GraphicsFormat.R16_SFloat,
+                              enableRandomWrite: true,
+                              useMipMap: true,
+                              autoGenerateMips: false,
+                              name: name);
+
+  Debug.Assert(table != null);
+
+  return table;
+}
 
 /* Struct for holding handles to procedural cloud textures. */
 struct CloudNoiseTexture {
@@ -293,12 +325,12 @@ CloudNoiseTexture[] m_cloudNoiseTextures;
 CloudNoiseTexture buildCloudNoiseTexture2D(ExpanseCommon.CloudTextureResolution res, int index) {
   CloudNoiseTexture c;
   c.dimension = 2;
-  c.coverageTex = allocatedProceduralCloudTexture2D(new Vector2(res.Coverage, res.Coverage), "CloudCoverage_" + index);
-  c.baseTex = allocatedProceduralCloudTexture2D(new Vector2(res.Base, res.Base), "CloudBase_" + index);
-  c.structureTex = allocatedProceduralCloudTexture2D(new Vector2(res.Structure, res.Structure), "CloudStructure_" + index);
-  c.detailTex = allocatedProceduralCloudTexture2D(new Vector2(res.Detail, res.Detail), "CloudDetail_" + index);
-  c.baseWarpTex = allocatedProceduralCloudTexture2D(new Vector2(res.BaseWarp, res.BaseWarp), "CloudBaseWarp_" + index);
-  c.detailWarpTex = allocatedProceduralCloudTexture2D(new Vector2(res.DetailWarp, res.DetailWarp), "CloudDetailWarp_" + index);
+  c.coverageTex = allocatedProceduralCloudTexture2DGrayscale(new Vector2(res.Coverage, res.Coverage), "CloudCoverage_" + index);
+  c.baseTex = allocatedProceduralCloudTexture2DGrayscale(new Vector2(res.Base, res.Base), "CloudBase_" + index);
+  c.structureTex = allocatedProceduralCloudTexture2DGrayscale(new Vector2(res.Structure, res.Structure), "CloudStructure_" + index);
+  c.detailTex = allocatedProceduralCloudTexture2DGrayscale(new Vector2(res.Detail, res.Detail), "CloudDetail_" + index);
+  c.baseWarpTex = allocatedProceduralCloudTexture2DRGB(new Vector2(res.BaseWarp, res.BaseWarp), "CloudBaseWarp_" + index);
+  c.detailWarpTex = allocatedProceduralCloudTexture2DRGB(new Vector2(res.DetailWarp, res.DetailWarp), "CloudDetailWarp_" + index);
   return c;
 }
 
@@ -306,12 +338,12 @@ CloudNoiseTexture buildCloudNoiseTexture3D(ExpanseCommon.CloudTextureResolution 
   CloudNoiseTexture c;
   c.dimension = 3;
   /* Coverage is always 2D. */
-  c.coverageTex = allocatedProceduralCloudTexture2D(new Vector2(res.Coverage, res.Coverage), "CloudCoverage_" + index);
-  c.baseTex = allocatedProceduralCloudTexture3D(new Vector3(res.Base, ExpanseCommon.cloudXZResolutionToYResolution(res.Base), res.Base), "CloudBase_" + index);
-  c.structureTex = allocatedProceduralCloudTexture3D(new Vector3(res.Structure, ExpanseCommon.cloudXZResolutionToYResolution(res.Structure), res.Structure), "CloudStructure_" + index);
-  c.detailTex = allocatedProceduralCloudTexture3D(new Vector3(res.Detail, ExpanseCommon.cloudXZResolutionToYResolution(res.Detail), res.Detail), "CloudDetail_" + index);
-  c.baseWarpTex = allocatedProceduralCloudTexture3D(new Vector3(res.BaseWarp, ExpanseCommon.cloudXZResolutionToYResolution(res.BaseWarp), res.BaseWarp), "CloudBaseWarp_" + index);
-  c.detailWarpTex = allocatedProceduralCloudTexture3D(new Vector3(res.DetailWarp, ExpanseCommon.cloudXZResolutionToYResolution(res.DetailWarp), res.DetailWarp), "CloudDetailWarp_" + index);
+  c.coverageTex = allocatedProceduralCloudTexture2DGrayscale(new Vector2(res.Coverage, res.Coverage), "CloudCoverage_" + index);
+  c.baseTex = allocatedProceduralCloudTexture3DGrayscale(new Vector3(res.Base, ExpanseCommon.cloudXZResolutionToYResolution(res.Base), res.Base), "CloudBase_" + index);
+  c.structureTex = allocatedProceduralCloudTexture3DGrayscale(new Vector3(res.Structure, ExpanseCommon.cloudXZResolutionToYResolution(res.Structure), res.Structure), "CloudStructure_" + index);
+  c.detailTex = allocatedProceduralCloudTexture3DGrayscale(new Vector3(res.Detail, ExpanseCommon.cloudXZResolutionToYResolution(res.Detail), res.Detail), "CloudDetail_" + index);
+  c.baseWarpTex = allocatedProceduralCloudTexture3DRGB(new Vector3(res.BaseWarp, ExpanseCommon.cloudXZResolutionToYResolution(res.BaseWarp), res.BaseWarp), "CloudBaseWarp_" + index);
+  c.detailWarpTex = allocatedProceduralCloudTexture3DRGB(new Vector3(res.DetailWarp, ExpanseCommon.cloudXZResolutionToYResolution(res.DetailWarp), res.DetailWarp), "CloudDetailWarp_" + index);
   return c;
 }
 

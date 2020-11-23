@@ -66,9 +66,11 @@ TODO LIST:
     -performance needs to be significantly better
     -the compositing over direct light bug needs to be fixed
     -the multiple layers turns volumetric layers black bug needs to be fixed
+      -fixed, in-scattering parameters weren't being set
     -generally, the compositing needs to look better I think. there's this weird
     bubble-looking thing around the clouds where transmittance isn't quite zero,
     but there's not enough in-scattering for there to be any noticeable light.
     it appears introducing depth probability makes it worse.
+      -Fixed with hack.
 
 Parameters:

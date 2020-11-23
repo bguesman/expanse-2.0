@@ -57,11 +57,11 @@ float4 _cloudHeightGradient;
 float _cloudThickness[MAX_CLOUD_LAYERS];
 /* 3D. */
 // Min, max, strength.
-float4 _cloudVerticalProbability[MAX_CLOUD_LAYERS];
+float4 _cloudVerticalProbability;
 // Height min/max, strength min/max
-float4 _cloudDepthProbabilityHeightStrength[MAX_CLOUD_LAYERS];
-float _cloudDepthProbabilityDensityMultiplier[MAX_CLOUD_LAYERS];
-float _cloudDepthProbabilityBias[MAX_CLOUD_LAYERS];
+float4 _cloudDepthProbabilityHeightStrength;
+float _cloudDepthProbabilityDensityMultiplier;
+float _cloudDepthProbabilityBias;
 /* 2D and 3D. */
 float _cloudDensity[MAX_CLOUD_LAYERS];
 float _cloudDensityAttenuationDistance[MAX_CLOUD_LAYERS];
@@ -192,7 +192,7 @@ float takeMediaSample2DLowLOD(float3 p, ICloudGeometry geometry, int mipLevel) {
     float2 coverageUV = geometry.mapCoordinate(p, _cloudCoverageTile).xz;
     float coverage = SAMPLE_TEXTURE2D_LOD(_cloudCoverageNoise, s_linear_repeat_sampler,
       coverageUV, mipLevel).x;
-    coverage = clamp(_cloudCoverageIntensity * coverage * 5, 0.0, 0.99);
+    coverage = clamp((1-_cloudCoverageIntensity) * coverage * 5, 0.0, 0.99);
     // TODO: pow here? perhaps power remap? remap less for smaller values
     // Also, this is a much better remap function for wispier 2D clouds
     // than the usual remap(sample, coverage, 1, 0, 1)
@@ -266,16 +266,23 @@ float takeMediaSample3DLowLOD(float3 p, ICloudGeometry geometry, int mipLevel) {
   float sample = SAMPLE_TEXTURE3D_LOD(_cloudBaseNoise3D, s_linear_repeat_sampler,
     baseUV, mipLevel).x;
 
+  /* Compute height gradient early, since we use it in the coverage
+   * calculation. */
+  float heightGradient = geometry.heightGradient(p);
+
   /* Coverage. */
   if (_cloudCoverageIntensity > FLT_EPSILON) {
     float2 coverageUV = geometry.mapCoordinate(p, _cloudCoverageTile).xz;
     float coverage = SAMPLE_TEXTURE2D_LOD(_cloudCoverageNoise, s_linear_repeat_sampler,
       coverageUV, mipLevel).x;
-    coverage = clamp(_cloudCoverageIntensity * coverage * 2, 0.0, 0.99);
+
+    /* Modify the coverage to decrease over height to create nice, domed
+     * cumulus clouds. TODO: tweakable! */
+    coverage = coverage * (heightGradient*1+1);
+    coverage = saturate((1-_cloudCoverageIntensity) * coverage);
     sample = remap(sample, coverage, 1, 0, 1);
   }
 
-  float heightGradient = geometry.heightGradient(p);
   heightGradient = computeHeightGradient(heightGradient, _cloudHeightGradient.xy, _cloudHeightGradient.zw);
   sample = remap(sample, 0, 1, 0, heightGradient);
 
