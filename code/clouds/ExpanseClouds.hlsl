@@ -107,7 +107,7 @@ CloudShadingResult shadeCloudLayer2D(float3 O, float3 d, ICloudGeometry geometry
   float3 p = O + d * t_hit;
 
   /* Transmittance. */
-  float mediaSample = takeMediaSample2DHighLOD(p, geometry);
+  float mediaSample = takeMediaSample2DHighLOD(p, geometry, clamp(length(p.xz - GetCameraPositionPlanetSpace().xz) / 30000, 0, 8)); // TODO: this mip level is a hack, but it looks good. maybe tweakable as an advanced setting?
   float attenuation = geometry.densityAttenuation(p, _cloudDensityAttenuationDistance[i], _cloudDensityAttenuationBias[i]);
   float density = (attenuation * _cloudDensity[i]);
   float opticalDepth = mediaSample * _cloudThickness[i] * density;
