@@ -165,7 +165,7 @@ float3 lightCloudLayer3D(float3 p, float3 d, ICloudGeometry geometry,
      * TODO: tweakable, not necessary when using self-shadowing. */
     const bool _useShadowBlur = false;
     if (_useShadowBlur) {
-      const float blurOffset = 0.001;
+      const float blurOffset = 0.5;
       const float blurDistance = 0.01;
       lighting *= computeShadowBlur(r, mu, blurOffset, blurDistance);
     }
@@ -202,6 +202,7 @@ float3 lightCloudLayer3D(float3 p, float3 d, ICloudGeometry geometry,
        * cloud volume. */
       float2 lightExit = geometry.intersect(p, L);
       // TODO: probably tweakable.
+      // TODO: cone sample?
       const int numShadowSamples = 4;
       const float shadowDistance = max(0, min(5000, lightExit.y));
       for (int j = 0; j < numShadowSamples; j++) {
@@ -240,13 +241,14 @@ CloudShadingResult raymarchCloudLayer3D(float3 start, float3 d, float t,
   result.hit = true;
   result.blend = 1;
 
-  /* Marching parameters: TODO: tweakable in sampling. */
-  const float detailStep = 1.0/128.0;
-  const float coarseStep = 1.0/32.0;
-  const int maxSamples = 128;
+  /* Marching parameters: TODO: tweakable in sampling. 64 is a safe number,
+   * 32 seems to be ok, but introduce the possibility of a little flickering. */
+  const float detailStep = 1.0/32.0;
+  const float coarseStep = 1.0/16.0;
+  const int maxSamples = 32;
   const float mediaZeroThreshold = 0.0001;
   const float transmittanceZeroThreshold = 0.0001;
-  const int maxConsecutiveZeroSamples = 10;
+  const int maxConsecutiveZeroSamples = 4;
 
   /* Marching state. */
   float tMarched = 0.0;
@@ -262,7 +264,7 @@ CloudShadingResult raymarchCloudLayer3D(float3 start, float3 d, float t,
     if (marchCoarse) {
       /* Take a test coarse sample. */
       float ds = coarseStep * t;
-      float3 testPoint = start + d * (tMarched + 0.5 * ds);
+      float3 testPoint = start + d * (tMarched + getBlueNoiseOffset() * ds);
       float testSample = takeMediaSample3DLowLOD(testPoint, geometry);
       /* If it's zero, keep up with the coarse marching. */
       if (testSample < mediaZeroThreshold) {
@@ -276,7 +278,7 @@ CloudShadingResult raymarchCloudLayer3D(float3 start, float3 d, float t,
 
     /* Take a detailed sample. */
     float ds = detailStep * t;
-    float3 p = start + d * (tMarched + 0.5 * ds);
+    float3 p = start + d * (tMarched + getBlueNoiseOffset() * ds);
     float mediaSample = takeMediaSample3DHighLOD(p, geometry);
 
     /* If it's zero, skip. If it's been zero for a while, switch back to
@@ -383,6 +385,10 @@ CloudShadingResult shadeCloudLayer(float3 O, float3 d, int i, float depth,
   switch (_cloudGeometryType[i]) {
     case CloudGeometryType_Plane: {
       CloudPlane geometry = CreateCloudPlane(xExtent, zExtent, height, apparentThickness);
+      return shadeCloudLayer2D(O, d, geometry, skyIntersection, geoHit, depth, i);
+    }
+    case CloudGeometryType_CurvedPlane: {
+      CloudCurvedPlane geometry = CreateCloudCurvedPlane(xExtent, zExtent, height, apparentThickness);
       return shadeCloudLayer2D(O, d, geometry, skyIntersection, geoHit, depth, i);
     }
     case CloudGeometryType_Sphere: {

@@ -468,6 +468,7 @@ void cleanupCloudTextures() {
 /******************************************************************************/
 
 private bool reallocateCloudFramebuffers = true;
+private Matrix4x4 prevInvViewProjMatrix = Matrix4x4.identity;
 
 /* 2 tables:
  *  1. Sky color. RGBA where A isn't used (currently).
@@ -475,6 +476,7 @@ private bool reallocateCloudFramebuffers = true;
  *    using depth buffer. */
 struct SkyRenderTexture {
   public RTHandle colorBuffer;
+  public RTHandle directLightBuffer;
 };
 SkyRenderTexture m_fullscreenSkyRT;
 SkyRenderTexture m_cubemapSkyRT;
@@ -508,6 +510,7 @@ Vector2 m_currentCubemapRTSize;
 SkyRenderTexture buildSkyRenderTexture(Vector2 resolution, int index, string name) {
   SkyRenderTexture r = new SkyRenderTexture();
   r.colorBuffer = allocateSky2DTable(resolution, index, name + "_Color");
+  r.directLightBuffer = allocateSky2DTable(resolution, index, name + "_DirectLight");
   return r;
 }
 
@@ -561,6 +564,8 @@ private void buildCubemapRenderTextures(Vector2 resolution) {
 private void cleanupFullscreenRenderTextures() {
   RTHandles.Release(m_fullscreenSkyRT.colorBuffer);
   m_fullscreenSkyRT.colorBuffer = null;
+  RTHandles.Release(m_fullscreenSkyRT.directLightBuffer);
+  m_fullscreenSkyRT.directLightBuffer = null;
 
   for (int i = 0; i < 2; i++) {
     RTHandles.Release(m_fullscreenCloudCompositeRT[i].colorBuffer);
@@ -580,6 +585,8 @@ private void cleanupFullscreenRenderTextures() {
 private void cleanupCubemapRenderTextures() {
   RTHandles.Release(m_cubemapSkyRT.colorBuffer);
   m_cubemapSkyRT.colorBuffer = null;
+  RTHandles.Release(m_cubemapSkyRT.directLightBuffer);
+  m_cubemapSkyRT.directLightBuffer = null;
 
   for (int i = 0; i < 2; i++) {
     RTHandles.Release(m_cubemapCloudCompositeRT[i].colorBuffer);
@@ -885,6 +892,7 @@ private void RenderSkyPass(BuiltinSkyParameters builtinParams, bool renderForCub
   SkyRenderTexture outTex = renderForCubemap ? m_cubemapSkyRT : m_fullscreenSkyRT;
   RenderTargetIdentifier[] outputs = new RenderTargetIdentifier[] {
     new RenderTargetIdentifier(outTex.colorBuffer),
+    new RenderTargetIdentifier(outTex.directLightBuffer)
   };
   if (renderForCubemap) {
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
@@ -915,6 +923,7 @@ private void RenderCloudsPass(BuiltinSkyParameters builtinParams, bool renderFor
         new RenderTargetIdentifier(m_fullscreenCloudLayerRT[i].transmittanceBuffer)};
       CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
           outputs, m_PropertyBlock, m_RenderFullscreenCloudsID);
+
     }
   }
 }
@@ -957,6 +966,7 @@ private void RenderCompositePass(BuiltinSkyParameters builtinParams, bool render
 
   if (renderForCubemap) {
     m_PropertyBlock.SetTexture("_cubemapSkyColorRT", m_cubemapSkyRT.colorBuffer);
+    m_PropertyBlock.SetTexture("_cubemapSkyDirectLightRT", m_cubemapSkyRT.directLightBuffer);
     m_PropertyBlock.SetTexture("_currCubemapCloudColorRT", m_cubemapCloudCompositeRT[m_currentCubemapCloudsRT].colorBuffer);
     m_PropertyBlock.SetTexture("_currCubemapCloudTransmittanceRT", m_cubemapCloudCompositeRT[m_currentCubemapCloudsRT].transmittanceBuffer);
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
@@ -964,6 +974,7 @@ private void RenderCompositePass(BuiltinSkyParameters builtinParams, bool render
     m_currentCubemapCloudsRT = (m_currentCubemapCloudsRT + 1) % 2;
   } else {
     m_PropertyBlock.SetTexture("_fullscreenSkyColorRT", m_fullscreenSkyRT.colorBuffer);
+    m_PropertyBlock.SetTexture("_fullscreenSkyDirectLightRT", m_fullscreenSkyRT.directLightBuffer);
     m_PropertyBlock.SetTexture("_currFullscreenCloudColorRT", m_fullscreenCloudCompositeRT[m_currentFullscreenCloudsRT].colorBuffer);
     m_PropertyBlock.SetTexture("_currFullscreenCloudTransmittanceRT", m_fullscreenCloudCompositeRT[m_currentFullscreenCloudsRT].transmittanceBuffer);
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
@@ -1316,9 +1327,16 @@ private void setGlobalCBuffer(BuiltinSkyParameters builtinParams) {
   builtinParams.commandBuffer.SetGlobalMatrix("_pCoordToViewDir", builtinParams.pixelCoordToViewDirMatrix);
   builtinParams.commandBuffer.SetGlobalVector("_currentScreenSize", builtinParams.hdCamera.screenSize);
   builtinParams.commandBuffer.SetGlobalFloat("_farClip", builtinParams.hdCamera.frustum.planes[5].distance);
+  // HACK: testing
+  builtinParams.commandBuffer.SetGlobalMatrix("_previousPCoordToViewDirMatrix", prevInvViewProjMatrix);
+  builtinParams.commandBuffer.SetGlobalMatrix("_inversePCoordToViewDirMatrix", builtinParams.pixelCoordToViewDirMatrix.inverse);
+  prevInvViewProjMatrix = builtinParams.pixelCoordToViewDirMatrix;
 
   /* Time tick variable. */
   builtinParams.commandBuffer.SetGlobalFloat("_tick", Time.realtimeSinceStartup);
+
+  /* Frames count. */
+  builtinParams.commandBuffer.SetGlobalInt("_frameCount", Time.frameCount);
 }
 
 private void setGlobalCBufferPlanet(CommandBuffer cmd, Expanse sky) {

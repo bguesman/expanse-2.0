@@ -118,8 +118,9 @@ CBUFFER_END // Expanse Sky
     SAMPLER(s_point_clamp_sampler);
 #endif
 
-/* Time tick variable for random seeding. */
+/* Time tick variable and frame count for random seeding. */
 float _tick;
+int _frameCount;
 
 /******************************************************************************/
 /*************************** END GLOBAL VARIABLES *****************************/

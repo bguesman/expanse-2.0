@@ -89,6 +89,9 @@ TEXTURE3D(_cloudDetailWarpNoise3D);
 
 CBUFFER_END // Expanse Cloud
 
+// TODO: tweakable?
+#define CLOUD_REPROJECTION_FRAMES 16
+
 /******************************************************************************/
 /*************************** END GLOBAL VARIABLES *****************************/
 /******************************************************************************/
@@ -114,6 +117,11 @@ CloudShadingResult cloudNoIntersectionResult() {
   return result;
 }
 
+/* Returns the unique blue noise sampling offset for this frame. */
+float getBlueNoiseOffset() {
+  return frac((_frameCount % CLOUD_REPROJECTION_FRAMES) * GOLDEN_RATIO);
+}
+
 float henyeyGreensteinPhase(float dLd, float e) {
   return ((1 - e * e) / pow(abs(1 + e * e - 2 * e * dLd), 3.0/2.0)) / (4 * PI);
 }
@@ -126,10 +134,10 @@ float3 computeMSModifiedTransmittance(float3 absorptionCoefficients, float optic
   return max(exp(-absorptionCoefficients * opticalDepth), exp(-absorptionCoefficients * opticalDepth * _cloudMSBias) * _cloudMSAmount);
 }
 
-float computeShadowBlur(float r, float mu, float offset, float distance) {
+float computeShadowBlur(float r, float mu, float offset, float dist) {
   float h = r - _planetRadius;
   float cos_h = -safeSqrt(h * (2 * _planetRadius + h)) / (_planetRadius + h);
-  return 1 - pow(saturate(distance / clampAboveZero(abs(cos_h - mu))), offset);
+  return 1 - pow(saturate(dist / clampAboveZero(abs(cos_h - mu))), offset);
 }
 
 float computeHeightGradient(float y, float2 bottom, float2 top) {

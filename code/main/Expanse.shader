@@ -107,6 +107,8 @@ TEXTURE2D(_cloudTransmittanceLayer7);
 /* Render textures. */
 TEXTURE2D(_fullscreenSkyColorRT);
 TEXTURE2D(_cubemapSkyColorRT);
+TEXTURE2D(_fullscreenSkyDirectLightRT);
+TEXTURE2D(_cubemapSkyDirectLightRT);
 TEXTURE2D(_lastFullscreenCloudColorRT);
 TEXTURE2D(_lastFullscreenCloudTransmittanceRT);
 TEXTURE2D(_lastCubemapCloudColorRT);
@@ -115,6 +117,10 @@ TEXTURE2D(_currFullscreenCloudColorRT);
 TEXTURE2D(_currFullscreenCloudTransmittanceRT);
 TEXTURE2D(_currCubemapCloudColorRT);
 TEXTURE2D(_currCubemapCloudTransmittanceRT);
+
+/* For reprojection. */
+float4x4 _previousPCoordToViewDirMatrix;
+float4x4 _inversePCoordToViewDirMatrix;
 
 /******************************************************************************/
 /**************************** END INPUT VARIABLES *****************************/
@@ -137,6 +143,11 @@ struct Varyings
   float4 positionCS : SV_POSITION;
   float2 screenPosition : TEXCOORD0;
   UNITY_VERTEX_OUTPUT_STEREO
+};
+
+struct SkyResult {
+  float4 color : SV_Target0;
+  float4 directLight : SV_Target1;
 };
 
 struct CloudResult {
@@ -446,6 +457,7 @@ float3 shadeNightSky(float3 d) {
 
 struct SkyRenderResult {
   float4 color;
+  float3 directLight;
   bool closeToEdge;
 };
 
@@ -475,18 +487,18 @@ SkyRenderResult RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
 
   /* Compute direct illumination, but only if we don't hit any geometry and
    * if we're rendering fullscreen. */
-  float3 directLight = float3(0, 0, 0);
+  result.directLight = float3(0, 0, 0);
   if (!geoHit && !cubemap) {
     if (intersection.groundHit) {
-      directLight = shadeGround(endPoint);
+      result.directLight = shadeGround(endPoint);
     } else {
       /* Shade the closest celestial body and the stars. */
       float4 directLightAndEdgeCloseness = shadeClosestCelestialBody(d);
-      directLight = directLightAndEdgeCloseness.xyz;
+      result.directLight = directLightAndEdgeCloseness.xyz;
       result.closeToEdge = (directLightAndEdgeCloseness.w > 0);
-      if (directLight.x < 0) {
+      if (result.directLight.x < 0) {
         /* If we didn't shade any celestial bodies, shade the stars. */
-        directLight = shadeNightSky(d);
+        result.directLight = shadeNightSky(d);
       }
     }
   }
@@ -497,7 +509,7 @@ SkyRenderResult RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     if (depth < farClip - 0.001) {
       result.color = float4(0, 0, 0, 1);
     } else {
-      result.color = float4(directLight, 0);
+      result.color = float4(0, 0, 0, 0);
     }
     return result;
   }
@@ -547,18 +559,23 @@ SkyRenderResult RenderSky(Varyings input, float3 O, float3 d, bool cubemap) {
     result.closeToEdge = result.closeToEdge || (abs(cos_h - mu) < closeToHorizonEdgeThreshold);
   }
 
-  result.color = float4(skyColor + transmittance * directLight, blendTransmittance);
+  result.directLight *= transmittance;
+  result.color = float4(skyColor, blendTransmittance);
   return result;
 }
 
-float4 SkyCubemap(Varyings input) : SV_Target {
+SkyResult SkyCubemap(Varyings input) {
   /* Compute origin point and sample direction. */
   float3 O = GetCameraPositionPlanetSpace();
   float3 d = -GetSkyViewDirWS(input.positionCS.xy);
-  return RenderSky(input, O, d, true).color;
+  SkyRenderResult result = RenderSky(input, O, d, true);
+  SkyResult r;
+  r.color = result.color;
+  r.directLight = float4(result.directLight, 0);
+  return r;
 }
 
-float4 SkyFullscreen(Varyings input) : SV_Target {
+SkyResult SkyFullscreen(Varyings input) {
   UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
   /* Compute origin point and sample direction. */
@@ -575,12 +592,18 @@ float4 SkyFullscreen(Varyings input) : SV_Target {
     for (int i = 0; i < 8; i++) {
       float3 dOffset = -GetSkyViewDirWS(input.positionCS.xy
         + float2(MSAA_8X_OFFSETS_X[i], MSAA_8X_OFFSETS_Y[i]));
-      result.color += RenderSky(input, O, dOffset, false).color;
+      SkyRenderResult sample = RenderSky(input, O, dOffset, false);
+      result.color += sample.color;
+      result.directLight += sample.directLight;
     }
     result.color /= 9.0;
+    result.directLight /= 9.0;
   }
 
-  return result.color;
+  SkyResult r;
+  r.color = result.color;
+  r.directLight = float4(result.directLight, 0);
+  return r;
 }
 
 /******************************************************************************/
@@ -719,7 +742,7 @@ CloudShadingResult sampleCloudLayerTexture(float2 uv, int i) {
   return result;
 }
 
-CloudResult compositeClouds(float2 uv) {
+CloudResult compositeClouds(float2 uv, float4 positionCS) {
   /* Loop counters. */
   int i, j;
 
@@ -761,6 +784,7 @@ CloudResult compositeClouds(float2 uv) {
   result.color = float3(0, 0, 0);
   result.transmittance = float3(1, 1, 1);
   result.blend = 0;
+  result.t_hit = 0;
   float blendNormalization = 0.0;
   for (i = 0; i < _numActiveCloudLayers-numNoHit; i++) {
     CloudShadingResult layer = layerResult[i];
@@ -769,30 +793,53 @@ CloudResult compositeClouds(float2 uv) {
     result.color = result.color * layer.transmittance + layer.color * (1-layer.transmittance);
     result.transmittance *= layer.transmittance;
     float monochromeAlpha = saturate(dot(1-layer.transmittance, float3(1, 1, 1)/3));
-    result.blend += layer.blend * monochromeAlpha / max(0.001, result.transmittance);
-    blendNormalization += monochromeAlpha / max(0.001, result.transmittance);
+    float monochromeTransmittance = averageFloat3(result.transmittance);
+    result.blend += layer.blend * monochromeAlpha / max(0.001, monochromeTransmittance);
+    result.t_hit += layer.t_hit * monochromeAlpha / max(0.001, monochromeTransmittance);
+    blendNormalization += monochromeAlpha / max(0.001, monochromeTransmittance);
   }
   if (blendNormalization > 0) {
     result.blend /= blendNormalization;
   }
 
-  /* Finally, blend with previous frame. */
-  // float4x4 prev = unity_MatrixPreviousM;
-  // float reuseProportion = 0.8;
-  // float newProportion = 1-reuseProportion;
-  // float4 cloudColAndBlendPrev = SAMPLE_TEXTURE2D_LOD(_lastFullscreenCloudColorRT,
-  //   s_linear_clamp_sampler, uv, 0);
-  // float3 cloudColPrev = cloudColAndBlendPrev.xyz;
-  // float cloudBlendPrev = cloudColAndBlendPrev.w;
-  // float3 cloudTPrev = SAMPLE_TEXTURE2D_LOD(_lastFullscreenCloudTransmittanceRT,
-  //   s_linear_clamp_sampler, uv, 0).xyz;
-  // result.color = result.color * newProportion + cloudColPrev * reuseProportion;
-  // result.transmittance = result.transmittance * newProportion + cloudTPrev * reuseProportion;
-  // result.blend = result.blend * newProportion + cloudBlendPrev * reuseProportion;
+  /* Finally, reproject and blend with previous frame. */
+  /* The question is, where was our previous sample in world space? We can
+   * figure that out by taking our clip space position and multiplying it
+   * by the previous camera transformation. */
+  // float4 previousWorldspaceDirection = mul(_previousPCoordToViewDirMatrix, positionCS);
+  // /* Then we can multiply it by the current viewing transformation. */
+  // float4 currClipspacePosition = mul(_inversePCoordToViewDirMatrix, previousWorldspaceDirection);
+  // /* Since we're in clip space, we have to divide by the screen width and
+  //  * height to get to normalized device coordinates in the range [0, 1]. */
+  // float2 reprojectedUV = saturate(currClipspacePosition.xy / _ScreenParams.xy);
+  float2 reprojectedUV = uv;
+
+  // CloudResult resultPacked;
+  // resultPacked.color = float4(0, 0, 0, 1);
+  // resultPacked.transmittance = float4(0, 0, 0, result.t_hit);
+  // if (reprojectedUV.x < 0.5) {
+  //   resultPacked.color += float4(100, 0, 0, 0);
+  // }
+  // if (reprojectedUV.y < 0.5) {
+  //   resultPacked.color += float4(0, 0, 100, 0);
+  // }
+  // return resultPacked;
+
+  float newProportion = 1.0/((float) CLOUD_REPROJECTION_FRAMES);
+  float reuseProportion = 1-newProportion;
+  float4 cloudColAndBlendPrev = SAMPLE_TEXTURE2D_LOD(_lastFullscreenCloudColorRT,
+    s_linear_clamp_sampler, reprojectedUV, 0);
+  float3 cloudColPrev = cloudColAndBlendPrev.xyz;
+  float cloudBlendPrev = cloudColAndBlendPrev.w;
+  float3 cloudTPrev = SAMPLE_TEXTURE2D_LOD(_lastFullscreenCloudTransmittanceRT,
+    s_linear_clamp_sampler, reprojectedUV, 0).xyz;
+  result.color = result.color * newProportion + cloudColPrev * reuseProportion;
+  result.transmittance = result.transmittance * newProportion + cloudTPrev * reuseProportion;
+  result.blend = result.blend * newProportion + cloudBlendPrev * reuseProportion;
 
   CloudResult resultPacked;
   resultPacked.color = float4(result.color, result.blend);
-  resultPacked.transmittance = float4(result.transmittance, 0);
+  resultPacked.transmittance = float4(result.transmittance, result.t_hit);
 
   return resultPacked;
 }
@@ -806,7 +853,7 @@ CloudResult CloudsCompositeCubemap(Varyings input) {
 
 CloudResult CloudsCompositeFullscreen(Varyings input) {
   float2 textureCoordinate = input.screenPosition;
-  return compositeClouds(textureCoordinate);
+  return compositeClouds(textureCoordinate, input.positionCS);
 }
 
 /******************************************************************************/
@@ -826,6 +873,8 @@ float4 Composite(Varyings input, bool cubemap, float exposure) {
   /* Sample the sky fullscreen texture. */
   float4 skyCol = SAMPLE_TEXTURE2D_LOD(_fullscreenSkyColorRT,
     s_linear_clamp_sampler, textureCoordinate, 0);
+  float3 skyDirectLight = SAMPLE_TEXTURE2D_LOD(_fullscreenSkyDirectLightRT,
+    s_linear_clamp_sampler, textureCoordinate, 0).xyz;
 
   /* Sample the cloud fullscreen textures. */
   float4 cloudColAndBlend = SAMPLE_TEXTURE2D_LOD(_currFullscreenCloudColorRT,
@@ -841,7 +890,7 @@ float4 Composite(Varyings input, bool cubemap, float exposure) {
   float3 cloudsOnSky = cloudCol + skyCol.xyz * cloudT;
   /* Then, composite the sky color on top of the clouds according to the
    * blend transmittance to fake aerial perspective. */
-  float3 finalColor = cloudsOnSky * cloudBlend + skyCol.xyz * (1 - cloudBlend);
+  float3 finalColor = cloudsOnSky * cloudBlend + skyCol.xyz * (1 - cloudBlend) + skyDirectLight * cloudT;
 
   /* Optionally, dither. */
   if (_useDither) {

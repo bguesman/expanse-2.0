@@ -228,10 +228,11 @@ public const uint kMaxCloudLayers = 8;
 
 public enum CloudGeometryType {
   Plane = 0,      /* Clouds are 2D, on a flat plane at some altitude. */
+  CurvedPlane,    /* Clouds are 2D, on a plane that's curved with the planet at some altitude. */
   Sphere,     /* Clouds surround the planet in a sphere at some altitude. */
   BoxVolume   /* Clouds are volumetric and distributed throughout a rectangular box. */
 };
-public const uint kMaxCloudGeometryTypes = 3;
+public const uint kMaxCloudGeometryTypes = 4;
 
 /* Enum for different cloud noise dimension types. */
 public enum CloudNoiseDimension {
@@ -243,6 +244,7 @@ public const uint kMaxCloudNoiseDimensionTypes = 2;
 /* Map of geometry types to dimensions. */
 public static Dictionary<CloudGeometryType, CloudNoiseDimension> cloudGeometryTypeToDimension = new Dictionary<CloudGeometryType, CloudNoiseDimension>(){
 	{CloudGeometryType.Plane, CloudNoiseDimension.TwoD},
+  {CloudGeometryType.CurvedPlane, CloudNoiseDimension.TwoD},
 	{CloudGeometryType.Sphere, CloudNoiseDimension.TwoD},
 	{CloudGeometryType.BoxVolume, CloudNoiseDimension.ThreeD}
 };
