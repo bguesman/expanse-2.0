@@ -674,6 +674,24 @@ public FloatRangeParameter cloudHeightGradientTop0, cloudHeightGradientTop1, clo
   cloudHeightGradientTop3, cloudHeightGradientTop4, cloudHeightGradientTop5, cloudHeightGradientTop6, cloudHeightGradientTop7;
 
 /* Movement---sampling offsets primarily. TODO */
+[Tooltip("Sampling offsets for coverage map.")]
+public Vector3Parameter cloudCoverageOffset0, cloudCoverageOffset1, cloudCoverageOffset2,
+  cloudCoverageOffset3, cloudCoverageOffset4, cloudCoverageOffset5, cloudCoverageOffset6, cloudCoverageOffset7;
+[Tooltip("Sampling offsets for base noise.")]
+public Vector3Parameter cloudBaseOffset0, cloudBaseOffset1, cloudBaseOffset2,
+  cloudBaseOffset3, cloudBaseOffset4, cloudBaseOffset5, cloudBaseOffset6, cloudBaseOffset7;
+[Tooltip("Sampling offsets for coverage map.")]
+public Vector3Parameter cloudStructureOffset0, cloudStructureOffset1, cloudStructureOffset2,
+  cloudStructureOffset3, cloudStructureOffset4, cloudStructureOffset5, cloudStructureOffset6, cloudStructureOffset7;
+[Tooltip("Sampling offsets for coverage map.")]
+public Vector3Parameter cloudDetailOffset0, cloudDetailOffset1, cloudDetailOffset2,
+  cloudDetailOffset3, cloudDetailOffset4, cloudDetailOffset5, cloudDetailOffset6, cloudDetailOffset7;
+[Tooltip("Sampling offsets for coverage map.")]
+public Vector3Parameter cloudBaseWarpOffset0, cloudBaseWarpOffset1, cloudBaseWarpOffset2,
+  cloudBaseWarpOffset3, cloudBaseWarpOffset4, cloudBaseWarpOffset5, cloudBaseWarpOffset6, cloudBaseWarpOffset7;
+[Tooltip("Sampling offsets for coverage map.")]
+public Vector3Parameter cloudDetailWarpOffset0, cloudDetailWarpOffset1, cloudDetailWarpOffset2,
+  cloudDetailWarpOffset3, cloudDetailWarpOffset4, cloudDetailWarpOffset5, cloudDetailWarpOffset6, cloudDetailWarpOffset7;
 
 /* Lighting. */
 /* 2D. */
@@ -885,6 +903,14 @@ public Expanse() : base() {
     /* Height gradient. */
     this.GetType().GetField("cloudHeightGradientBottom" + i).SetValue(this, new FloatRangeParameter(new Vector2(0.05f, 0.1f), 0.0f, 1.0f));
     this.GetType().GetField("cloudHeightGradientTop" + i).SetValue(this, new FloatRangeParameter(new Vector2(0.5f, 1.0f), 0.0f, 1.0f));
+
+    /* Movement. */
+    this.GetType().GetField("cloudCoverageOffset" + i).SetValue(this, new Vector3Parameter(new Vector3(0, 0, 0)));
+    this.GetType().GetField("cloudBaseOffset" + i).SetValue(this, new Vector3Parameter(new Vector3(0, 0, 0)));
+    this.GetType().GetField("cloudStructureOffset" + i).SetValue(this, new Vector3Parameter(new Vector3(0, 0, 0)));
+    this.GetType().GetField("cloudDetailOffset" + i).SetValue(this, new Vector3Parameter(new Vector3(0, 0, 0)));
+    this.GetType().GetField("cloudBaseWarpOffset" + i).SetValue(this, new Vector3Parameter(new Vector3(0, 0, 0)));
+    this.GetType().GetField("cloudDetailWarpOffset" + i).SetValue(this, new Vector3Parameter(new Vector3(0, 0, 0)));
 
     /* Lighting. */
     /* 2D. */

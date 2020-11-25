@@ -468,7 +468,8 @@ void cleanupCloudTextures() {
 /******************************************************************************/
 
 private bool reallocateCloudFramebuffers = true;
-private Matrix4x4 prevInvViewProjMatrix = Matrix4x4.identity;
+private Matrix4x4 previousInverseViewMatrix = Matrix4x4.identity;
+private Matrix4x4 previousInverseProjectionMatrix = Matrix4x4.identity;
 
 /* 2 tables:
  *  1. Sky color. RGBA where A isn't used (currently).
@@ -1328,9 +1329,14 @@ private void setGlobalCBuffer(BuiltinSkyParameters builtinParams) {
   builtinParams.commandBuffer.SetGlobalVector("_currentScreenSize", builtinParams.hdCamera.screenSize);
   builtinParams.commandBuffer.SetGlobalFloat("_farClip", builtinParams.hdCamera.frustum.planes[5].distance);
   // HACK: testing
-  builtinParams.commandBuffer.SetGlobalMatrix("_previousPCoordToViewDirMatrix", prevInvViewProjMatrix);
-  builtinParams.commandBuffer.SetGlobalMatrix("_inversePCoordToViewDirMatrix", builtinParams.pixelCoordToViewDirMatrix.inverse);
-  prevInvViewProjMatrix = builtinParams.pixelCoordToViewDirMatrix;
+  // builtinParams.commandBuffer.SetGlobalMatrix("_previousInverseViewMatrix", previousInverseViewMatrix);
+  // builtinParams.commandBuffer.SetGlobalMatrix("_previousInverseProjectionMatrix", previousInverseProjectionMatrix);
+  // builtinParams.commandBuffer.SetGlobalMatrix("_currentViewMatrix", builtinParams.hdCamera.mainViewConstants.viewMatrix);
+  // builtinParams.commandBuffer.SetGlobalMatrix("_currentProjectionMatrix", builtinParams.hdCamera.mainViewConstants.projMatrix);
+  // previousInverseViewMatrix = builtinParams.hdCamera.mainViewConstants.viewMatrix.inverse;
+  // previousInverseProjectionMatrix = builtinParams.hdCamera.mainViewConstants.projMatrix.inverse;
+  builtinParams.commandBuffer.SetGlobalMatrix("_previousViewProjMatrix", builtinParams.hdCamera.mainViewConstants.prevViewProjMatrix);
+  builtinParams.commandBuffer.SetGlobalMatrix("_currentInvViewProjMatrix", builtinParams.hdCamera.mainViewConstants.invViewProjMatrix);
 
   /* Time tick variable. */
   builtinParams.commandBuffer.SetGlobalFloat("_tick", Time.realtimeSinceStartup);
@@ -1770,6 +1776,14 @@ void SetGlobalCloudTexturesCommon(CommandBuffer cmd, Expanse sky, int layer, int
   Vector2 heightGradientTop = ((FloatRangeParameter) sky.GetType().GetField("cloudHeightGradientTop" + layerIndex).GetValue(sky)).value;
   Vector4 heightGradient = new Vector4(heightGradientBottom.x, heightGradientBottom.y, heightGradientTop.x, heightGradientTop.y);
   cmd.SetGlobalVector("_cloudHeightGradient", heightGradient);
+
+  /* Set the movement parameters. */
+  cmd.SetGlobalVector("_cloudCoverageOffset", ((Vector3Parameter) sky.GetType().GetField("cloudCoverageOffset" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalVector("_cloudBaseOffset", ((Vector3Parameter) sky.GetType().GetField("cloudBaseOffset" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalVector("_cloudStructureOffset", ((Vector3Parameter) sky.GetType().GetField("cloudStructureOffset" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalVector("_cloudDetailOffset", ((Vector3Parameter) sky.GetType().GetField("cloudDetailOffset" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalVector("_cloudBaseWarpOffset", ((Vector3Parameter) sky.GetType().GetField("cloudBaseWarpOffset" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalVector("_cloudDetailWarpOffset", ((Vector3Parameter) sky.GetType().GetField("cloudDetailWarpOffset" + layerIndex).GetValue(sky)).value);
 
   /* Set the lighting parameters. */
   cmd.SetGlobalFloat("_cloudMSAmount", ((ClampedFloatParameter) sky.GetType().GetField("cloudMSAmount" + layerIndex).GetValue(sky)).value);

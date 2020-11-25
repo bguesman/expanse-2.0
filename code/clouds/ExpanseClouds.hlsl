@@ -107,7 +107,7 @@ CloudShadingResult shadeCloudLayer2D(float3 O, float3 d, ICloudGeometry geometry
   float3 p = O + d * t_hit;
 
   /* Transmittance. */
-  float mediaSample = takeMediaSample2DHighLOD(p, geometry, clamp(length(p.xz - GetCameraPositionPlanetSpace().xz) / 30000, 0, 8)); // TODO: this mip level is a hack, but it looks good. maybe tweakable as an advanced setting?
+  float mediaSample = takeMediaSample2DHighLOD(p, geometry, clamp(length(p.xz - GetCameraPositionPlanetSpace().xz) / 25000, 0, 8)); // TODO: this mip level is a hack, but it looks good. maybe tweakable as an advanced setting?
   float attenuation = geometry.densityAttenuation(p, _cloudDensityAttenuationDistance[i], _cloudDensityAttenuationBias[i]);
   float density = (attenuation * _cloudDensity[i]);
   float opticalDepth = mediaSample * _cloudThickness[i] * density;
@@ -245,7 +245,7 @@ CloudShadingResult raymarchCloudLayer3D(float3 start, float3 d, float t,
    * 32 seems to be ok, but introduce the possibility of a little flickering. */
   const float detailStep = 1.0/32.0;
   const float coarseStep = 1.0/16.0;
-  const int maxSamples = 32;
+  const int maxSamples = 16;
   const float mediaZeroThreshold = 0.0001;
   const float transmittanceZeroThreshold = 0.0001;
   const int maxConsecutiveZeroSamples = 4;

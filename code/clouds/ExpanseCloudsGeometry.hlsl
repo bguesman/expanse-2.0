@@ -21,10 +21,11 @@ interface ICloudGeometry {
   bool inBounds(float3 p);
 
   /**
-   * @return: uv coordinate for planet space point p, with tiling factor tile.
-   * Assumes coordinate is within the bounds of the geometry.
+   * @return: uv coordinate for planet space point p, with tiling factor tile
+   * and uv offset offset. Assumes coordinate is within the bounds of the
+   * geometry.
    * */
-  float3 mapCoordinate(float3 p, int3 tile);
+  float3 mapCoordinate(float3 p, int3 tile, float3 offset);
 
   /**
    * @return: starting and ending intersection distances, as, correspondingly,
@@ -79,11 +80,11 @@ class CloudPlane : ICloudGeometry {
   }
 
   /* Disregards y components of p and tile. */
-  float3 mapCoordinate(float3 p, int3 tile) {
+  float3 mapCoordinate(float3 p, int3 tile, float3 offset) {
     float2 minimum = float2(xExtent.x, zExtent.x);
     float2 maximum = float2(xExtent.y, zExtent.y);
     float2 uv = (p.xz - minimum) / (maximum - minimum);
-    uv = frac(uv * tile.xz);
+    uv = frac(uv * tile.xz + offset.xz);
     return float3(uv.x, 0, uv.y);
   }
 
@@ -149,12 +150,12 @@ class CloudCurvedPlane : ICloudGeometry {
   }
 
   /* Disregards y components of p and tile. */
-  float3 mapCoordinate(float3 p, int3 tile) {
+  float3 mapCoordinate(float3 p, int3 tile, float3 offset) {
     float2 minimum = float2(xAngleExtent.x, zAngleExtent.x);
     float2 maximum = float2(xAngleExtent.y, zAngleExtent.y);
     float2 sinAngles = float2(p.x/radius, p.z/radius);
     float2 uv = (sinAngles - minimum) / (maximum - minimum);
-    uv = frac(uv * tile.xz);
+    uv = frac(uv * tile.xz + offset.xz);
     return float3(uv.x, 0, uv.y);
   }
 
@@ -236,14 +237,14 @@ class CloudBoxVolume : ICloudGeometry {
       && boundsCheck(p.z, zExtent);
   }
 
-  float3 mapCoordinate(float3 p, int3 tile) {
+  float3 mapCoordinate(float3 p, int3 tile, float3 offset) {
     // Here we use the x extent as the distance the y coordinate spans,
     // so that the aspect ratio of the noises doesn't get wonky and we
     // don't have to deal with sub-1 grid sizes for our noise.
     float3 minimum = float3(xExtent.x, yExtent.x, zExtent.x);
     float3 maximum = float3(xExtent.y, yExtent.y + (xExtent.y - xExtent.x), zExtent.y);
     float3 uv = (p - minimum) / (maximum - minimum);
-    return frac(uv * tile);
+    return frac(uv * tile + offset);
   }
 
   float2 intersect(float3 p, float3 d) {

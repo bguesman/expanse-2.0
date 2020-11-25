@@ -49,8 +49,13 @@ float4 _cloudHeightGradient;
 #define CLOUD_BASE_WARP_MAX 0.25
 #define CLOUD_DETAIL_WARP_MAX 0.1
 
-/* TODO: probably rename these in UI, but "intensity" is a good name
- * internally. */
+ /* Movement. */
+float4 _cloudCoverageOffset;
+float4 _cloudBaseOffset;
+float4 _cloudStructureOffset;
+float4 _cloudDetailOffset;
+float4 _cloudBaseWarpOffset;
+float4 _cloudDetailWarpOffset;
 
 /* Lighting. */
 /* 2D. */
@@ -90,7 +95,7 @@ TEXTURE3D(_cloudDetailWarpNoise3D);
 CBUFFER_END // Expanse Cloud
 
 // TODO: tweakable?
-#define CLOUD_REPROJECTION_FRAMES 16
+#define CLOUD_REPROJECTION_FRAMES 8
 
 /******************************************************************************/
 /*************************** END GLOBAL VARIABLES *****************************/
@@ -184,20 +189,20 @@ float takeMediaSample2DLowLOD(float3 p, ICloudGeometry geometry, int mipLevel) {
   /* Warp. */
   float2 baseWarp = float2(0, 0);
   if (_cloudBaseWarpIntensity > FLT_EPSILON) {
-    float2 baseWarpUV = geometry.mapCoordinate(p, _cloudBaseWarpTile).xz;
+    float2 baseWarpUV = geometry.mapCoordinate(p, _cloudBaseWarpTile, _cloudBaseWarpOffset.xyz).xz;
     baseWarp = _cloudBaseWarpIntensity * CLOUD_BASE_WARP_MAX
       * SAMPLE_TEXTURE2D_LOD(_cloudBaseWarpNoise2D, s_linear_repeat_sampler,
       baseWarpUV, mipLevel).xy;
   }
 
   /* Base. */
-  float2 baseUV = frac(geometry.mapCoordinate(p, _cloudBaseTile).xz - baseWarp);
+  float2 baseUV = frac(geometry.mapCoordinate(p, _cloudBaseTile, _cloudBaseOffset.xyz).xz - baseWarp);
   float sample = SAMPLE_TEXTURE2D_LOD(_cloudBaseNoise2D, s_linear_repeat_sampler,
     baseUV, mipLevel).x;
 
   /* Coverage. */
   if (_cloudCoverageIntensity > FLT_EPSILON) {
-    float2 coverageUV = geometry.mapCoordinate(p, _cloudCoverageTile).xz;
+    float2 coverageUV = geometry.mapCoordinate(p, _cloudCoverageTile, _cloudCoverageOffset.xyz).xz;
     float coverage = SAMPLE_TEXTURE2D_LOD(_cloudCoverageNoise, s_linear_repeat_sampler,
       coverageUV, mipLevel).x;
     coverage = clamp((1-_cloudCoverageIntensity) * coverage * 5, 0.0, 0.99);
@@ -222,7 +227,7 @@ float takeMediaSample2DHighLOD(float3 p, ICloudGeometry geometry, int mipLevel) 
 
   /* Structure. */
   if (_cloudStructureIntensity > FLT_EPSILON) {
-    float2 cloudStructureUV = geometry.mapCoordinate(p, _cloudStructureTile).xz;
+    float2 cloudStructureUV = geometry.mapCoordinate(p, _cloudStructureTile, _cloudStructureOffset.xyz).xz;
     float structure = _cloudStructureIntensity
       * SAMPLE_TEXTURE2D_LOD(_cloudStructureNoise2D, s_linear_repeat_sampler,
       cloudStructureUV, mipLevel).x;
@@ -233,13 +238,13 @@ float takeMediaSample2DHighLOD(float3 p, ICloudGeometry geometry, int mipLevel) 
   if (_cloudDetailIntensity > FLT_EPSILON) {
     float2 detailWarp = float2(0, 0);
     if (floatGT(_cloudDetailWarpIntensity, 0.0)) {
-      float2 detailWarpUV = geometry.mapCoordinate(p, _cloudDetailWarpTile).xz;
+      float2 detailWarpUV = geometry.mapCoordinate(p, _cloudDetailWarpTile, _cloudDetailWarpOffset.xyz).xz;
       detailWarp = _cloudDetailWarpIntensity * CLOUD_DETAIL_WARP_MAX
         * SAMPLE_TEXTURE2D_LOD(_cloudDetailWarpNoise2D, s_linear_repeat_sampler,
         detailWarpUV, mipLevel).xy;
     }
 
-    float2 detailUV = frac(geometry.mapCoordinate(p, _cloudDetailTile).xz - detailWarp);
+    float2 detailUV = frac(geometry.mapCoordinate(p, _cloudDetailTile, _cloudDetailOffset.xyz).xz - detailWarp);
     float detail = _cloudDetailIntensity * SAMPLE_TEXTURE2D_LOD(_cloudDetailNoise2D, s_linear_repeat_sampler,
       detailUV, mipLevel).x;
 
@@ -262,7 +267,7 @@ float takeMediaSample3DLowLOD(float3 p, ICloudGeometry geometry, int mipLevel) {
   /* Warp. */
   float3 baseWarp = float3(0, 0, 0);
   if (_cloudBaseWarpIntensity > FLT_EPSILON) {
-    float3 baseWarpUV = geometry.mapCoordinate(p, _cloudBaseWarpTile);
+    float3 baseWarpUV = geometry.mapCoordinate(p, _cloudBaseWarpTile, _cloudBaseWarpOffset.xyz);
     baseWarp = _cloudBaseWarpIntensity * CLOUD_BASE_WARP_MAX
       * SAMPLE_TEXTURE3D_LOD(_cloudBaseWarpNoise3D, s_linear_repeat_sampler,
       baseWarpUV, mipLevel).xyz;
@@ -270,7 +275,7 @@ float takeMediaSample3DLowLOD(float3 p, ICloudGeometry geometry, int mipLevel) {
   }
 
   /* Base. */
-  float3 baseUV = frac(geometry.mapCoordinate(p, _cloudBaseTile) - baseWarp);
+  float3 baseUV = frac(geometry.mapCoordinate(p, _cloudBaseTile, _cloudBaseOffset.xyz) - baseWarp);
   float sample = SAMPLE_TEXTURE3D_LOD(_cloudBaseNoise3D, s_linear_repeat_sampler,
     baseUV, mipLevel).x;
 
@@ -280,7 +285,7 @@ float takeMediaSample3DLowLOD(float3 p, ICloudGeometry geometry, int mipLevel) {
 
   /* Coverage. */
   if (_cloudCoverageIntensity > FLT_EPSILON) {
-    float2 coverageUV = geometry.mapCoordinate(p, _cloudCoverageTile).xz;
+    float2 coverageUV = geometry.mapCoordinate(p, _cloudCoverageTile, _cloudCoverageOffset.xyz).xz;
     float coverage = SAMPLE_TEXTURE2D_LOD(_cloudCoverageNoise, s_linear_repeat_sampler,
       coverageUV, mipLevel).x;
 
@@ -310,7 +315,7 @@ float takeMediaSample3DHighLOD(float3 p, ICloudGeometry geometry, int mipLevel) 
 
   /* Structure. */
   if (_cloudStructureIntensity > FLT_EPSILON) {
-    float3 cloudStructureUV = geometry.mapCoordinate(p, _cloudStructureTile);
+    float3 cloudStructureUV = geometry.mapCoordinate(p, _cloudStructureTile, _cloudStructureOffset.xyz);
     float structure = _cloudStructureIntensity
       * SAMPLE_TEXTURE3D_LOD(_cloudStructureNoise3D, s_linear_repeat_sampler,
       cloudStructureUV, mipLevel).x;
@@ -321,13 +326,13 @@ float takeMediaSample3DHighLOD(float3 p, ICloudGeometry geometry, int mipLevel) 
   if (_cloudDetailIntensity > FLT_EPSILON) {
     float3 detailWarp = float3(0, 0, 0);
     if (floatGT(_cloudDetailWarpIntensity, 0.0)) {
-      float3 detailWarpUV = geometry.mapCoordinate(p, _cloudDetailWarpTile);
+      float3 detailWarpUV = geometry.mapCoordinate(p, _cloudDetailWarpTile, _cloudDetailOffset.xyz);
       detailWarp = _cloudDetailWarpIntensity * CLOUD_DETAIL_WARP_MAX
         * SAMPLE_TEXTURE3D_LOD(_cloudDetailWarpNoise3D, s_linear_repeat_sampler,
         detailWarpUV, mipLevel).xyz;
     }
 
-    float3 detailUV = frac(geometry.mapCoordinate(p, _cloudDetailTile) - detailWarp);
+    float3 detailUV = frac(geometry.mapCoordinate(p, _cloudDetailTile, _cloudDetailOffset.xyz) - detailWarp);
     float detail = _cloudDetailIntensity * SAMPLE_TEXTURE3D_LOD(_cloudDetailNoise3D, s_linear_repeat_sampler,
       detailUV, mipLevel).x;
 

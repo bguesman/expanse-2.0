@@ -478,6 +478,18 @@ SerializedDataParameter[] cloudHeightGradientTop
 = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 
 /* Movement---sampling offsets primarily. TODO */
+SerializedDataParameter[] cloudCoverageOffset
+= new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudBaseOffset
+= new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudStructureOffset
+= new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDetailOffset
+= new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudBaseWarpOffset
+= new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDetailWarpOffset
+= new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
 
 /* Lighting. TODO */
 /* 2D. */
@@ -1314,6 +1326,12 @@ private void cloudMovement(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle
   cloudMovementFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(cloudMovementFoldout, "Movement", titleStyle);
 
   if (cloudMovementFoldout) {
+    PropertyField(cloudCoverageOffset[layerIndex], new UnityEngine.GUIContent("Coverage Offset"));
+    PropertyField(cloudBaseOffset[layerIndex], new UnityEngine.GUIContent("Base Offset"));
+    PropertyField(cloudStructureOffset[layerIndex], new UnityEngine.GUIContent("Structure Offset"));
+    PropertyField(cloudDetailOffset[layerIndex], new UnityEngine.GUIContent("Detail Offset"));
+    PropertyField(cloudBaseWarpOffset[layerIndex], new UnityEngine.GUIContent("Base Warp Offset"));
+    PropertyField(cloudDetailWarpOffset[layerIndex], new UnityEngine.GUIContent("Detail Warp Offset"));
     EditorGUILayout.Space();
   }
 
@@ -1656,7 +1674,13 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     cloudHeightGradientBottom[i] = Unpack(o.Find("cloudHeightGradientBottom" + i));
     cloudHeightGradientTop[i] = Unpack(o.Find("cloudHeightGradientTop" + i));
 
-    /* Movement---sampling offsets primarily. TODO */
+    /* Movement---sampling offsets primarily. */
+    cloudCoverageOffset[i] = Unpack(o.Find("cloudCoverageOffset" + i));
+    cloudBaseOffset[i] = Unpack(o.Find("cloudBaseOffset" + i));
+    cloudStructureOffset[i] = Unpack(o.Find("cloudStructureOffset" + i));
+    cloudDetailOffset[i] = Unpack(o.Find("cloudDetailOffset" + i));
+    cloudBaseWarpOffset[i] = Unpack(o.Find("cloudBaseWarpOffset" + i));
+    cloudDetailWarpOffset[i] = Unpack(o.Find("cloudDetailWarpOffset" + i));
 
     /* Lighting. */
     /* 2D. */

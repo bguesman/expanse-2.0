@@ -61,6 +61,8 @@ CLOUDS
 TODO LIST:
   -checkbox for bodies for if they affect clouds so that we can add bodies
   without them having to light the clouds and slow things down
+  -Fix the temporal accumulation bug where clouds fade in after they've been
+  blocked by geometry
 
   -To get to where we need to be:
     -performance needs to be significantly better
