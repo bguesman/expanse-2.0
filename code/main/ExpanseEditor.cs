@@ -1149,7 +1149,8 @@ private void cloudGeometry(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle
   if (cloudGeometryFoldout) {
     PropertyField(cloudGeometryType[layerIndex], new UnityEngine.GUIContent("Geometry Type"));
 
-    if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume) {
+    if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume ||
+        (ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.CurvedBoxVolume) {
       PropertyField(cloudGeometryXExtent[layerIndex], new UnityEngine.GUIContent("X Extent"));
       PropertyField(cloudGeometryYExtent[layerIndex], new UnityEngine.GUIContent("Y Extent"));
       PropertyField(cloudGeometryZExtent[layerIndex], new UnityEngine.GUIContent("Z Extent"));
@@ -1220,7 +1221,8 @@ private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle su
             if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.Plane ||
               (ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.CurvedPlane) {
               PropertyField(cloudBaseNoiseTexture2D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
-            } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume) {
+            } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume ||
+                (ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.CurvedBoxVolume) {
               PropertyField(cloudBaseNoiseTexture3D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
             }
           }
@@ -1240,7 +1242,8 @@ private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle su
             if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.Plane ||
               (ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.CurvedPlane) {
               PropertyField(cloudStructureNoiseTexture2D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
-            } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume) {
+            } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume ||
+                (ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.CurvedBoxVolume) {
               PropertyField(cloudStructureNoiseTexture3D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
             }
           }
@@ -1260,7 +1263,8 @@ private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle su
             if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.Plane ||
               (ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.CurvedPlane) {
               PropertyField(cloudDetailNoiseTexture2D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
-            } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume) {
+            } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume ||
+                (ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.CurvedBoxVolume) {
               PropertyField(cloudDetailNoiseTexture3D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
             }
           }
@@ -1280,7 +1284,8 @@ private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle su
             if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.Plane ||
               (ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.CurvedPlane) {
               PropertyField(cloudBaseWarpNoiseTexture2D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
-            } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume) {
+            } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume ||
+                (ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.CurvedBoxVolume) {
               PropertyField(cloudBaseWarpNoiseTexture3D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
             }
           }
@@ -1300,7 +1305,8 @@ private void cloudNoise(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle su
             if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.Plane ||
               (ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.CurvedPlane) {
               PropertyField(cloudDetailWarpNoiseTexture2D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
-            } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume) {
+            } else if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume ||
+                (ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.CurvedBoxVolume) {
               PropertyField(cloudDetailWarpNoiseTexture3D[layerIndex], new UnityEngine.GUIContent("Noise Texture"));
             }
           }
@@ -1342,7 +1348,8 @@ private void cloudLighting(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle
   cloudLightingFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(cloudLightingFoldout, "Lighting", titleStyle);
 
   if (cloudLightingFoldout) {
-    if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume) {
+    if ((ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.BoxVolume ||
+        (ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex == ExpanseCommon.CloudGeometryType.CurvedBoxVolume) {
       /* 3D. TODO: better names */
       PropertyField(cloudVerticalProbabilityHeightRange[layerIndex], new UnityEngine.GUIContent("Vertical Probability Height Range"));
       PropertyField(cloudVerticalProbabilityStrength[layerIndex], new UnityEngine.GUIContent("Vertical Probability Strength"));

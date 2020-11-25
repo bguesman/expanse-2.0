@@ -245,7 +245,7 @@ CloudShadingResult raymarchCloudLayer3D(float3 start, float3 d, float t,
    * 32 seems to be ok, but introduce the possibility of a little flickering. */
   const float detailStep = 1.0/32.0;
   const float coarseStep = 1.0/16.0;
-  const int maxSamples = 16;
+  const int maxSamples = 32;
   const float mediaZeroThreshold = 0.0001;
   const float transmittanceZeroThreshold = 0.0001;
   const int maxConsecutiveZeroSamples = 4;
@@ -397,6 +397,10 @@ CloudShadingResult shadeCloudLayer(float3 O, float3 d, int i, float depth,
     }
     case CloudGeometryType_BoxVolume: {
       CloudBoxVolume geometry = CreateCloudBoxVolume(xExtent, yExtent, zExtent);
+      return shadeCloudLayer3D(O, d, geometry, skyIntersection, geoHit, depth, i);
+    }
+    case CloudGeometryType_CurvedBoxVolume: {
+      CloudCurvedBoxVolume geometry = CreateCloudCurvedBoxVolume(xExtent, yExtent, zExtent);
       return shadeCloudLayer3D(O, d, geometry, skyIntersection, geoHit, depth, i);
     }
   }

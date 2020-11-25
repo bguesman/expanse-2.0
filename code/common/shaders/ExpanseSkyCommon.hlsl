@@ -193,6 +193,14 @@ bool boundsCheck(float x, float2 bounds) {
   return floatGT(x, bounds.x) && floatLT(x, bounds.y);
 }
 
+bool boundsCheckEpsilon(float x, float2 bounds, float eps) {
+  return (x >= bounds.x - eps) && (x <= bounds.y + eps);
+}
+
+bool boundsCheckNoEpsilon(float x, float2 bounds) {
+  return (x >= bounds.x) && (x <= bounds.y);
+}
+
 float erf(float x) {
   float sign_x = sign(x);
   x = abs(x);
@@ -281,10 +289,22 @@ float2 intersectAxisAlignedBoxVolume(float3 O, float3 d, float2 xExtent,
   float inBounds0 = -1;
   float inBounds1 = -1;
   for (int i = 0; i < 6; i++) {
-    if (floatGT(t[i], 0) && boundsCheck(p0[i], bound0[i])
-      && boundsCheck(p1[i], bound1[i])) {
+    if (t[i] > 0 && boundsCheckNoEpsilon(p0[i], bound0[i])
+      && boundsCheckNoEpsilon(p1[i], bound1[i])) {
       /* This was a box intersection. Have we had one already? */
-      if (floatGT(inBounds0, 0)) {
+      if (inBounds0 > 0 && inBounds1 > 0) {
+        /* If we've already intersected, pick the two intersections with
+         * the greatest difference. */
+        float diff01 = abs(inBounds0 - inBounds1);
+        float diff0t = abs(inBounds0 - t[i]);
+        float diff1t = abs(inBounds1 - t[i]);
+        if (diff1t > diff0t && diff1t > diff01) {
+          inBounds0 = t[i];
+        } else if (diff0t > diff1t && diff0t > diff01) {
+          inBounds1 = t[i];
+        }
+      }
+      else if (inBounds0 > 0) {
         inBounds1 = t[i];
       } else {
         inBounds0 = t[i];

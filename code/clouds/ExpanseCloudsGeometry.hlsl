@@ -8,6 +8,7 @@
 #define CloudGeometryType_CurvedPlane 1
 #define CloudGeometryType_Sphere 2
 #define CloudGeometryType_BoxVolume 3
+#define CloudGeometryType_CurvedBoxVolume 4
 
 /* Mirror from ExpanseCommon.cs. */
 #define CloudGeometryDimension_TwoD 2
@@ -276,6 +277,114 @@ CloudBoxVolume CreateCloudBoxVolume(float2 xExtent, float2 yExtent, float2 zExte
   c.xExtent = xExtent;
   c.yExtent = yExtent;
   c.zExtent = zExtent;
+  return c;
+}
+
+
+
+
+
+
+
+/**
+ * @brief: Subsection of a sphere shell around the planet.
+ */
+class CloudCurvedBoxVolume : ICloudGeometry {
+  float2 rExtent, xAngleExtent, zAngleExtent;
+
+  /* Takes into account apparent thickness to make volumetric shadow queries
+   * simpler. */
+  bool inBounds(float3 p) {
+    float r = length(p);
+    float sinXAngle = p.x/r;
+    float sinZAngle = p.z/r;
+    // return boundsCheck(r, rExtent)
+    //   && boundsCheck(sinXAngle, xAngleExtent)
+    //   && boundsCheck(sinZAngle, zAngleExtent);
+    return true;
+  }
+
+  /* Disregards y components of p and tile. */
+  float3 mapCoordinate(float3 p, int3 tile, float3 offset) {
+    float3 minimum = float3(xAngleExtent.x, rExtent.x, zAngleExtent.x);
+    float3 maximum = float3(xAngleExtent.y, rExtent.y, zAngleExtent.y);
+    float r = length(p);
+    float3 coordinate = float3(p.x/rExtent.y, r, p.z/rExtent.y);
+    float3 uv = (coordinate - minimum) / (maximum - minimum);
+    // return frac(uv * tile + offset);
+    return float3(0, 0, 0);
+  }
+
+  float2 intersect(float3 p, float3 d) {
+    // We can use our existing sky intersection logic to intersect 2 spheres---
+    // the lower and upper boundaries of the cloud layer---at once.
+    float3 lowerIntersection = intersectSphere(p, d, rExtent.x);
+    float3 upperIntersection = intersectSphere(p, d, rExtent.y);
+    bool lowerHit = (lowerIntersection.z > 0) && (lowerIntersection.x > 0 || lowerIntersection.y > 0);
+    bool upperHit = (upperIntersection.z > 0) && (upperIntersection.x > 0 || upperIntersection.y > 0);
+
+    // Return early if we hit nothing.
+    if (!lowerHit && !upperHit) {
+      return float2(-1, -1);
+    }
+
+    // And now for the complex logic about where we enter and exit this
+    // volume...
+    if (lowerHit && upperHit) {
+      // We've hit both boundaries.
+      // Check the bounds of our entry and exit points.
+      // bool entryInBounds = boundsCheck(sinStart.x, xAngleExtent) && boundsCheck(sinStart.y, zAngleExtent);
+    } else if (lowerHit) {
+      // We've just hit the lower boundary.
+    } else if (upperHit) {
+      // We've just hit the upper boundary.
+    }
+
+    // float lowerT = minNonNegative(lowerIntersection.x, lowerIntersection.y);
+    // float upperT = minNonNegative(upperIntersection.x, upperIntersection.y);
+    //
+    // float3 oStart = p + lowerT * d;
+    // float3 oEnd = p + upperT * d;
+    //
+    // float2 sinStart = oStart.xz/rExtent.x; // TODO: could also use lower extent.
+    // float2 sinEnd = oEnd.xz/rExtent.y;
+    // if (
+    //  && boundsCheck(sinEnd.x, xAngleExtent) && boundsCheck(sinEnd.y, zAngleExtent)) {
+    //   return float2(lowerT, upperT);
+    // }
+
+    return float2(-1, -1);
+  }
+
+  float2 intersect3D(float3 p, float3 d) {
+    return intersect(p, d);
+  }
+
+  int dimension() {
+    return CloudGeometryDimension_ThreeD;
+  }
+
+  float densityAttenuation(float3 p, float distance, float bias) {
+    // TODO: compute origin correctly
+    float2 origin = float2(0, 0);
+    float distFromOrigin = length(origin - p.xz);
+    return saturate(exp(-(distFromOrigin-bias)/distance));
+  }
+
+  float heightGradient(float3 p) {
+    return (length(p) - rExtent.x) / (rExtent.y - rExtent.x);
+  }
+};
+
+CloudCurvedBoxVolume CreateCloudCurvedBoxVolume(float2 xExtent, float2 yExtent,
+  float2 zExtent) {
+  CloudCurvedBoxVolume c;
+  c.rExtent = yExtent;
+  /* We assume that the bounds have been provided as an arc length, from which
+   * we can readily extract the subtended angle. We use the upper radius
+   * to define the arc length. */
+  c.xAngleExtent = sin(xExtent/c.rExtent.x);
+  c.zAngleExtent = sin(zExtent/c.rExtent.y);
   return c;
 }
 

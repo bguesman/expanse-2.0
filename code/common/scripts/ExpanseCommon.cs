@@ -230,9 +230,10 @@ public enum CloudGeometryType {
   Plane = 0,      /* Clouds are 2D, on a flat plane at some altitude. */
   CurvedPlane,    /* Clouds are 2D, on a plane that's curved with the planet at some altitude. */
   Sphere,     /* Clouds surround the planet in a sphere at some altitude. */
-  BoxVolume   /* Clouds are volumetric and distributed throughout a rectangular box. */
+  BoxVolume,   /* Clouds are volumetric and distributed throughout a rectangular box. */
+  CurvedBoxVolume   /* Same as above, but curved with the planet. */
 };
-public const uint kMaxCloudGeometryTypes = 4;
+public const uint kMaxCloudGeometryTypes = 5;
 
 /* Enum for different cloud noise dimension types. */
 public enum CloudNoiseDimension {
@@ -246,7 +247,8 @@ public static Dictionary<CloudGeometryType, CloudNoiseDimension> cloudGeometryTy
 	{CloudGeometryType.Plane, CloudNoiseDimension.TwoD},
   {CloudGeometryType.CurvedPlane, CloudNoiseDimension.TwoD},
 	{CloudGeometryType.Sphere, CloudNoiseDimension.TwoD},
-	{CloudGeometryType.BoxVolume, CloudNoiseDimension.ThreeD}
+	{CloudGeometryType.BoxVolume, CloudNoiseDimension.ThreeD},
+	{CloudGeometryType.CurvedBoxVolume, CloudNoiseDimension.ThreeD}
 };
 
 /* Enum for noise types. */

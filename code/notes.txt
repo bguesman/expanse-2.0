@@ -63,6 +63,10 @@ TODO LIST:
   without them having to light the clouds and slow things down
   -Fix the temporal accumulation bug where clouds fade in after they've been
   blocked by geometry
+  -NOTE: punting on the curved sky volume for now. more work than it's
+  worth. At some point, need to clean this up.
+  -have 3D media sample take a mip map parameter, or possibly an LOD parameter
+  to avoid sampling details
 
   -To get to where we need to be:
     -performance needs to be significantly better
