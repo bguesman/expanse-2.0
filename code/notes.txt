@@ -77,3 +77,18 @@ TODO LIST:
       -Fixed with hack.
 
 Parameters:
+  // All set per layer for maximal tweakability.
+
+  // 3D.
+  float _cloudCoarseStepSize;
+  float _cloudDetailStepSize;
+  float _cloudMediaZeroThreshold;
+  float _cloudTransmittanceZeroThreshold;
+  int _cloudMaxNumSamples;
+  int _cloudMaxConsecutiveZeroSamples;
+
+  // 2D.
+
+  // Both.
+  // Needs to be set globally
+  int _cloudReprojectionFrames;

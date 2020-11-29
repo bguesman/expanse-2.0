@@ -70,6 +70,7 @@ bool _aerialPerspectiveUseImportanceSampling;
 bool _useAntiAliasing;
 float _aerialPerspectiveDepthSkew;
 bool _useDither;
+int _cloudReprojectionFrames;
 
 float3 _WorldSpaceCameraPos1;
 float4 _currentScreenSize;
@@ -261,9 +262,7 @@ float intersectXZAlignedPlane(float3 O, float3 d, float2 xExtent,
 /* Return entry (.x) and exit (.y) of box intersection.
  * If both are negative, there was no intersection.
  * If entry is negative but exit is not, this ray was cast from inside
- * the box.
- * TODO: edges have artifacts, kind of as expected. If artifacts show up
- * later, this is certainly a place to look. */
+ * the box. */
 float2 intersectAxisAlignedBoxVolume(float3 O, float3 d, float2 xExtent,
   float2 yExtent, float2 zExtent) {
   /* Compute the intersection with all 6 bounding planes. */

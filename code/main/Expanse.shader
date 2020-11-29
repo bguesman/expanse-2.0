@@ -120,7 +120,6 @@ TEXTURE2D(_currCubemapCloudTransmittanceRT);
 
 /* For reprojection. */
 float4x4 _previousViewProjMatrix;
-float4x4 _currentInvViewProjMatrix;
 
 /******************************************************************************/
 /**************************** END INPUT VARIABLES *****************************/
@@ -773,11 +772,6 @@ CloudResult compositeClouds(float2 uv, float4 positionCS) {
     }
   }
 
-  /* TODO: this strategy of blend causes artifacts when transitioning
-   * from intersecting two layers to intersecting one layer. Probably
-   * to do with the fact that monochrome transmittance starts from 2.
-   * for now, getting rid of it. recompile. */
-
   /* Now, composite the results, alpha-blending in order, ensuring to start at
    * numNoHit so we skip the layers where there was no intersection. */
   CloudShadingResult result;
@@ -806,42 +800,28 @@ CloudResult compositeClouds(float2 uv, float4 positionCS) {
   }
 
   /* First, get the worldspace position of the current point. */
-  // This is definitely correct.
   float3 wsPosition = (-GetSkyViewDirWS(uv.xy * _ScreenParams.xy)) * result.t_hit;
 
   /* Then, transform it to clip space using the previous camera transformation. */
   float4 prevClipSpace = mul(_previousViewProjMatrix, float4(wsPosition, 1));
   float2 reprojectedUV = 0.5 * (float2(prevClipSpace.x, 1-prevClipSpace.y) / prevClipSpace.w) + 0.5;
 
-  // CloudResult resultPacked;
-  // resultPacked.color = float4(0, 0, 0, 1);
-  // if (numNoHit != _numActiveCloudLayers) {
-  //   resultPacked.color = float4(100 * prevClipSpace.x / prevClipSpace.w, 100 * prevClipSpace.y / prevClipSpace.w, 0, 1);
-  // }
-  // resultPacked.transmittance = float4(0, 0, 0, result.t_hit);
-  // if (numNoHit != _numActiveCloudLayers) {
-    // resultPacked.color = float4(reprojectedUV*100, 0, 1);
-    // if (reprojectedUV.x < 0) {
-    //   resultPacked.color += float4(100, 0, 0, 0);
-    // }
-    // if (reprojectedUV.y < 0) {
-    //   resultPacked.color += float4(0, 0, 100, 0);
-    // }
-  // }
-  // return resultPacked;
-
   if (numNoHit != _numActiveCloudLayers && boundsCheck(reprojectedUV.x, float2(0, 1)) && boundsCheck(reprojectedUV.y, float2(0, 1))) {
-    float newProportion = 1.0/((float) CLOUD_REPROJECTION_FRAMES);
-    float reuseProportion = 1-newProportion;
-    float4 cloudColAndBlendPrev = SAMPLE_TEXTURE2D_LOD(_lastFullscreenCloudColorRT,
+    float4 cloudTAndTHitPrev = SAMPLE_TEXTURE2D_LOD(_lastFullscreenCloudTransmittanceRT,
       s_linear_clamp_sampler, reprojectedUV, 0);
-    float3 cloudColPrev = cloudColAndBlendPrev.xyz;
-    float cloudBlendPrev = cloudColAndBlendPrev.w;
-    float3 cloudTPrev = SAMPLE_TEXTURE2D_LOD(_lastFullscreenCloudTransmittanceRT,
-      s_linear_clamp_sampler, reprojectedUV, 0).xyz;
-    result.color = result.color * newProportion + cloudColPrev * reuseProportion;
-    result.transmittance = result.transmittance * newProportion + cloudTPrev * reuseProportion;
-    result.blend = result.blend * newProportion + cloudBlendPrev * reuseProportion;
+    float cloudTHitPrev = cloudTAndTHitPrev.w;
+    if (cloudTHitPrev >= 0) {
+      float newProportion = 1.0/((float) _cloudReprojectionFrames);
+      float reuseProportion = 1-newProportion;
+      float3 cloudTPrev = cloudTAndTHitPrev.xyz;
+      float4 cloudColAndBlendPrev = SAMPLE_TEXTURE2D_LOD(_lastFullscreenCloudColorRT,
+        s_linear_clamp_sampler, reprojectedUV, 0);
+      float3 cloudColPrev = cloudColAndBlendPrev.xyz;
+      float cloudBlendPrev = cloudColAndBlendPrev.w;
+      result.color = result.color * newProportion + cloudColPrev * reuseProportion;
+      result.transmittance = result.transmittance * newProportion + cloudTPrev * reuseProportion;
+      result.blend = result.blend * newProportion + cloudBlendPrev * reuseProportion;
+    }
   }
 
   CloudResult resultPacked;
@@ -891,7 +871,6 @@ float4 Composite(Varyings input, bool cubemap, float exposure) {
   float3 cloudT = SAMPLE_TEXTURE2D_LOD(_currFullscreenCloudTransmittanceRT,
     s_linear_clamp_sampler, textureCoordinate, 0).xyz;
 
-  /* TODO: blend clouds properly. */
   /* First, composite the clouds on top of the sky according to the cloud
    * transmittance. */
   float3 cloudsOnSky = cloudCol + skyCol.xyz * cloudT;
@@ -909,9 +888,7 @@ float4 Composite(Varyings input, bool cubemap, float exposure) {
     finalColor *= exposure;
   }
 
-  /* TODO: will have to account for cloud transmittance here. Probably
-   * use skyCol.w * dot(cloudT, float3(1,1,1)/3). */
-  return float4(finalColor, skyCol.w);
+  return float4(finalColor, skyCol.w * averageFloat3(cloudT));
 }
 
 float4 CompositeCubemap(Varyings input) : SV_Target {

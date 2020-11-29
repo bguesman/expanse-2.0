@@ -532,6 +532,22 @@ SerializedDataParameter[] cloudAnisotropy
 
 /* Sampling. TODO */
 /* TODO: debug goes here. */
+// 3D.
+SerializedDataParameter[] cloudCoarseStepSize
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudDetailStepSize
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudMediaZeroThreshold
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudTransmittanceZeroThreshold
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudMaxNumSamples
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+SerializedDataParameter[] cloudMaxConsecutiveZeroSamples
+  = new SerializedDataParameter[ExpanseCommon.kMaxCloudLayers];
+// 2D.
+// 2D and 3D.
+SerializedDataParameter cloudReprojectionFrames;
 
 /******************************************************************************/
 /************************** END SERIALIZED PARAMETERS *************************/
@@ -1384,6 +1400,18 @@ private void cloudSampling(UnityEngine.GUIStyle titleStyle, UnityEngine.GUIStyle
   cloudSamplingFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(cloudSamplingFoldout, "Sampling", titleStyle);
 
   if (cloudSamplingFoldout) {
+    if (ExpanseCommon.cloudGeometryTypeToDimension[(ExpanseCommon.CloudGeometryType) cloudGeometryType[layerIndex].value.enumValueIndex] == ExpanseCommon.CloudNoiseDimension.ThreeD) {
+      /* 3D. */
+      PropertyField(cloudCoarseStepSize[layerIndex], new UnityEngine.GUIContent("Coarse Step Size"));
+      PropertyField(cloudDetailStepSize[layerIndex], new UnityEngine.GUIContent("Detail Step Size"));
+      PropertyField(cloudMediaZeroThreshold[layerIndex], new UnityEngine.GUIContent("Media Zero Threshold"));
+      PropertyField(cloudTransmittanceZeroThreshold[layerIndex], new UnityEngine.GUIContent("Transmittance Zero Threshold"));
+      PropertyField(cloudMaxNumSamples[layerIndex], new UnityEngine.GUIContent("Max Samples"));
+      PropertyField(cloudMaxConsecutiveZeroSamples[layerIndex], new UnityEngine.GUIContent("Max Consecutive Zero Samples"));
+    } else {
+      /* 2D. */
+    }
+    PropertyField(cloudReprojectionFrames, new UnityEngine.GUIContent("Reprojection Frames"));
     EditorGUILayout.Space();
   }
 
@@ -1712,8 +1740,14 @@ private void unpackSerializedProperties(PropertyFetcher<Expanse> o) {
     cloudAnisotropy[i] = Unpack(o.Find("cloudAnisotropy" + i));
 
     /* Sampling. TODO */
-
+    cloudCoarseStepSize[i] = Unpack(o.Find("cloudCoarseStepSize" + i));
+    cloudDetailStepSize[i] = Unpack(o.Find("cloudDetailStepSize" + i));
+    cloudMediaZeroThreshold[i] = Unpack(o.Find("cloudMediaZeroThreshold" + i));
+    cloudTransmittanceZeroThreshold[i] = Unpack(o.Find("cloudTransmittanceZeroThreshold" + i));
+    cloudMaxNumSamples[i] = Unpack(o.Find("cloudMaxNumSamples" + i));
+    cloudMaxConsecutiveZeroSamples[i] = Unpack(o.Find("cloudMaxConsecutiveZeroSamples" + i));
   }
+  cloudReprojectionFrames = Unpack(o.Find("cloudReprojectionFrames"));
 }
 
 private int setEnumSelect(AnimBool[] showEnum, int selected) {

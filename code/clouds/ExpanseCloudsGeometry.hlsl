@@ -135,7 +135,7 @@ CloudPlane CreateCloudPlane(float2 xExtent, float2 zExtent, float height,
  * @brief: Subsection of a sphere around the planet.
  */
 class CloudCurvedPlane : ICloudGeometry {
-  float2 rExtent, xAngleExtent, zAngleExtent;
+  float2 rExtent, xAngleExtent, zAngleExtent, xExtent, zExtent;
   float radius, apparentThickness;
 
   /* Takes into account apparent thickness to make volumetric shadow queries
@@ -171,6 +171,16 @@ class CloudCurvedPlane : ICloudGeometry {
       if (boundsCheck(sinXAngle, xAngleExtent) && boundsCheck(sinZAngle, zAngleExtent)) {
         return float2(t, t);
       }
+      if (intersection.x > 0 && intersection.y > 0) {
+        /* If the second intersection was valid, bounds check it as well. */
+        t = max(intersection.x, intersection.y);
+        o = p + t * d;
+        sinXAngle = o.x/radius;
+        sinZAngle = o.z/radius;
+        if (boundsCheck(sinXAngle, xAngleExtent) && boundsCheck(sinZAngle, zAngleExtent)) {
+          return float2(t, t);
+        }
+      }
     }
     return float2(-1, -1);
   }
@@ -187,7 +197,6 @@ class CloudCurvedPlane : ICloudGeometry {
       return float2(intersection.endT, intersection.endT);
     }
     return float2(-1, -1);
-    // return intersectAxisAlignedBoxVolume(p, d, xExtent, yExtent, zExtent);
   }
 
   int dimension() {
@@ -195,8 +204,8 @@ class CloudCurvedPlane : ICloudGeometry {
   }
 
   float densityAttenuation(float3 p, float distance, float bias) {
-    // TODO: compute origin correctly
-    float2 origin = float2(0, 0);
+    // HACK: just use x and z extents directly to determine the origin.
+    float2 origin = float2(dot(xExtent, float2(1, 1))/2, dot(zExtent, float2(1, 1))/2);
     float distFromOrigin = length(origin - p.xz);
     return saturate(exp(-(distFromOrigin-bias)/distance));
   }
@@ -214,6 +223,8 @@ CloudCurvedPlane CreateCloudCurvedPlane(float2 xExtent, float2 zExtent, float he
   c.rExtent = float2(height-apparentThickness/2, height+apparentThickness/2);
   /* We assume that the bounds have been provided as an arc length, from which
    * we can readily extract the subtended angle. */
+  c.xExtent = xExtent;
+  c.zExtent = zExtent;
   c.xAngleExtent = sin(xExtent/c.radius);
   c.zAngleExtent = sin(zExtent/c.radius);
   return c;

@@ -182,9 +182,8 @@ float3 lightCloudLayer3D(float3 p, float3 d, ICloudGeometry geometry,
     lighting *= cloudPhaseFunction(dot_L_d, _cloudAnisotropy, _cloudSilverIntensity, _cloudSilverSpread);
 
     /* In order to account for in-scattering probability, we use the lodded
-     * density hack proposed by Andrew Schneider in his Nubis system.
-     * TODO: HEAVY tweaking to be done here. */
-    // TODO: density attenuation?
+     * density hack proposed by Andrew Schneider in his Nubis system. TODO:
+     * move this outside loop, or even outside the function? */
     float loddedDensity = takeMediaSample3DHighLOD(p, geometry, 1);
     float height = geometry.heightGradient(p);
     lighting *= computeVerticalInScatterProbability(height,
@@ -209,7 +208,9 @@ float3 lightCloudLayer3D(float3 p, float3 d, ICloudGeometry geometry,
         float2 t_ds = generateNthPowerSampleFromIndex(j, numShadowSamples, 3);
         float3 shadowSamplePoint = p + L * t_ds.x * shadowDistance;
         if (geometry.inBounds(shadowSamplePoint)) {
-          // TODO: density attenuation
+          /* We don't use density attenuation here, since density attenuation
+           * is mostly a way of getting the clouds to fade into the distance,
+           * not changing their shadowing characteristics. */
           float shadowSample = takeMediaSample3DHighLOD(shadowSamplePoint, geometry, j*1.5);
           float attenuation = geometry.densityAttenuation(shadowSamplePoint, _cloudDensityAttenuationDistance[i], _cloudDensityAttenuationBias[i]);
           float opticalDepth = _cloudDensity[i] * attenuation * shadowSample * t_ds.y * shadowDistance;
@@ -241,15 +242,6 @@ CloudShadingResult raymarchCloudLayer3D(float3 start, float3 d, float t,
   result.hit = true;
   result.blend = 1;
 
-  /* Marching parameters: TODO: tweakable in sampling. 64 is a safe number,
-   * 32 seems to be ok, but introduce the possibility of a little flickering. */
-  const float detailStep = 1.0/32.0;
-  const float coarseStep = 1.0/16.0;
-  const int maxSamples = 32;
-  const float mediaZeroThreshold = 0.0001;
-  const float transmittanceZeroThreshold = 0.0001;
-  const int maxConsecutiveZeroSamples = 4;
-
   /* Marching state. */
   float tMarched = 0.0;
   bool marchCoarse = true;
@@ -258,16 +250,16 @@ CloudShadingResult raymarchCloudLayer3D(float3 start, float3 d, float t,
   float3 totalLightingTransmittance = float3(1, 1, 1);
   float summedMonochromeTransmittance = 0;
 
-  while (averageFloat3(result.transmittance) > transmittanceZeroThreshold
-    && tMarched < t && samplesTaken < maxSamples) {
+  while (averageFloat3(result.transmittance) > _cloudTransmittanceZeroThreshold
+    && tMarched < t && samplesTaken < _cloudMaxNumSamples) {
 
     if (marchCoarse) {
       /* Take a test coarse sample. */
-      float ds = coarseStep * t;
-      float3 testPoint = start + d * (tMarched + getBlueNoiseOffset() * ds);
+      float ds = _cloudCoarseStepSize * t;
+      float3 testPoint = start + d * (tMarched + 0.5 * ds);
       float testSample = takeMediaSample3DLowLOD(testPoint, geometry);
       /* If it's zero, keep up with the coarse marching. */
-      if (testSample < mediaZeroThreshold) {
+      if (testSample < _cloudMediaZeroThreshold) {
         tMarched += ds;
         samplesTaken++;
         continue;
@@ -277,19 +269,28 @@ CloudShadingResult raymarchCloudLayer3D(float3 start, float3 d, float t,
     }
 
     /* Take a detailed sample. */
-    float ds = detailStep * t;
+    float ds = _cloudDetailStepSize * t;
     float3 p = start + d * (tMarched + getBlueNoiseOffset() * ds);
     float mediaSample = takeMediaSample3DHighLOD(p, geometry);
 
     /* If it's zero, skip. If it's been zero for a while, switch back to
      * coarse marching. */
-    if (mediaSample < mediaZeroThreshold) {
+    if (mediaSample < _cloudMediaZeroThreshold) {
       consecutiveZeroSamples++;
-      marchCoarse = consecutiveZeroSamples > maxConsecutiveZeroSamples;
+      marchCoarse = consecutiveZeroSamples > _cloudMaxConsecutiveZeroSamples;
       tMarched += ds;
       samplesTaken++;
       continue;
     }
+
+    // TODO: seems important to have this here to avoid splotchiness. If
+    // we comput here though, we should pass thru to lighting calculation.
+    float height = geometry.heightGradient(p);
+    mediaSample *= computeDepthInScatterProbability(mediaSample, height,
+      _cloudDepthProbabilityHeightStrength.xy, _cloudDepthProbabilityHeightStrength.zw,
+      _cloudDepthProbabilityDensityMultiplier, _cloudDepthProbabilityBias);
+    // mediaSample *= computeVerticalInScatterProbability(height,
+    //     _cloudVerticalProbability.xy, _cloudVerticalProbability.z);
 
     /* Compute transmittance---including a modified transmittance used
      * in the lighting calculation to simulate multiple scattering. */
@@ -392,7 +393,7 @@ CloudShadingResult shadeCloudLayer(float3 O, float3 d, int i, float depth,
       return shadeCloudLayer2D(O, d, geometry, skyIntersection, geoHit, depth, i);
     }
     case CloudGeometryType_Sphere: {
-      // TODO
+      // TODO. Not implemented.
       break;
     }
     case CloudGeometryType_BoxVolume: {
@@ -400,8 +401,8 @@ CloudShadingResult shadeCloudLayer(float3 O, float3 d, int i, float depth,
       return shadeCloudLayer3D(O, d, geometry, skyIntersection, geoHit, depth, i);
     }
     case CloudGeometryType_CurvedBoxVolume: {
-      CloudCurvedBoxVolume geometry = CreateCloudCurvedBoxVolume(xExtent, yExtent, zExtent);
-      return shadeCloudLayer3D(O, d, geometry, skyIntersection, geoHit, depth, i);
+      // TODO. Not implemented.
+      break;
     }
   }
 

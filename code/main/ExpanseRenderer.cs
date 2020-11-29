@@ -837,12 +837,12 @@ protected override bool Update(BuiltinSkyParameters builtinParams)
 
   /* Check the sky hash and recompute if necessary. */
   int currentSkyHash = sky.GetSkyHashCode();
-  if (currentSkyHash != m_LastSkyHash) {
+  // if (currentSkyHash != m_LastSkyHash) {
     setSkyPrecomputationTables();
     DispatchSkyPrecompute(builtinParams.commandBuffer);
     m_skyTNeedsUpdate = true;
     m_LastSkyHash = currentSkyHash;
-  }
+  // }
 
   /* Render the single scattering, multiple scattering, and aerial perspective
    * textures. */
@@ -1328,21 +1328,17 @@ private void setGlobalCBuffer(BuiltinSkyParameters builtinParams) {
   builtinParams.commandBuffer.SetGlobalMatrix("_pCoordToViewDir", builtinParams.pixelCoordToViewDirMatrix);
   builtinParams.commandBuffer.SetGlobalVector("_currentScreenSize", builtinParams.hdCamera.screenSize);
   builtinParams.commandBuffer.SetGlobalFloat("_farClip", builtinParams.hdCamera.frustum.planes[5].distance);
-  // HACK: testing
-  // builtinParams.commandBuffer.SetGlobalMatrix("_previousInverseViewMatrix", previousInverseViewMatrix);
-  // builtinParams.commandBuffer.SetGlobalMatrix("_previousInverseProjectionMatrix", previousInverseProjectionMatrix);
-  // builtinParams.commandBuffer.SetGlobalMatrix("_currentViewMatrix", builtinParams.hdCamera.mainViewConstants.viewMatrix);
-  // builtinParams.commandBuffer.SetGlobalMatrix("_currentProjectionMatrix", builtinParams.hdCamera.mainViewConstants.projMatrix);
-  // previousInverseViewMatrix = builtinParams.hdCamera.mainViewConstants.viewMatrix.inverse;
-  // previousInverseProjectionMatrix = builtinParams.hdCamera.mainViewConstants.projMatrix.inverse;
+  /* For reprojection. */
   builtinParams.commandBuffer.SetGlobalMatrix("_previousViewProjMatrix", builtinParams.hdCamera.mainViewConstants.prevViewProjMatrix);
-  builtinParams.commandBuffer.SetGlobalMatrix("_currentInvViewProjMatrix", builtinParams.hdCamera.mainViewConstants.invViewProjMatrix);
 
   /* Time tick variable. */
   builtinParams.commandBuffer.SetGlobalFloat("_tick", Time.realtimeSinceStartup);
 
   /* Frames count. */
   builtinParams.commandBuffer.SetGlobalInt("_frameCount", Time.frameCount);
+
+  /* Number of history frames to use in cloud reprojection. */
+  builtinParams.commandBuffer.SetGlobalInt("_cloudReprojectionFrames", sky.cloudReprojectionFrames.value);
 }
 
 private void setGlobalCBufferPlanet(CommandBuffer cmd, Expanse sky) {
@@ -1791,6 +1787,9 @@ void SetGlobalCloudTexturesCommon(CommandBuffer cmd, Expanse sky, int layer, int
   cmd.SetGlobalFloat("_cloudSilverSpread", ((ClampedFloatParameter) sky.GetType().GetField("cloudSilverSpread" + layerIndex).GetValue(sky)).value);
   cmd.SetGlobalFloat("_cloudSilverIntensity", ((ClampedFloatParameter) sky.GetType().GetField("cloudSilverIntensity" + layerIndex).GetValue(sky)).value);
   cmd.SetGlobalFloat("_cloudAnisotropy", ((ClampedFloatParameter) sky.GetType().GetField("cloudAnisotropy" + layerIndex).GetValue(sky)).value);
+
+  /* Set the sampling parameters. */
+
 }
 
 void SetGlobalCloudTextures2D(CommandBuffer cmd, Expanse sky, int layer, int layerIndex) {
@@ -1833,6 +1832,14 @@ void SetGlobalCloudTextures3D(CommandBuffer cmd, Expanse sky, int layer, int lay
 
   cmd.SetGlobalFloat("_cloudDepthProbabilityDensityMultiplier", ((MinFloatParameter) sky.GetType().GetField("cloudDepthProbabilityDensityMultiplier" + layerIndex).GetValue(sky)).value);
   cmd.SetGlobalFloat("_cloudDepthProbabilityBias", ((ClampedFloatParameter) sky.GetType().GetField("cloudDepthProbabilityBias" + layerIndex).GetValue(sky)).value);
+
+  /* And 3D sampling parameters. */
+  cmd.SetGlobalFloat("_cloudCoarseStepSize", ((ClampedFloatParameter) sky.GetType().GetField("cloudCoarseStepSize" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalFloat("_cloudDetailStepSize", ((ClampedFloatParameter) sky.GetType().GetField("cloudDetailStepSize" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalFloat("_cloudMediaZeroThreshold", ((ClampedFloatParameter) sky.GetType().GetField("cloudMediaZeroThreshold" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalFloat("_cloudTransmittanceZeroThreshold", ((ClampedFloatParameter) sky.GetType().GetField("cloudTransmittanceZeroThreshold" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalInt("_cloudMaxNumSamples", ((MinIntParameter) sky.GetType().GetField("cloudMaxNumSamples" + layerIndex).GetValue(sky)).value);
+  cmd.SetGlobalInt("_cloudMaxConsecutiveZeroSamples", ((MinIntParameter) sky.GetType().GetField("cloudMaxConsecutiveZeroSamples" + layerIndex).GetValue(sky)).value);
 
   CloudNoiseTexture proceduralTextures = m_cloudNoiseTextures[layer];
   /* This array pattern is to keep things concise. */

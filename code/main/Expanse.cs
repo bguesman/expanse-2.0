@@ -752,11 +752,26 @@ public ClampedFloatParameter cloudAnisotropy0, cloudAnisotropy1, cloudAnisotropy
 
 /* Sampling. TODO */
 /* TODO: debug goes here. */
-
-
-
-
-
+[Tooltip("Step size for coarse ray marching, as a proportion of the distance to march.")]
+public ClampedFloatParameter cloudCoarseStepSize0, cloudCoarseStepSize1, cloudCoarseStepSize2,
+  cloudCoarseStepSize3, cloudCoarseStepSize4, cloudCoarseStepSize5, cloudCoarseStepSize6, cloudCoarseStepSize7;
+[Tooltip("Step size for detail ray marching, as a proportion of the distance to march.")]
+public ClampedFloatParameter cloudDetailStepSize0, cloudDetailStepSize1, cloudDetailStepSize2,
+  cloudDetailStepSize3, cloudDetailStepSize4, cloudDetailStepSize5, cloudDetailStepSize6, cloudDetailStepSize7;
+[Tooltip("Threshold below which normalized cloud density is considered to be zero.")]
+public ClampedFloatParameter cloudMediaZeroThreshold0, cloudMediaZeroThreshold1, cloudMediaZeroThreshold2,
+  cloudMediaZeroThreshold3, cloudMediaZeroThreshold4, cloudMediaZeroThreshold5, cloudMediaZeroThreshold6, cloudMediaZeroThreshold7;
+[Tooltip("Threshold below which cloud transmittance is considered to be zero.")]
+public ClampedFloatParameter cloudTransmittanceZeroThreshold0, cloudTransmittanceZeroThreshold1, cloudTransmittanceZeroThreshold2,
+  cloudTransmittanceZeroThreshold3, cloudTransmittanceZeroThreshold4, cloudTransmittanceZeroThreshold5, cloudTransmittanceZeroThreshold6, cloudTransmittanceZeroThreshold7;
+[Tooltip("Max number of samples to take when ray marching.")]
+public MinIntParameter cloudMaxNumSamples0, cloudMaxNumSamples1, cloudMaxNumSamples2,
+  cloudMaxNumSamples3, cloudMaxNumSamples4, cloudMaxNumSamples5, cloudMaxNumSamples6, cloudMaxNumSamples7;
+[Tooltip("Max number of consecutive zero samples before detail ray marching switches back to coarse ray marching.")]
+public MinIntParameter cloudMaxConsecutiveZeroSamples0, cloudMaxConsecutiveZeroSamples1, cloudMaxConsecutiveZeroSamples2,
+  cloudMaxConsecutiveZeroSamples3, cloudMaxConsecutiveZeroSamples4, cloudMaxConsecutiveZeroSamples5, cloudMaxConsecutiveZeroSamples6, cloudMaxConsecutiveZeroSamples7;
+[Tooltip("Number of history frames to use for reprojection.")]
+public MinIntParameter cloudReprojectionFrames = new MinIntParameter(8, 1);
 
 
 
@@ -933,6 +948,14 @@ public Expanse() : base() {
     this.GetType().GetField("cloudSilverSpread" + i).SetValue(this, new ClampedFloatParameter(0.5f, 0, 1));
     this.GetType().GetField("cloudSilverIntensity" + i).SetValue(this, new ClampedFloatParameter(0.5f, 0, 1));
     this.GetType().GetField("cloudAnisotropy" + i).SetValue(this, new ClampedFloatParameter(0.7f, -1, 1));
+
+    /* Sampling. */
+    this.GetType().GetField("cloudCoarseStepSize" + i).SetValue(this, new ClampedFloatParameter(0.05f, 0, 1));
+    this.GetType().GetField("cloudDetailStepSize" + i).SetValue(this, new ClampedFloatParameter(0.025f, 0, 1));
+    this.GetType().GetField("cloudMediaZeroThreshold" + i).SetValue(this, new ClampedFloatParameter(0.001f, 0, 1));
+    this.GetType().GetField("cloudTransmittanceZeroThreshold" + i).SetValue(this, new ClampedFloatParameter(0.001f, 0, 1));
+    this.GetType().GetField("cloudMaxNumSamples" + i).SetValue(this, new MinIntParameter(64, 1));
+    this.GetType().GetField("cloudMaxConsecutiveZeroSamples" + i).SetValue(this, new MinIntParameter(4, 1));
   }
 }
 

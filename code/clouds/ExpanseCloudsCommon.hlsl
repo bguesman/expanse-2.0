@@ -79,6 +79,14 @@ float _cloudSilverSpread;
 float _cloudSilverIntensity;
 float _cloudAnisotropy;
 
+/* Sampling. */
+float _cloudCoarseStepSize;
+float _cloudDetailStepSize;
+float _cloudMediaZeroThreshold;
+float _cloudTransmittanceZeroThreshold;
+int _cloudMaxNumSamples;
+int _cloudMaxConsecutiveZeroSamples;
+
 /* Noise textures defining the cloud densities. */
 TEXTURE2D(_cloudCoverageNoise); /* Coverage is always 2D. */
 TEXTURE2D(_cloudBaseNoise2D);
@@ -93,9 +101,6 @@ TEXTURE3D(_cloudBaseWarpNoise3D);
 TEXTURE3D(_cloudDetailWarpNoise3D);
 
 CBUFFER_END // Expanse Cloud
-
-// TODO: tweakable?
-#define CLOUD_REPROJECTION_FRAMES 8
 
 /******************************************************************************/
 /*************************** END GLOBAL VARIABLES *****************************/
@@ -124,7 +129,7 @@ CloudShadingResult cloudNoIntersectionResult() {
 
 /* Returns the unique blue noise sampling offset for this frame. */
 float getBlueNoiseOffset() {
-  return frac((_frameCount % CLOUD_REPROJECTION_FRAMES) * GOLDEN_RATIO);
+  return frac((_frameCount % _cloudReprojectionFrames) * GOLDEN_RATIO);
 }
 
 float henyeyGreensteinPhase(float dLd, float e) {
