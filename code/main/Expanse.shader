@@ -617,7 +617,8 @@ SkyResult SkyFullscreen(Varyings input) {
 
 CloudResult RenderClouds(Varyings input, float3 O, float3 d, bool cubemap) {
   /* Get the depth and see if we hit any geometry. */
-  float linearDepth = Linear01Depth(LoadCameraDepth(input.positionCS.xy),
+  // HACK: 4 here is constant for rendering at quarter res
+  float linearDepth = Linear01Depth(LoadCameraDepth(input.positionCS.xy*4),
     _ZBufferParams) * _ProjectionParams.z;
   /* Make sure depth is distance to view aligned plane. */
   float3 cameraCenterD = -GetSkyViewDirWS(float2(_ScreenParams.x/2, _ScreenParams.y/2));
@@ -644,13 +645,13 @@ CloudResult RenderClouds(Varyings input, float3 O, float3 d, bool cubemap) {
 
 CloudResult CloudsCubemap(Varyings input) {
   float3 O = GetCameraPositionPlanetSpace();
-  float3 d = -GetSkyViewDirWS(input.positionCS.xy);
+  float3 d = -GetSkyViewDirWS(input.positionCS.xy*4);
   return RenderClouds(input, O, d, true);
 }
 
 CloudResult CloudsFullscreen(Varyings input) {
   float3 O = GetCameraPositionPlanetSpace();
-  float3 d = -GetSkyViewDirWS(input.positionCS.xy);
+  float3 d = -GetSkyViewDirWS(input.positionCS.xy*4);
   UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
   return RenderClouds(input, O, d, false);
 }

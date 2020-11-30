@@ -397,7 +397,7 @@ void allocateCloudTextures(Expanse sky) {
       ExpanseCommon.CloudGeometryType cloudGeometryType = ((EnumParameter<ExpanseCommon.CloudGeometryType>) sky.GetType().GetField("cloudGeometryType" + layerIndex).GetValue(sky)).value;
       ExpanseCommon.CloudNoiseDimension dimension = ExpanseCommon.cloudGeometryTypeToDimension[cloudGeometryType];
 
-      if (quality != m_cloudTextureResolutions[i].quality && dimension != m_cloudTextureResolutions[i].dimension) {
+      if (quality != m_cloudTextureResolutions[i].quality || dimension != m_cloudTextureResolutions[i].dimension) {
         /* Have to update these tables. */
         ExpanseCommon.CloudTextureResolution res = ExpanseCommon.cloudQualityToCloudTextureResolution(quality, dimension);
         m_cloudTextureResolutions[i] = res;
@@ -517,8 +517,9 @@ SkyRenderTexture buildSkyRenderTexture(Vector2 resolution, int index, string nam
 
 CloudRenderTexture buildCloudRenderTexture(Vector2 resolution, int index, string name) {
   CloudRenderTexture r = new CloudRenderTexture();
-  r.colorBuffer = allocateSky2DTable(resolution, index, name + "_Color");
-  r.transmittanceBuffer = allocateSky2DTable(resolution, index, name + "_Transmittance");
+  // HACK: 4 here is constant for rendering at quarter res. Tweakable.
+  r.colorBuffer = allocateSky2DTable(resolution/4, index, name + "_Color");
+  r.transmittanceBuffer = allocateSky2DTable(resolution/4, index, name + "_Transmittance");
   return r;
 }
 
@@ -952,6 +953,8 @@ private void RenderCloudsCompositePass(BuiltinSkyParameters builtinParams, bool 
     RenderTargetIdentifier[] outputs = new RenderTargetIdentifier[] {
       new RenderTargetIdentifier(currTex.colorBuffer),
       new RenderTargetIdentifier(currTex.transmittanceBuffer)};
+
+    /* Render. */
     CoreUtils.DrawFullScreen(builtinParams.commandBuffer, m_skyMaterial,
         outputs, m_PropertyBlock, m_CompositeFullscreenCloudsID);
   }

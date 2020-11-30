@@ -400,12 +400,12 @@ public static CloudTextureResolution cloudQualityToCloudTextureResolution(CloudT
           return new CloudTextureResolution() {
             dimension = dimension,
             quality = quality,
-            Coverage = 256,
-            Base = 128,
-            Structure = 128,
-            Detail = 64,
-            BaseWarp = 128,
-            DetailWarp = 64
+            Coverage = 128,
+            Base = 64,
+            Structure = 64,
+            Detail = 32,
+            BaseWarp = 64,
+            DetailWarp = 32
           };
         case CloudTextureQuality.Low:
           return new CloudTextureResolution() {
@@ -415,18 +415,18 @@ public static CloudTextureResolution cloudQualityToCloudTextureResolution(CloudT
             Base = 128,
             Structure = 128,
             Detail = 64,
-            BaseWarp = 128,
-            DetailWarp = 64
+            BaseWarp = 64,
+            DetailWarp = 32
           };
         case CloudTextureQuality.Medium:
           return new CloudTextureResolution() {
             dimension = dimension,
             quality = quality,
-            Coverage = 256,
-            Base = 128,
+            Coverage = 512,
+            Base = 256,
             Structure = 128,
             Detail = 64,
-            BaseWarp = 128,
+            BaseWarp = 64,
             DetailWarp = 64
           };
         case CloudTextureQuality.High:
@@ -435,8 +435,8 @@ public static CloudTextureResolution cloudQualityToCloudTextureResolution(CloudT
             quality = quality,
             Coverage = 1024,
             Base = 256,
-            Structure = 256,
-            Detail = 256,
+            Structure = 128,
+            Detail = 64,
             BaseWarp = 128,
             DetailWarp = 64
           };
@@ -447,8 +447,8 @@ public static CloudTextureResolution cloudQualityToCloudTextureResolution(CloudT
             Coverage = 1024,
             Base = 256,
             Structure = 256,
-            Detail = 256,
-            BaseWarp = 128,
+            Detail = 128,
+            BaseWarp = 256,
             DetailWarp = 64
           };
         case CloudTextureQuality.RippingThroughTheMetaverse:
@@ -456,22 +456,22 @@ public static CloudTextureResolution cloudQualityToCloudTextureResolution(CloudT
             dimension = dimension,
             quality = quality,
             Coverage = 1024,
-            Base = 256,
+            Base = 512,
             Structure = 256,
-            Detail = 256,
-            BaseWarp = 128,
+            Detail = 128,
+            BaseWarp = 256,
             DetailWarp = 64
           };
         default:
           return new CloudTextureResolution() {
             dimension = dimension,
             quality = quality,
-            Coverage = 256,
-            Base = 128,
-            Structure = 128,
-            Detail = 64,
-            BaseWarp = 128,
-            DetailWarp = 64
+            Coverage = 128,
+            Base = 64,
+            Structure = 64,
+            Detail = 32,
+            BaseWarp = 64,
+            DetailWarp = 32
           };
       }
   }

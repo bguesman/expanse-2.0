@@ -139,6 +139,16 @@ CloudShadingResult shadeCloudLayer2D(float3 O, float3 d, ICloudGeometry geometry
 float3 lightCloudLayer3D(float3 p, float3 d, ICloudGeometry geometry,
   float3 lightingTransmittance, float3 totalLightingTransmittance, int i) {
   float3 cumulativeLighting = float3(0, 0, 0);
+  /* Precompute parameters that are light independent. */
+  float loddedDensity = takeMediaSample3DHighLOD(p, geometry, 1);
+  float height = geometry.heightGradient(p);
+  float verticalInScatterProbability = computeVerticalInScatterProbability(height,
+    _cloudVerticalProbability.xy, _cloudVerticalProbability.z);
+  float depthInScatterProbability = computeDepthInScatterProbability(loddedDensity, height,
+    _cloudDepthProbabilityHeightStrength.xy, _cloudDepthProbabilityHeightStrength.zw,
+    _cloudDepthProbabilityDensityMultiplier, _cloudDepthProbabilityBias);
+  float inScatterProbability = verticalInScatterProbability * depthInScatterProbability;
+
   /* Loop over all celestial bodies. */
   for (int l = 0; l < _numActiveBodies; l++) {
     float3 L = _bodyDirection[l];
@@ -177,20 +187,14 @@ float3 lightCloudLayer3D(float3 p, float3 d, ICloudGeometry geometry,
       false, _resT.y);
     lighting *= exp(sampleSkyTTextureRaw(lightTransmittanceCoord));
 
-    /* Next, we attenuate according to the cloud's phase function. */
+    /* Next, we attenuate according to the cloud's phase function. TODO: compute
+     * just once? Doesn't seem to make much of an efficiency difference. */
     float dot_L_d = dot(L, d);
     lighting *= cloudPhaseFunction(dot_L_d, _cloudAnisotropy, _cloudSilverIntensity, _cloudSilverSpread);
 
     /* In order to account for in-scattering probability, we use the lodded
-     * density hack proposed by Andrew Schneider in his Nubis system. TODO:
-     * move this outside loop, or even outside the function? */
-    float loddedDensity = takeMediaSample3DHighLOD(p, geometry, 1);
-    float height = geometry.heightGradient(p);
-    lighting *= computeVerticalInScatterProbability(height,
-      _cloudVerticalProbability.xy, _cloudVerticalProbability.z);
-    lighting *= computeDepthInScatterProbability(loddedDensity, height,
-      _cloudDepthProbabilityHeightStrength.xy, _cloudDepthProbabilityHeightStrength.zw,
-      _cloudDepthProbabilityDensityMultiplier, _cloudDepthProbabilityBias);
+     * density hack proposed by Andrew Schneider in his Nubis system. */
+    lighting *= inScatterProbability;
 
     /* If we are permitted, take a few samples at increasing mip levels to
      * model self-shadowing. */
@@ -248,9 +252,11 @@ CloudShadingResult raymarchCloudLayer3D(float3 start, float3 d, float t,
   int samplesTaken = 0;
   int consecutiveZeroSamples = 0;
   float3 totalLightingTransmittance = float3(1, 1, 1);
+  float monochromeTransmittance = 1;
   float summedMonochromeTransmittance = 0;
+  float blueNoiseOffset = getBlueNoiseOffset();
 
-  while (averageFloat3(result.transmittance) > _cloudTransmittanceZeroThreshold
+  while (monochromeTransmittance > _cloudTransmittanceZeroThreshold
     && tMarched < t && samplesTaken < _cloudMaxNumSamples) {
 
     if (marchCoarse) {
@@ -270,7 +276,7 @@ CloudShadingResult raymarchCloudLayer3D(float3 start, float3 d, float t,
 
     /* Take a detailed sample. */
     float ds = _cloudDetailStepSize * t;
-    float3 p = start + d * (tMarched + getBlueNoiseOffset() * ds);
+    float3 p = start + d * (tMarched + blueNoiseOffset * ds);
     float mediaSample = takeMediaSample3DHighLOD(p, geometry);
 
     /* If it's zero, skip. If it's been zero for a while, switch back to
@@ -284,13 +290,13 @@ CloudShadingResult raymarchCloudLayer3D(float3 start, float3 d, float t,
     }
 
     // TODO: seems important to have this here to avoid splotchiness. If
-    // we comput here though, we should pass thru to lighting calculation.
+    // we compute here though, we should pass thru to lighting calculation.
     float height = geometry.heightGradient(p);
     mediaSample *= computeDepthInScatterProbability(mediaSample, height,
       _cloudDepthProbabilityHeightStrength.xy, _cloudDepthProbabilityHeightStrength.zw,
       _cloudDepthProbabilityDensityMultiplier, _cloudDepthProbabilityBias);
-    // mediaSample *= computeVerticalInScatterProbability(height,
-    //     _cloudVerticalProbability.xy, _cloudVerticalProbability.z);
+    mediaSample *= computeVerticalInScatterProbability(height,
+        _cloudVerticalProbability.xy, _cloudVerticalProbability.z);
 
     /* Compute transmittance---including a modified transmittance used
      * in the lighting calculation to simulate multiple scattering. */
@@ -308,7 +314,7 @@ CloudShadingResult raymarchCloudLayer3D(float3 start, float3 d, float t,
     totalLightingTransmittance *= lightingTransmittance;
 
     /* Accumulate our weighted average for t_hit. */
-    float monochromeTransmittance = averageFloat3(result.transmittance);
+    monochromeTransmittance = averageFloat3(result.transmittance);
     result.t_hit += monochromeTransmittance * (tMarched + 0.5 * ds);
     summedMonochromeTransmittance += monochromeTransmittance;
 
