@@ -58,6 +58,8 @@ FUTURE FEATURE LIST:
 CLOUDS
 ///////////////
 
+--- about to do a big refactor ---
+
 TODO LIST:
   -checkbox for bodies for if they affect clouds so that we can add bodies
   without them having to light the clouds and slow things down
